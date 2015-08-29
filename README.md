@@ -11,9 +11,19 @@ go-cannon currently recognizes the following command-line parameters:
 
 ### Usage
 
-go-cannon exposes an HTTP API that can be used to deliver emails. All API methods expect parameters to be sent as JSON data in a POST request. Currently, the API consists of a single method:
+go-cannon exposes an HTTP API that can be used to deliver emails. The API expects and responds with JSON data. Currently, the API consists of the following methods:
 
-#### /v1/send
+#### GET /v1/version
+
+##### Response
+
+    {
+        "version": "x.y.z"
+    }
+
+#### POST /v1/send
+
+##### Parameters
 
 - `from` - sender email address
 - `to` - recipient email address
@@ -21,11 +31,9 @@ go-cannon exposes an HTTP API that can be used to deliver emails. All API method
 - `text` - body of the email as plain text
 - `html` - body of the email as HTML
 
-If an error occurs, a JSON object similar to the following will be returned:
+##### Response
 
-    {
-        "error": "brief error description"
-    }
+- `status` - one of `delivered` or `error`
 
 ### Planned Features
 

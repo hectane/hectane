@@ -22,6 +22,7 @@ func main() {
 		goji.Use(httpauth.SimpleBasicAuth(username, password))
 	}
 
+	goji.Get("/v1/version", Version)
 	goji.Post("/v1/send", Send)
 	goji.Serve()
 }
