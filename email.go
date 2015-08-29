@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/mail"
+	"net/textproto"
 	"strings"
 )
 
@@ -38,12 +40,39 @@ func (e Email) Host() (string, error) {
 	}
 }
 
+// Add the specified content to a multipart/alternative writer.
+func addPart(w *multipart.Writer, contentType string, content []byte) error {
+	header := make(textproto.MIMEHeader)
+	header.Add("Content-Type", contentType)
+	writer, err := w.CreatePart(header)
+	if err != nil {
+		return err
+	}
+	_, err = writer.Write(content)
+	return err
+}
+
 // Write the email to a Writer instance.
 func (e Email) Write(w io.Writer) error {
+	writer := multipart.NewWriter(w)
+
+	// Write the headers, including the content-type and boundary
 	w.Write([]byte(fmt.Sprintf("From: %s\r\n", e.From)))
 	w.Write([]byte(fmt.Sprintf("To: %s\r\n", e.To)))
 	w.Write([]byte(fmt.Sprintf("Subject: %s\r\n", e.Subject)))
-	w.Write([]byte("Content-Type: text/plain\r\n\r\n"))
-	w.Write([]byte(e.Text))
+	w.Write([]byte(fmt.Sprintf("Content-Type: multipart/alternative; boundary=\"%s\"", writer.Boundary())))
+	w.Write([]byte("\r\n"))
+
+	// Write the parts of the message
+	if err := addPart(writer, "text/plain", []byte(e.Text)); err != nil {
+		return err
+	}
+	if err := addPart(writer, "text/html", []byte(e.Html)); err != nil {
+		return err
+	}
+	if err := writer.Close(); err != nil {
+		return err
+	}
+
 	return nil
 }
