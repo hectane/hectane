@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/goji/httpauth"
 	"github.com/zenazn/goji"
+	"github.com/zenazn/goji/bind"
 
 	"crypto/tls"
 	"flag"
@@ -18,8 +19,11 @@ func main() {
 		password string
 	)
 
-	// Set the default port
-	flag.Lookup("bind").DefValue = ":8025"
+	// Set the default port, while still allowing for the usual overrides
+	if s := bind.Sniff(); s == "" {
+		flag.Lookup("bind").Value.Set(":8025")
+		flag.Lookup("bind").DefValue = ":8025"
+	}
 
 	flag.StringVar(&tlsCert, "tls-cert", "", "certificate for TLS")
 	flag.StringVar(&tlsKey, "tls-key", "", "private key for TLS")
