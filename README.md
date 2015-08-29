@@ -9,8 +9,9 @@ The goal of go-cannon is simple: to create an SMTP client that is extremely easy
 
 ### Parameters
 
-go-cannon currently recognizes the following command-line parameters:
+go-cannon currently recognizes the following command-line parameters (all are optional):
 
+- `-bind` - address to bind to (in the format `host:port`)
 - `-tls-cert` - path to TLS certificate
 - `-tls-key` - path to TLS key
 - `-username` - username for HTTP basic auth

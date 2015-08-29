@@ -18,6 +18,9 @@ func main() {
 		password string
 	)
 
+	// Set the default port
+	flag.Lookup("bind").DefValue = ":8025"
+
 	flag.StringVar(&tlsCert, "tls-cert", "", "certificate for TLS")
 	flag.StringVar(&tlsKey, "tls-key", "", "private key for TLS")
 	flag.StringVar(&username, "username", "", "username for HTTP basic auth")
