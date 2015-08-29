@@ -1,11 +1,18 @@
 ## go-cannon
 
-The goal of go-cannon is simple: to create an SMTP client that is extremely easy to configure and use. The application exposes a simple HTTP API that is used for sending emails. go-cannon takes care of looking up the MX records for the recipient and delivering the message.
+The goal of go-cannon is simple: to create an SMTP client that is extremely easy to configure and use. The application exposes a simple HTTP API that is used for sending emails.
+
+### Features
+
+- support for TLS encryption and HTTP basic auth
+- MX records for the destination host are tried in order of priority
 
 ### Parameters
 
 go-cannon currently recognizes the following command-line parameters:
 
+- `-tls-cert` - path to TLS certificate
+- `-tls-key` - path to TLS key
 - `-username` - username for HTTP basic auth
 - `-password` - password for HTTP basic auth
 
@@ -39,6 +46,5 @@ go-cannon exposes an HTTP API that can be used to deliver emails. The API expect
 
 The following features are planned for a future release:
 
-- TLS
 - file attachments
 - mail queue for when delivery fails
