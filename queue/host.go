@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/smtp"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -20,8 +21,10 @@ type Message struct {
 
 // Persistent connection to an SMTP host.
 type Host struct {
-	newMessage *util.NonBlockingChan
-	stop       chan bool
+	sync.Mutex
+	lastActivity time.Time
+	newMessage   *util.NonBlockingChan
+	stop         chan bool
 }
 
 // Attempt to find the mail servers for the specified host.
@@ -126,70 +129,75 @@ func NewHost(host string) *Host {
 		// Close the stop channel when the goroutine exits
 		defer close(h.stop)
 
-		// Enter a loop that will continue to deliver messages
-	queue:
-		for {
+		// If the sight of a "goto" statement makes you cringe, you should
+		// probably close your eyes and skip over the next section. Although
+		// what follows could in theory be written without "goto", it wouldn't
+		// be nearly as concise or easy to follow. Therefore it is used here.
 
-			// Obtain the next message for delivery
-			var msg *Message
+		var (
+			client *smtp.Client
+			msg    *Message
+		)
 
-			select {
-			case i := <-h.newMessage.Recv:
-				msg = i.(*Message)
-			case <-h.stop:
-				break queue
-			}
+		// Receive a new message from the channel
+	receive:
 
-		connect:
-			for {
+		h.Lock()
+		h.lastActivity = time.Now()
+		h.Unlock()
 
-				// Attempt to connect to a server
-				client, err := connectToMailServer(host, h.stop)
-				if client == nil {
+		select {
+		case i := <-h.newMessage.Recv:
+			msg = i.(*Message)
+		case <-h.stop:
+			goto quit
+		}
 
-					// Stop if there was no client and no error - otherwise,
-					// discard the current message and enter the loop again
-					if err == nil {
-						break queue
-					} else {
-						// TODO: log something somewhere?
-						// TODO: discard remaining messages?
-						continue queue
-					}
-				}
+		h.Lock()
+		h.lastActivity = time.Time{}
+		h.Unlock()
 
-			deliver:
-				for {
+		// Connect to the mail server (if not connected) and deliver a message
+	connect:
 
-					// Attempt to deliver the message
-					if err = deliverToMailServer(client, msg); err != nil {
+		if client == nil {
+			client, err := connectToMailServer(host, h.stop)
+			if client == nil {
 
-						// If the type of error has anything to do with a syscall,
-						// assume that the connection was broken and try
-						// reconnecting - otherwise, discard the message
-						if _, ok := err.(syscall.Errno); ok {
-							continue connect
-						} else {
-							continue queue
-						}
-					}
-
-					// If a new message comes in then send it, if 5 minutes
-					// elapses, close the connection and wait for a new message
-					select {
-					case i := <-h.newMessage.Recv:
-						msg = i.(*Message)
-						continue deliver
-					case <-time.After(5 * time.Minute):
-						client.Quit()
-						continue queue
-					case <-h.stop:
-						client.Quit()
-						break queue
-					}
+				// Stop if there was no client and no error - otherwise,
+				// discard the current message and wait for the next one
+				if err == nil {
+					goto quit
+				} else {
+					// TODO: log something somewhere?
+					// TODO: discard remaining messages?
+					goto receive
 				}
 			}
 		}
+
+		// Attempt to deliver the message and then wait for the next one
+		if err := deliverToMailServer(client, msg); err != nil {
+
+			// If the type of error has anything to do with a syscall, assume
+			// that the connection was broken and try reconnecting - otherwise,
+			// discard the message
+			if _, ok := err.(syscall.Errno); ok {
+				client = nil
+				goto connect
+			}
+		}
+
+		// Receive the next message
+		goto receive
+
+		// Close the connection (if open) and quit
+	quit:
+
+		if client != nil {
+			client.Quit()
+		}
+
 	}()
 
 	return h
@@ -200,7 +208,18 @@ func (h *Host) Deliver(msg *Message) {
 	h.newMessage.Send <- msg
 }
 
-// Abort the connection to the host..
+// Retrieve the connection idle time.
+func (h *Host) Idle() time.Duration {
+	h.Lock()
+	defer h.Unlock()
+	if h.lastActivity.IsZero() {
+		return 0
+	} else {
+		return time.Since(h.lastActivity)
+	}
+}
+
+// Close the connection to the host.
 func (h *Host) Stop() {
 
 	// Send on the channel to stop it and wait for it to be closed
