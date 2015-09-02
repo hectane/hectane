@@ -184,6 +184,7 @@ func NewHost(host string) *Host {
 						client.Quit()
 						continue queue
 					case <-h.stop:
+						client.Quit()
 						break queue
 					}
 				}
