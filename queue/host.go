@@ -130,13 +130,9 @@ func NewHost(host string) *Host {
 	queue:
 		for {
 
-			// The lifetime for client is intended to be the body of the loop
-			var (
-				client *smtp.Client
-				msg    *Message
-			)
-
 			// Obtain the next message for delivery
+			var msg *Message
+
 			select {
 			case i := <-h.newMessage.Recv:
 				msg = i.(*Message)
