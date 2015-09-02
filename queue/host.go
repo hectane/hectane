@@ -1,17 +1,27 @@
 package queue
 
 import (
+	"github.com/nathan-osman/go-cannon/util"
+
 	"errors"
 	"fmt"
 	"net"
 	"net/smtp"
+	"syscall"
 	"time"
 )
 
+// Individual message for sending to a host.
+type Message struct {
+	From    string
+	To      []string
+	Message []byte
+}
+
 // Persistent connection to an SMTP host.
 type Host struct {
-	name string
-	stop chan bool
+	newMessage *util.NonBlockingChan
+	stop       chan bool
 }
 
 // Attempt to find the mail servers for the specified host.
@@ -72,46 +82,128 @@ func connectToMailServer(host string, stop chan bool) (*smtp.Client, error) {
 }
 
 // Attempt to deliver the specified message to the server.
-func deliverToMailServer(client *smtp.Client, from string, to []string, message []byte) error {
-	if err := client.Mail(from); err != nil {
+func deliverToMailServer(client *smtp.Client, msg *Message) error {
+
+	// Specify the sender of the message
+	if err := client.Mail(msg.From); err != nil {
 		return err
 	}
-	for _, recipient := range to {
-		if err := client.Rcpt(recipient); err != nil {
+
+	// Add each of the recipients
+	for _, to := range msg.To {
+		if err := client.Rcpt(to); err != nil {
 			return err
 		}
 	}
+
+	// Obtain a writer for writing the actual message
 	writer, err := client.Data()
 	if err != nil {
 		return err
 	}
 	defer writer.Close()
-	if _, err = writer.Write(message); err != nil {
+
+	// Write the message
+	if _, err = writer.Write(msg.Message); err != nil {
 		return err
 	}
+
 	return nil
 }
 
 // Create a new host connection.
 func NewHost(host string) *Host {
 
-	// Create the host, including the channel used for stopping it
+	// Create the host, including the channel used for delivering new messages
 	h := &Host{
-		name: host,
-		stop: make(chan bool),
+		newMessage: util.NewNonBlockingChan(),
+		stop:       make(chan bool),
 	}
 
-	//...
+	// Start a goroutine to manage the lifecycle of the host connection
 	go func() {
 
 		// Close the stop channel when the goroutine exits
 		defer close(h.stop)
+
+		// Enter a loop that will continue to deliver messages
+	queue:
+		for {
+
+			// The lifetime for client is intended to be the body of the loop
+			var (
+				client *smtp.Client
+				msg    *Message
+			)
+
+			// Obtain the next message for delivery
+			select {
+			case i := <-h.newMessage.Recv:
+				msg = i.(*Message)
+			case <-h.stop:
+				break queue
+			}
+
+		connect:
+			for {
+
+				// Attempt to connect to a server
+				client, err := connectToMailServer(host, h.stop)
+				if client == nil {
+
+					// Stop if there was no client and no error - otherwise,
+					// discard the current message and enter the loop again
+					if err == nil {
+						break queue
+					} else {
+						// TODO: log something somewhere?
+						// TODO: discard remaining messages?
+						continue queue
+					}
+				}
+
+			deliver:
+				for {
+
+					// Attempt to deliver the message
+					if err = deliverToMailServer(client, msg); err != nil {
+
+						// If the type of error has anything to do with a syscall,
+						// assume that the connection was broken and try
+						// reconnecting - otherwise, discard the message
+						if _, ok := err.(syscall.Errno); ok {
+							continue connect
+						} else {
+							continue queue
+						}
+					}
+
+					// If a new message comes in then send it, if 5 minutes
+					// elapses, close the connection and wait for a new message
+					select {
+					case i := <-h.newMessage.Recv:
+						msg = i.(*Message)
+						continue deliver
+					case <-time.After(5 * time.Minute):
+						client.Quit()
+						continue queue
+					case <-h.stop:
+						break queue
+					}
+				}
+			}
+		}
 	}()
 
 	return h
 }
 
-// Abort the connection.
+// Attempt to deliver a message to the host.
+func (h *Host) Deliver(msg *Message) {
+	h.newMessage.Send <- msg
+}
+
+// Abort the connection to the host..
 func (h *Host) Stop() {
 
 	// Send on the channel to stop it and wait for it to be closed
