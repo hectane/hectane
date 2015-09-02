@@ -10,7 +10,8 @@ import (
 
 // Persistent connection to an SMTP host.
 type Host struct {
-	// TODO
+	name string
+	stop chan bool
 }
 
 // Attempt to find the mail servers for the specified host.
@@ -68,4 +69,52 @@ func connectToMailServer(host string, stop chan bool) (*smtp.Client, error) {
 
 	// All attempts have failed, let the caller know we tried :)
 	return nil, errors.New("unable to connect to a mail server")
+}
+
+// Attempt to deliver the specified message to the server.
+func deliverToMailServer(client *smtp.Client, from string, to []string, message []byte) error {
+	if err := client.Mail(from); err != nil {
+		return err
+	}
+	for _, recipient := range to {
+		if err := client.Rcpt(recipient); err != nil {
+			return err
+		}
+	}
+	writer, err := client.Data()
+	if err != nil {
+		return err
+	}
+	defer writer.Close()
+	if _, err = writer.Write(message); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Create a new host connection.
+func NewHost(host string) *Host {
+
+	// Create the host, including the channel used for stopping it
+	h := &Host{
+		name: host,
+		stop: make(chan bool),
+	}
+
+	//...
+	go func() {
+
+		// Close the stop channel when the goroutine exits
+		defer close(h.stop)
+	}()
+
+	return h
+}
+
+// Abort the connection.
+func (h *Host) Stop() {
+
+	// Send on the channel to stop it and wait for it to be closed
+	h.stop <- true
+	<-h.stop
 }
