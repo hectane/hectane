@@ -14,6 +14,7 @@ import (
 
 // Individual message for sending to a host.
 type Message struct {
+	Host    string
 	From    string
 	To      []string
 	Message []byte
@@ -142,6 +143,9 @@ func NewHost(host string) *Host {
 		// Receive a new message from the channel
 	receive:
 
+		// The connection (if one exists) is considered idle while waiting for
+		// a new message to be received for delivery
+
 		h.Lock()
 		h.lastActivity = time.Now()
 		h.Unlock()
@@ -197,7 +201,6 @@ func NewHost(host string) *Host {
 		if client != nil {
 			client.Quit()
 		}
-
 	}()
 
 	return h
