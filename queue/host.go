@@ -158,7 +158,8 @@ func NewHost(host string) *Host {
 	connect:
 
 		if client == nil {
-			client, err := connectToMailServer(host, h.stop)
+			var err error
+			client, err = connectToMailServer(host, h.stop)
 			if client == nil {
 
 				// Stop if there was no client and no error - otherwise,
