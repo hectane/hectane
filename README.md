@@ -5,6 +5,7 @@ The goal of go-cannon is simple: to create an SMTP client that is extremely easy
 ### Features
 
 - support for TLS encryption and HTTP basic auth
+- mail queue that efficiently delivers emails to hosts
 - MX records for the destination host are tried in order of priority
 
 ### Parameters
@@ -34,7 +35,9 @@ go-cannon exposes an HTTP API that can be used to deliver emails. The API expect
 ##### Parameters
 
 - `from` - sender email address
-- `to` - recipient email address
+- `to` - list of recipient email addresses
+- `cc` - list of carbon copy recipients
+- `bcc` - list of blind carbon copy recipients
 - `subject` - email subject
 - `text` - body of the email as plain text
 - `html` - body of the email as HTML
@@ -48,4 +51,4 @@ go-cannon exposes an HTTP API that can be used to deliver emails. The API expect
 The following features are planned for a future release:
 
 - file attachments
-- mail queue for when delivery fails
+- persisting mail queue to disk
