@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/mail"
 	"net/textproto"
+	"os"
 	"strings"
 )
 
@@ -44,6 +45,11 @@ func createMultipartBody(text, html string) ([]byte, string) {
 	addPart(writer, "text/html", []byte(html))
 	writer.Close()
 	return buff.Bytes(), writer.Boundary()
+}
+
+// Generate a Message-ID.
+func generateMessageId(hostname string) string {
+	return fmt.Sprintf("<%s@%s>", uuid.New(), hostname)
 }
 
 // Create a message from the specified headers and data.
@@ -86,18 +92,25 @@ func groupAddressesByHost(addrs []string) (map[string][]string, error) {
 // generated for each individual host and for each BCC recipient.
 func NewEmails(from string, to, cc, bcc []string, subject string, text, html string) ([]*Email, error) {
 
+	// Retrieve the current hostname
+	hostname, err := os.Hostname()
+	if err != nil {
+		return nil, err
+	}
+
 	// Create the list of emails that will be returned, build a map of headers,
 	// and generate the message body - it will be identical for all Email
 	// instances returned
 	var (
 		emails         = make([]*Email, 0, 1)
 		body, boundary = createMultipartBody(text, html)
-		id             = uuid.New()
+		id             = generateMessageId(hostname)
 		hdrs           = map[string]string{
 			"Message-ID":   id,
 			"From":         from,
 			"To":           strings.Join(to, ","),
 			"Subject":      subject,
+			"MIME-Version": "1.0",
 			"Content-Type": fmt.Sprintf("multipart/alternative; boundary=\"%s\"", boundary),
 		}
 	)
@@ -129,7 +142,7 @@ func NewEmails(from string, to, cc, bcc []string, subject string, text, html str
 	for _, addr := range bcc {
 
 		// Reset a couple of headers
-		id = uuid.New()
+		id = generateMessageId(hostname)
 		hdrs["Message-ID"] = id
 		hdrs["Bcc"] = addr
 
