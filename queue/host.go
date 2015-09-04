@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"net/smtp"
+	"os"
 	"sync"
 	"syscall"
 	"time"
@@ -170,6 +171,13 @@ func NewHost(host string) *Host {
 					// TODO: log something somewhere?
 					// TODO: discard remaining emails?
 					goto receive
+				}
+			} else {
+
+				// Obtain the device's current hostname - and say hello
+				hostname, err := os.Hostname()
+				if err == nil {
+					client.Hello(hostname)
 				}
 			}
 		}
