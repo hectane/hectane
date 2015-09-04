@@ -10,6 +10,7 @@ import (
 	"net/textproto"
 	"os"
 	"strings"
+	"time"
 )
 
 // Individual message for sending to a host.
@@ -110,6 +111,7 @@ func NewEmails(from string, to, cc, bcc []string, subject string, text, html str
 			"From":         from,
 			"To":           strings.Join(to, ","),
 			"Subject":      subject,
+			"Date":         time.Now().Format(time.RubyDate),
 			"MIME-Version": "1.0",
 			"Content-Type": fmt.Sprintf("multipart/alternative; boundary=\"%s\"", boundary),
 		}
