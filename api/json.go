@@ -15,7 +15,7 @@ func respondWithJSON(w http.ResponseWriter, o interface{}) {
 }
 
 // Write the specified error message to the client.
-func respondWithStatus(w http.ResponseWriter, m string) {
+func respondWithError(w http.ResponseWriter, m string) {
 	respondWithJSON(w, map[string]string{
 		"error": m,
 	})
