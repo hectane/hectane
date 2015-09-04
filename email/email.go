@@ -48,22 +48,6 @@ func createMultipartBody(text, html string) ([]byte, string) {
 	return buff.Bytes(), writer.Boundary()
 }
 
-// Generate a Message-ID.
-func generateMessageId(hostname string) string {
-	return fmt.Sprintf("<%s@%s>", uuid.New(), hostname)
-}
-
-// Create a message from the specified headers and data.
-func createMessage(hdrs map[string]string, body []byte) []byte {
-	buff := &bytes.Buffer{}
-	for hdr := range hdrs {
-		buff.Write([]byte(fmt.Sprintf("%s: %s\r\n", hdr, hdrs[hdr])))
-	}
-	buff.Write([]byte("\r\n"))
-	buff.Write(body)
-	return buff.Bytes()
-}
-
 // Attempt to extract the host from the provided email address.
 func hostFromAddress(data string) (string, error) {
 	if addr, err := mail.ParseAddress(data); err != nil {
@@ -99,13 +83,14 @@ func NewEmails(from string, to, cc, bcc []string, subject string, text, html str
 		return nil, err
 	}
 
-	// Create the list of emails that will be returned, build a map of headers,
-	// and generate the message body - it will be identical for all Email
-	// instances returned
+	// Create the array of emails that will be returned, the buffer that will
+	// be used for generating the message, and each of the individual parts
+	// of the message
 	var (
 		emails         = make([]*Email, 0, 1)
+		buff           = &bytes.Buffer{}
+		id             = fmt.Sprintf("<%s@%s>", uuid.New(), hostname)
 		body, boundary = createMultipartBody(text, html)
-		id             = generateMessageId(hostname)
 		hdrs           = map[string]string{
 			"Message-ID":   id,
 			"From":         from,
@@ -117,50 +102,30 @@ func NewEmails(from string, to, cc, bcc []string, subject string, text, html str
 		}
 	)
 
-	// Add Cc addresses if any were provided
+	// If any Cc addresses were provided, add them to the headers
 	if len(cc) > 0 {
 		hdrs["Cc"] = strings.Join(cc, ",")
 	}
 
-	// The first email will be sent to all "To" and "Cc" addresses and does not
-	// contain any of the Bcc addresses
-	addrMap, err := groupAddressesByHost(append(to, cc...))
-	if err != nil {
-		return nil, err
+	// Write all of the headers followed by the body
+	for h := range hdrs {
+		buff.Write([]byte(fmt.Sprintf("%s: %s\r\n", h, hdrs[h])))
 	}
 
-	// Generate emails for each of the hosts
+	// Write the extra CRLF and body
+	buff.Write([]byte("\r\n"))
+	buff.Write(body)
+
+	// Combine the "To", "Cc", and "Bcc" addresses and group them by hostname
+	// in order to make delivery much more efficient
+	addrMap, err := groupAddressesByHost(append(append(to, cc...), bcc...))
 	for host := range addrMap {
 		emails = append(emails, &Email{
 			Id:      id,
 			Host:    host,
 			From:    from,
 			To:      addrMap[host],
-			Message: createMessage(hdrs, body),
-		})
-	}
-
-	// Generate emails for each of the Bcc addresses
-	for _, addr := range bcc {
-
-		// Reset a couple of headers
-		id = generateMessageId(hostname)
-		hdrs["Message-ID"] = id
-		hdrs["Bcc"] = addr
-
-		// Fetch the host
-		host, err := hostFromAddress(addr)
-		if err != nil {
-			return nil, err
-		}
-
-		// Add the email to the list
-		emails = append(emails, &Email{
-			Id:      id,
-			Host:    host,
-			From:    from,
-			To:      []string{addr},
-			Message: createMessage(hdrs, body),
+			Message: buff.Bytes(),
 		})
 	}
 
