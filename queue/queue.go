@@ -1,15 +1,16 @@
 package queue
 
 import (
+	"github.com/nathan-osman/go-cannon/email"
 	"github.com/nathan-osman/go-cannon/util"
 
 	"time"
 )
 
-// Mail queue managing the sending of messages to hosts.
+// Mail queue managing the sending of emails to hosts.
 type Queue struct {
-	newMessage *util.NonBlockingChan
-	stop       chan bool
+	newEmail *util.NonBlockingChan
+	stop     chan bool
 }
 
 // Create a new mail queue.
@@ -17,8 +18,8 @@ func NewQueue() *Queue {
 
 	// Create the two channels the queue will need
 	q := &Queue{
-		newMessage: util.NewNonBlockingChan(),
-		stop:       make(chan bool),
+		newEmail: util.NewNonBlockingChan(),
+		stop:     make(chan bool),
 	}
 
 	// Start a goroutine to manage the lifecycle of the queue
@@ -40,27 +41,27 @@ func NewQueue() *Queue {
 	loop:
 		for {
 			select {
-			case i := <-q.newMessage.Recv:
+			case i := <-q.newEmail.Recv:
 
-				// Convert to a Message pointer
-				msg := i.(*Message)
+				// Convert to an Email pointer
+				e := i.(*email.Email)
 
 				// Create the specified host if it doesn't exist
-				if _, ok := hosts[msg.Host]; !ok {
-					hosts[msg.Host] = NewHost(msg.Host)
+				if _, ok := hosts[e.Host]; !ok {
+					hosts[e.Host] = NewHost(e.Host)
 				}
 
 				// Deliver the message to the host
-				hosts[msg.Host].Deliver(msg)
+				hosts[e.Host].Deliver(e)
 
 			case <-ticker.C:
 
 				// Loop through all of the hosts and remove ones that have been
 				// idle for longer than 5 minutes and stops them
-				for host := range hosts {
-					if hosts[host].Idle() > 5*time.Minute {
-						hosts[host].Stop()
-						delete(hosts, host)
+				for h := range hosts {
+					if hosts[h].Idle() > 5*time.Minute {
+						hosts[h].Stop()
+						delete(hosts, h)
 					}
 				}
 
@@ -70,17 +71,17 @@ func NewQueue() *Queue {
 		}
 
 		// Stop all host queues
-		for host := range hosts {
-			hosts[host].Stop()
+		for h := range hosts {
+			hosts[h].Stop()
 		}
 	}()
 
 	return q
 }
 
-// Deliver the provided message
-func (q *Queue) Deliver(msg *Message) {
-	q.newMessage.Send <- msg
+// Deliver the provided email.
+func (q *Queue) Deliver(e *email.Email) {
+	q.newEmail.Send <- e
 }
 
 // Stop all active host queues.

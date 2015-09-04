@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"github.com/nathan-osman/go-cannon/email"
 	"github.com/nathan-osman/go-cannon/util"
 
 	"errors"
@@ -12,19 +13,11 @@ import (
 	"time"
 )
 
-// Individual message for sending to a host.
-type Message struct {
-	Host    string
-	From    string
-	To      []string
-	Message []byte
-}
-
 // Persistent connection to an SMTP host.
 type Host struct {
 	sync.Mutex
 	lastActivity time.Time
-	newMessage   *util.NonBlockingChan
+	newEmail     *util.NonBlockingChan
 	stop         chan bool
 }
 
@@ -36,8 +29,8 @@ func findMailServers(host string) []string {
 	// were found, then simply return the host that was originally provided
 	if mx, err := net.LookupMX(host); err == nil {
 		servers := make([]string, len(mx))
-		for i, record := range mx {
-			servers[i] = record.Host
+		for i, r := range mx {
+			servers[i] = r.Host
 		}
 		return servers
 	} else {
@@ -59,23 +52,23 @@ func connectToMailServer(host string, stop chan bool) (*smtp.Client, error) {
 
 		// Attempt to connect to each of the mail servers from the list in the
 		// order that was provided - return immediately if a connection is made
-		for _, server := range servers {
-			if client, err := smtp.Dial(fmt.Sprintf("%s:25", server)); err == nil {
+		for _, s := range servers {
+			if client, err := smtp.Dial(fmt.Sprintf("%s:25", s)); err == nil {
 				return client, nil
 			}
 		}
 
 		// None of the connections succeeded, so it is time to wait either for
 		// the specified timeout duration or a receive on the stop channel
-		var dur time.Duration
+		var d time.Duration
 		if i < 2 {
-			dur = 30 * time.Minute
+			d = 30 * time.Minute
 		} else {
-			dur = 2 * time.Hour
+			d = 2 * time.Hour
 		}
 
 		select {
-		case <-time.After(dur):
+		case <-time.After(d):
 		case <-stop:
 			return nil, nil
 		}
@@ -85,30 +78,30 @@ func connectToMailServer(host string, stop chan bool) (*smtp.Client, error) {
 	return nil, errors.New("unable to connect to a mail server")
 }
 
-// Attempt to deliver the specified message to the server.
-func deliverToMailServer(client *smtp.Client, msg *Message) error {
+// Attempt to deliver the specified email to the server.
+func deliverToMailServer(client *smtp.Client, e *email.Email) error {
 
-	// Specify the sender of the message
-	if err := client.Mail(msg.From); err != nil {
+	// Specify the sender of the emails
+	if err := client.Mail(e.From); err != nil {
 		return err
 	}
 
 	// Add each of the recipients
-	for _, to := range msg.To {
-		if err := client.Rcpt(to); err != nil {
+	for _, t := range e.To {
+		if err := client.Rcpt(t); err != nil {
 			return err
 		}
 	}
 
-	// Obtain a writer for writing the actual message
-	writer, err := client.Data()
+	// Obtain a writer for writing the actual email
+	w, err := client.Data()
 	if err != nil {
 		return err
 	}
-	defer writer.Close()
+	defer w.Close()
 
-	// Write the message
-	if _, err = writer.Write(msg.Message); err != nil {
+	// Write the email
+	if _, err = w.Write(e.Message); err != nil {
 		return err
 	}
 
@@ -118,10 +111,10 @@ func deliverToMailServer(client *smtp.Client, msg *Message) error {
 // Create a new host connection.
 func NewHost(host string) *Host {
 
-	// Create the host, including the channel used for delivering new messages
+	// Create the host, including the channel used for delivering new emails
 	h := &Host{
-		newMessage: util.NewNonBlockingChan(),
-		stop:       make(chan bool),
+		newEmail: util.NewNonBlockingChan(),
+		stop:     make(chan bool),
 	}
 
 	// Start a goroutine to manage the lifecycle of the host connection
@@ -137,22 +130,22 @@ func NewHost(host string) *Host {
 
 		var (
 			client *smtp.Client
-			msg    *Message
+			e      *email.Email
 		)
 
-		// Receive a new message from the channel
+		// Receive a new email from the channel
 	receive:
 
 		// The connection (if one exists) is considered idle while waiting for
-		// a new message to be received for delivery
+		// a new email to be received for delivery
 
 		h.Lock()
 		h.lastActivity = time.Now()
 		h.Unlock()
 
 		select {
-		case i := <-h.newMessage.Recv:
-			msg = i.(*Message)
+		case i := <-h.newEmail.Recv:
+			e = i.(*email.Email)
 		case <-h.stop:
 			goto quit
 		}
@@ -161,7 +154,7 @@ func NewHost(host string) *Host {
 		h.lastActivity = time.Time{}
 		h.Unlock()
 
-		// Connect to the mail server (if not connected) and deliver a message
+		// Connect to the mail server (if not connected) and deliver an email
 	connect:
 
 		if client == nil {
@@ -169,23 +162,23 @@ func NewHost(host string) *Host {
 			if client == nil {
 
 				// Stop if there was no client and no error - otherwise,
-				// discard the current message and wait for the next one
+				// discard the current email and wait for the next one
 				if err == nil {
 					goto quit
 				} else {
 					// TODO: log something somewhere?
-					// TODO: discard remaining messages?
+					// TODO: discard remaining emails?
 					goto receive
 				}
 			}
 		}
 
-		// Attempt to deliver the message and then wait for the next one
-		if err := deliverToMailServer(client, msg); err != nil {
+		// Attempt to deliver the email and then wait for the next one
+		if err := deliverToMailServer(client, e); err != nil {
 
 			// If the type of error has anything to do with a syscall, assume
 			// that the connection was broken and try reconnecting - otherwise,
-			// discard the message
+			// discard the email
 			if _, ok := err.(syscall.Errno); ok {
 				client = nil
 				goto connect
@@ -206,9 +199,9 @@ func NewHost(host string) *Host {
 	return h
 }
 
-// Attempt to deliver a message to the host.
-func (h *Host) Deliver(msg *Message) {
-	h.newMessage.Send <- msg
+// Attempt to deliver an email to the host.
+func (h *Host) Deliver(e *email.Email) {
+	h.newEmail.Send <- e
 }
 
 // Retrieve the connection idle time.
