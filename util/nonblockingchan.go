@@ -25,7 +25,7 @@ func NewNonBlockingChan() *NonBlockingChan {
 
 	// Assign the channels to the public members of the struct (which limits
 	// each of their direction)
-	nbChan := &NonBlockingChan{
+	n := &NonBlockingChan{
 		Send: send,
 		Recv: recv,
 	}
@@ -87,7 +87,7 @@ func NewNonBlockingChan() *NonBlockingChan {
 				// If an item was received, add it to the list - otherwise,
 				// make a note that the Send channel was closed
 				if ok {
-					items.PushBack(item)
+					items.PushBack(item.Interface())
 				} else {
 					sendClosed = true
 				}
@@ -98,5 +98,6 @@ func NewNonBlockingChan() *NonBlockingChan {
 			}
 		}
 	}()
-	return nbChan
+
+	return n
 }
