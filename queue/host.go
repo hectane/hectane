@@ -4,6 +4,7 @@ import (
 	"github.com/nathan-osman/go-cannon/email"
 	"github.com/nathan-osman/go-cannon/util"
 
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -55,6 +56,21 @@ func connectToMailServer(host string, stop chan bool) (*smtp.Client, error) {
 		// order that was provided - return immediately if a connection is made
 		for _, s := range servers {
 			if client, err := smtp.Dial(fmt.Sprintf("%s:25", s)); err == nil {
+
+				// Obtain the device's current hostname and say HELO
+				var hostname string
+				if hostname, err := os.Hostname(); err == nil {
+					client.Hello(hostname)
+				}
+
+				// Check for TLS and enable if possible
+				if ok, _ := client.Extension("STARTTLS"); ok {
+					if err := client.StartTLS(&tls.Config{ServerName: hostname}); err != nil {
+						continue
+					}
+				}
+
+				// Return the client
 				return client, nil
 			}
 		}
@@ -171,13 +187,6 @@ func NewHost(host string) *Host {
 					// TODO: log something somewhere?
 					// TODO: discard remaining emails?
 					goto receive
-				}
-			} else {
-
-				// Obtain the device's current hostname - and say hello
-				hostname, err := os.Hostname()
-				if err == nil {
-					client.Hello(hostname)
 				}
 			}
 		}
