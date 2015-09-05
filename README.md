@@ -44,7 +44,7 @@ go-cannon exposes an HTTP API that can be used to deliver emails. The API expect
 
 ##### Response
 
-- `status` - one of `delivered` or `error`
+The response is either an empty JSON object (indicating success) or a JSON object with an `error` key describing the problem.
 
 ### Planned Features
 
