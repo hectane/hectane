@@ -1,11 +1,13 @@
 package api
 
 import (
+	"github.com/kennygrant/sanitize"
 	"github.com/nathan-osman/go-cannon/email"
 	"github.com/nathan-osman/go-cannon/queue"
 	"github.com/zenazn/goji/web"
 
 	"encoding/json"
+	"html"
 	"net/http"
 )
 
@@ -26,6 +28,16 @@ func Send(c web.C, w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 		respondWithError(w, "malformed JSON")
 	} else {
+
+		// Ensure that if either 'text' or 'html' was not provided, its value
+		// is populated by the other field
+		if p.Html == "" {
+			p.Html = html.EscapeString(p.Text)
+		} else if p.Text == "" {
+			p.Text = sanitize.HTML(p.Html)
+		}
+
+		// Create the individual emails to send and put them into the queue
 		if emails, err := email.NewEmails(p.From, p.To, p.Cc, p.Bcc, p.Subject, p.Text, p.Html); err != nil {
 			respondWithError(w, err.Error())
 		} else {
