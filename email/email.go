@@ -4,6 +4,7 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"mime/multipart"
 	"net/mail"
@@ -130,4 +131,22 @@ func NewEmails(from string, to, cc, bcc []string, subject string, text, html str
 	}
 
 	return emails, nil
+}
+
+// Load an email from disk.
+func LoadEmail(filename string) (*Email, error) {
+
+	// Attempt to open the file
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	// Attempt to decode the JSON from the file
+	var e Email
+	if err = json.NewDecoder(f).Decode(&e); err != nil {
+		return nil, err
+	}
+
+	return &e, nil
 }
