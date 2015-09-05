@@ -10,6 +10,7 @@ import (
 	"net/mail"
 	"net/textproto"
 	"os"
+	"path"
 	"strings"
 	"time"
 )
@@ -142,11 +143,33 @@ func LoadEmail(filename string) (*Email, error) {
 		return nil, err
 	}
 
-	// Attempt to decode the JSON from the file
+	// Decode the JSON from the file
 	var e Email
 	if err = json.NewDecoder(f).Decode(&e); err != nil {
 		return nil, err
 	}
 
 	return &e, nil
+}
+
+// Save the email to the specified directory.
+func (e *Email) Save(directory string) error {
+
+	// Attempt to create the , making sure nobody else can read it
+	f, err := os.OpenFile(path.Join(directory, e.Id), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+
+	// Encode the data as JSON
+	if err = json.NewEncoder(f).Encode(e); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Delete the email from the specified directory.
+func (e *Email) Delete(directory string) error {
+	return os.Remove(path.Join(directory, e.Id))
 }
