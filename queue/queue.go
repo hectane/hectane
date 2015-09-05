@@ -4,6 +4,8 @@ import (
 	"github.com/nathan-osman/go-cannon/email"
 	"github.com/nathan-osman/go-cannon/util"
 
+	"io/ioutil"
+	"path"
 	"time"
 )
 
@@ -13,8 +15,30 @@ type Queue struct {
 	stop     chan bool
 }
 
+// Attempt to load all emails from the specified directory.
+func loadEmails(directory string) ([]*email.Email, error) {
+
+	// Create an array for storing the emails
+	emails := []*email.Email{}
+
+	// Enumerate the files in the directory
+	files, err := ioutil.ReadDir(directory)
+	if err != nil {
+		return nil, err
+	}
+
+	// Attempt to load each file and ignore ones that fail
+	for _, f := range files {
+		if e, err := email.LoadEmail(path.Join(directory, f.Name())); err == nil {
+			emails = append(emails, e)
+		}
+	}
+
+	return emails, nil
+}
+
 // Create a new mail queue.
-func NewQueue() *Queue {
+func NewQueue(directory string) *Queue {
 
 	// Create the two channels the queue will need
 	q := &Queue{
