@@ -15,35 +15,38 @@ type Queue struct {
 	stop     chan bool
 }
 
-// Attempt to load all emails from the specified directory.
-func loadEmails(directory string) ([]*email.Email, error) {
-
-	// Create an array for storing the emails
-	emails := []*email.Email{}
+// Attempt to load all emails from the specified directory and send them on the
+// specified channel..
+func loadEmails(directory string, newEmail *util.NonBlockingChan) error {
 
 	// Enumerate the files in the directory
 	files, err := ioutil.ReadDir(directory)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Attempt to load each file and ignore ones that fail
 	for _, f := range files {
 		if e, err := email.LoadEmail(path.Join(directory, f.Name())); err == nil {
-			emails = append(emails, e)
+			newEmail.Send <- e
 		}
 	}
 
-	return emails, nil
+	return nil
 }
 
 // Create a new mail queue.
-func NewQueue(directory string) *Queue {
+func NewQueue(directory string) (*Queue, error) {
 
 	// Create the two channels the queue will need
 	q := &Queue{
 		newEmail: util.NewNonBlockingChan(),
 		stop:     make(chan bool),
+	}
+
+	// Load any emails in the storage directory
+	if err := loadEmails(directory, q.newEmail); err != nil {
+		return nil, err
 	}
 
 	// Start a goroutine to manage the lifecycle of the queue
@@ -100,7 +103,7 @@ func NewQueue(directory string) *Queue {
 		}
 	}()
 
-	return q
+	return q, nil
 }
 
 // Deliver the provided email.

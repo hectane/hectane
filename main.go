@@ -31,10 +31,11 @@ func main() {
 
 	// Storage for values supplied via command-line parameters
 	var (
-		tlsCert  string
-		tlsKey   string
-		username string
-		password string
+		tlsCert   string
+		tlsKey    string
+		username  string
+		password  string
+		directory string
 	)
 
 	// Set the default port, while still allowing for the usual overrides
@@ -48,18 +49,24 @@ func main() {
 	flag.StringVar(&tlsKey, "tls-key", "", "private key for TLS")
 	flag.StringVar(&username, "username", "", "username for HTTP basic auth")
 	flag.StringVar(&password, "password", "", "password for HTTP basic auth")
+	flag.StringVar(&directory, "directory", "", "directory for the mail queue")
 	flag.Parse()
 
 	// Create the mail queue
-	q = queue.NewQueue()
+	var err error
+	q, err := queue.NewQueue(directory)
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
 	defer q.Stop()
-
-	// Add the queue middleware
-	goji.Use(queueMiddleware)
 
 	// Add the two current API methods
 	goji.Get("/v1/version", api.Version)
 	goji.Post("/v1/send", api.Send)
+
+	// Add the queue middleware
+	goji.Use(queueMiddleware)
 
 	// If username and password were provided, enable HTTP basic auth
 	if username != "" && password != "" {
