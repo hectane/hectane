@@ -127,7 +127,7 @@ func deliverToMailServer(client *smtp.Client, e *email.Email) error {
 }
 
 // Create a new host connection.
-func NewHost(host string) *Host {
+func NewHost(host, directory string) *Host {
 
 	// Create the host, including the channel used for delivering new emails
 	h := &Host{
@@ -218,6 +218,9 @@ func NewHost(host string) *Host {
 		}
 
 		log.Printf("[%s queue] email delivered", host)
+
+		// Delete the email
+		e.Delete(directory)
 
 		// Receive the next message
 		goto receive

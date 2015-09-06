@@ -79,12 +79,13 @@ func NewQueue(directory string) (*Queue, error) {
 
 				log.Println("received new email in mail queue")
 
-				// Convert to an Email pointer
+				// Convert to an Email pointer and save it to disk
 				e := i.(*email.Email)
+				e.Save(directory)
 
 				// Create the specified host if it doesn't exist
 				if _, ok := hosts[e.Host]; !ok {
-					hosts[e.Host] = NewHost(e.Host)
+					hosts[e.Host] = NewHost(e.Host, directory)
 				}
 
 				// Deliver the message to the host
