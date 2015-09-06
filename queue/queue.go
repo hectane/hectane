@@ -6,6 +6,7 @@ import (
 
 	"io/ioutil"
 	"log"
+	"os"
 	"path"
 	"time"
 )
@@ -17,8 +18,13 @@ type Queue struct {
 }
 
 // Attempt to load all emails from the specified directory and send them on the
-// specified channel..
+// specified channel.
 func loadEmails(directory string, newEmail *util.NonBlockingChan) error {
+
+	// If the directory does not exist, quit
+	if _, err := os.Stat(directory); os.IsNotExist(err) {
+		return nil
+	}
 
 	// Enumerate the files in the directory
 	files, err := ioutil.ReadDir(directory)
