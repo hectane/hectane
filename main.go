@@ -54,7 +54,7 @@ func main() {
 
 	// Create the mail queue
 	var err error
-	q, err := queue.NewQueue(directory)
+	q, err = queue.NewQueue(directory)
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
