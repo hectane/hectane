@@ -5,6 +5,7 @@ import (
 	"github.com/nathan-osman/go-cannon/util"
 
 	"io/ioutil"
+	"log"
 	"path"
 	"time"
 )
@@ -70,6 +71,8 @@ func NewQueue(directory string) (*Queue, error) {
 			select {
 			case i := <-q.newEmail.Recv:
 
+				log.Println("received new email in mail queue")
+
 				// Convert to an Email pointer
 				e := i.(*email.Email)
 
@@ -96,6 +99,8 @@ func NewQueue(directory string) (*Queue, error) {
 				break loop
 			}
 		}
+
+		log.Println("shutting down mail queue")
 
 		// Stop all host queues
 		for h := range hosts {

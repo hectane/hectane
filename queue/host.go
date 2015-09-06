@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"net/smtp"
 	"os"
@@ -162,7 +163,12 @@ func NewHost(host string) *Host {
 
 		select {
 		case i := <-h.newEmail.Recv:
+
+			log.Printf("[%s queue] received new email", host)
+
+			// Convert the item to an Email pointer
 			e = i.(*email.Email)
+
 		case <-h.stop:
 			goto quit
 		}
@@ -184,12 +190,17 @@ func NewHost(host string) *Host {
 				if err == nil {
 					goto quit
 				} else {
-					// TODO: log something somewhere?
+
+					log.Printf("[%s queue] unable to connect to host", host)
+
 					// TODO: discard remaining emails?
+
 					goto receive
 				}
 			}
 		}
+
+		log.Printf("[%s queue] connected to host")
 
 		// Attempt to deliver the email and then wait for the next one
 		if err := deliverToMailServer(client, e); err != nil {
@@ -198,16 +209,23 @@ func NewHost(host string) *Host {
 			// that the connection was broken and try reconnecting - otherwise,
 			// discard the email
 			if _, ok := err.(syscall.Errno); ok {
+
+				log.Printf("[%s queue] unable to deliver email", host)
+
 				client = nil
 				goto connect
 			}
 		}
+
+		log.Printf("[%s queue] email delivered", host)
 
 		// Receive the next message
 		goto receive
 
 		// Close the connection (if open) and quit
 	quit:
+
+		log.Printf("[%s queue] shutting down queue", host)
 
 		if client != nil {
 			client.Quit()
