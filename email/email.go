@@ -91,10 +91,10 @@ func NewEmails(from string, to, cc, bcc []string, subject string, text, html str
 	var (
 		emails         = make([]*Email, 0, 1)
 		buff           = &bytes.Buffer{}
-		id             = fmt.Sprintf("<%s@%s>", uuid.New(), hostname)
+		id             = uuid.New()
 		body, boundary = createMultipartBody(text, html)
 		hdrs           = map[string]string{
-			"Message-ID":   id,
+			"Message-ID":   fmt.Sprintf("<%s@%s>", id, hostname),
 			"From":         from,
 			"To":           strings.Join(to, ","),
 			"Subject":      subject,
