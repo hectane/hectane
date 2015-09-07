@@ -13,120 +13,129 @@ import (
 
 // Mail queue managing the sending of emails to hosts.
 type Queue struct {
-	newEmail *util.NonBlockingChan
-	stop     chan bool
+	directory string
+	hosts     map[string]*Host
+	newEmail  *util.NonBlockingChan
+	stop      chan bool
 }
 
-// Attempt to load all emails from the specified directory and send them on the
-// specified channel.
-func loadEmails(directory string, newEmail *util.NonBlockingChan) error {
-
-	// If the directory does not exist, quit
-	if _, err := os.Stat(directory); os.IsNotExist(err) {
-		return nil
-	}
+// Load all emails in the storage directory.
+func (q *Queue) loadEmails() error {
 
 	// Enumerate the files in the directory
-	files, err := ioutil.ReadDir(directory)
+	files, err := ioutil.ReadDir(q.directory)
 	if err != nil {
 		return err
 	}
 
 	// Attempt to load each file and ignore ones that fail
 	for _, f := range files {
-		if e, err := email.LoadEmail(path.Join(directory, f.Name())); err == nil {
-			newEmail.Send <- e
+		if e, err := email.LoadEmail(path.Join(q.directory, f.Name())); err == nil {
+			q.newEmail.Send <- e
 		}
 	}
 
 	return nil
 }
 
+// Ensure the storage directory exists and load any emails in the directory.
+func (q *Queue) prepareStorage() error {
+
+	// If the directory exists, load the emails contained in it - otherwise,
+	// attempt to create the directory
+	if _, err := os.Stat(q.directory); err == nil {
+		return q.loadEmails()
+	} else {
+		return os.MkdirAll(q.directory, 0755)
+	}
+}
+
+// Deliver the specified email to the appropriate host queue.
+func (q *Queue) deliverEmail(e *email.Email) {
+
+	log.Printf("delivering email to %s queue", e.Host)
+
+	// Save the email to the storage directory
+	e.Save(q.directory)
+
+	// Create the specified host if it doesn't exist
+	if _, ok := q.hosts[e.Host]; !ok {
+		q.hosts[e.Host] = NewHost(e.Host, q.directory)
+	}
+
+	// Deliver the message to the host
+	q.hosts[e.Host].Deliver(e)
+}
+
+// Check for inactive host queues and shut them down.
+func (q *Queue) checkForInactiveQueues() {
+	for h := range q.hosts {
+		if q.hosts[h].Idle() > 5*time.Minute {
+			q.hosts[h].Stop()
+			delete(q.hosts, h)
+		}
+	}
+}
+
+// Receive new emails and deliver them to the specified host queue.
+func (q *Queue) run() {
+
+	// Close the stop channel when the goroutine exits
+	defer close(q.stop)
+
+	// Create a ticker to periodically check for inactive hosts
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	// Loop to wait for (1) a new email (2) inactive timer (3) stop request
+loop:
+	for {
+		select {
+		case i := <-q.newEmail.Recv:
+			q.deliverEmail(i.(*email.Email))
+		case <-ticker.C:
+			q.checkForInactiveQueues()
+		case <-q.stop:
+			break loop
+		}
+	}
+
+	log.Println("shutting down host queues")
+
+	// Stop all host queues
+	for h := range q.hosts {
+		q.hosts[h].Stop()
+	}
+}
+
 // Create a new mail queue.
 func NewQueue(directory string) (*Queue, error) {
 
-	// Create the two channels the queue will need
 	q := &Queue{
-		newEmail: util.NewNonBlockingChan(),
-		stop:     make(chan bool),
+		directory: directory,
+		hosts:     make(map[string]*Host),
+		newEmail:  util.NewNonBlockingChan(),
+		stop:      make(chan bool),
 	}
 
-	// Load any emails in the storage directory
-	if err := loadEmails(directory, q.newEmail); err != nil {
+	// Prepare the storage directory
+	if err := q.prepareStorage(); err != nil {
 		return nil, err
 	}
 
 	// Start a goroutine to manage the lifecycle of the queue
-	go func() {
-
-		// Close the stop channel when the goroutine exits
-		defer close(q.stop)
-
-		// Create a map of hosts and a ticker for freeing up unused hosts
-		var (
-			hosts  = make(map[string]*Host)
-			ticker = time.NewTicker(5 * time.Minute)
-		)
-
-		// Stop the ticker when the goroutine exits
-		defer ticker.Stop()
-
-		// Main "loop" of the queue
-	loop:
-		for {
-			select {
-			case i := <-q.newEmail.Recv:
-
-				log.Println("received new email in mail queue")
-
-				// Convert to an Email pointer and save it to disk
-				e := i.(*email.Email)
-				e.Save(directory)
-
-				// Create the specified host if it doesn't exist
-				if _, ok := hosts[e.Host]; !ok {
-					hosts[e.Host] = NewHost(e.Host, directory)
-				}
-
-				// Deliver the message to the host
-				hosts[e.Host].Deliver(e)
-
-			case <-ticker.C:
-
-				// Loop through all of the hosts and remove ones that have been
-				// idle for longer than 5 minutes and stops them
-				for h := range hosts {
-					if hosts[h].Idle() > 5*time.Minute {
-						hosts[h].Stop()
-						delete(hosts, h)
-					}
-				}
-
-			case <-q.stop:
-				break loop
-			}
-		}
-
-		log.Println("shutting down mail queue")
-
-		// Stop all host queues
-		for h := range hosts {
-			hosts[h].Stop()
-		}
-	}()
+	go q.run()
 
 	return q, nil
 }
 
-// Deliver the provided email.
+// Deliver the specified email to the appropriate host queue.
 func (q *Queue) Deliver(e *email.Email) {
 	q.newEmail.Send <- e
 }
 
 // Stop all active host queues.
 func (q *Queue) Stop() {
-
-	// Send on the channel to stop it and wait for it to be closed
 	q.stop <- true
 	<-q.stop
 }
