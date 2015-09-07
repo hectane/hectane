@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/goji/httpauth"
+	"github.com/mitchellh/go-homedir"
 	"github.com/nathan-osman/go-cannon/api"
 	"github.com/nathan-osman/go-cannon/queue"
 	"github.com/zenazn/goji"
@@ -13,6 +14,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 )
 
 // Global mail queue exposed to the API methods.
@@ -44,16 +46,23 @@ func main() {
 		flag.Lookup("bind").DefValue = ":8025"
 	}
 
+	// Obtain the user's home directory
+	home, err := homedir.Dir()
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+	directory = path.Join(home, ".go-cannon")
+
 	// Add command-line flags for each of the options and then parse them
 	flag.StringVar(&tlsCert, "tls-cert", "", "certificate for TLS")
 	flag.StringVar(&tlsKey, "tls-key", "", "private key for TLS")
 	flag.StringVar(&username, "username", "", "username for HTTP basic auth")
 	flag.StringVar(&password, "password", "", "password for HTTP basic auth")
-	flag.StringVar(&directory, "directory", "", "directory for the mail queue")
+	flag.StringVar(&directory, "directory", directory, "directory for the mail queue")
 	flag.Parse()
 
 	// Create the mail queue
-	var err error
 	q, err = queue.NewQueue(directory)
 	if err != nil {
 		log.Println(err)
