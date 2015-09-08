@@ -119,6 +119,8 @@ func (h *Host) connectToMailServer() (*smtp.Client, error) {
 		for _, s := range servers {
 			if c, err := h.tryMailServer(s); err == nil {
 				return c, nil
+			} else {
+				h.log(fmt.Sprintf("unable to connect to %s", s))
 			}
 		}
 
