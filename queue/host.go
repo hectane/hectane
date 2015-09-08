@@ -90,7 +90,7 @@ func (h *Host) tryMailServer(server string) (*smtp.Client, error) {
 		// If the server advertises TLS, attempt to use it - if the server
 		// advertises TLS but it doesn't work, that's an error
 		if ok, _ := c.Extension("STARTTLS"); ok {
-			if err := c.StartTLS(&tls.Config{}); err != nil {
+			if err := c.StartTLS(&tls.Config{ServerName: server}); err != nil {
 				return nil, err
 			}
 		}
@@ -233,6 +233,7 @@ func (h *Host) run() {
 
 		// Delete the email
 		e.Delete(h.directory)
+		e = nil
 	}
 
 	// Close the connection if it is still open

@@ -2,6 +2,7 @@ package util
 
 import (
 	"net"
+	"strings"
 )
 
 // Attempt to find the mail servers for the specified host.
@@ -13,7 +14,7 @@ func FindMailServers(host string) []string {
 	if mx, err := net.LookupMX(host); err == nil {
 		servers := make([]string, len(mx))
 		for i, r := range mx {
-			servers[i] = r.Host
+			servers[i] = strings.TrimSuffix(r.Host, ".")
 		}
 		return servers
 	} else {
