@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net"
 	"net/smtp"
 	"os"
 	"sync"
@@ -24,23 +23,6 @@ type Host struct {
 	lastActivity time.Time
 	newEmail     *util.NonBlockingChan
 	stop         chan bool
-}
-
-// Attempt to find the mail servers for the specified host.
-func findMailServers(host string) []string {
-
-	// First check for MX records - if one or more were found, convert the
-	// records into a list of strings (already sorted by priority) - if none
-	// were found, then simply return the host that was originally provided
-	if mx, err := net.LookupMX(host); err == nil {
-		servers := make([]string, len(mx))
-		for i, r := range mx {
-			servers[i] = r.Host
-		}
-		return servers
-	} else {
-		return []string{host}
-	}
 }
 
 // Log the specified message.
@@ -125,7 +107,7 @@ func (h *Host) tryMailServer(server string) (*smtp.Client, error) {
 func (h *Host) connectToMailServer() (*smtp.Client, error) {
 
 	// Obtain the list of mail servers to try
-	servers := findMailServers(h.host)
+	servers := util.FindMailServers(h.host)
 
 	// RFC 5321 (4.5.4) describes the process for retrying connections to a
 	// mail server after failure. The recommended strategy is to retry twice
