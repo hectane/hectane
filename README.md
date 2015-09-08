@@ -18,6 +18,7 @@ go-cannon currently recognizes the following command-line parameters (all are op
 - `-tls-key` - path to TLS key
 - `-username` - username for HTTP basic auth
 - `-password` - password for HTTP basic auth
+- `-directory` - storage location for emails awaiting delivery
 
 ### Usage
 
