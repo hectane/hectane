@@ -19,6 +19,8 @@ import (
 // Persistent connection to an SMTP host.
 type Host struct {
 	sync.Mutex
+	host         string
+	directory    string
 	lastActivity time.Time
 	newEmail     *util.NonBlockingChan
 	stop         chan bool
@@ -41,43 +43,87 @@ func findMailServers(host string) []string {
 	}
 }
 
-// Attempt to connect to the specified host.
-func connectToMailServer(host string, stop chan bool) (*smtp.Client, error) {
+// Log the specified message.
+func (h *Host) log(msg string) {
+	log.Printf("[%s] %s", h.host, msg)
+}
+
+// Receive the next email in the queue.
+func (h *Host) receiveEmail() *email.Email {
+
+	// The host queue is considered "inactive" while waiting for new emails to
+	// arrive - record the current time before entering the select{} block so
+	// that the Idle() method can calculate the idle time
+	h.Lock()
+	h.lastActivity = time.Now()
+	h.Unlock()
+
+	// When the function exits, reset the inactive timer to 0
+	defer func() {
+		h.Lock()
+		h.lastActivity = time.Time{}
+		h.Unlock()
+	}()
+
+	// Either receive a new email or stop the queue
+	select {
+	case i := <-h.newEmail.Recv:
+		return i.(*email.Email)
+	case <-h.stop:
+		return nil
+	}
+}
+
+// Attempt to connect to the specified server.
+func (h *Host) tryMailServer(server string) (*smtp.Client, error) {
+
+	// TODO: implement method for aborting smtp.Dial()
+
+	// Attempt to establish a TCP connection to port 25
+	if c, err := smtp.Dial(fmt.Sprintf("%s:25", server)); err == nil {
+
+		// Obtain this machine's hostname and say HELO
+		if hostname, err := os.Hostname(); err == nil {
+			c.Hello(hostname)
+		}
+
+		// If the server advertises TLS, attempt to use it - if the server
+		// advertises TLS but it doesn't work, that's an error
+		if ok, _ := c.Extension("STARTTLS"); ok {
+			if err := c.StartTLS(&tls.Config{}); err != nil {
+				return nil, err
+			}
+		}
+
+		return c, nil
+
+	} else {
+		return nil, err
+	}
+}
+
+// Attempt to connect to a mail server until the timeout is reached or until
+// stopped.
+func (h *Host) connectToMailServer() (*smtp.Client, error) {
 
 	// Obtain the list of mail servers to try
-	servers := findMailServers(host)
+	servers := findMailServers(h.host)
 
 	// RFC 5321 (4.5.4) describes the process for retrying connections to a
 	// mail server after failure. The recommended strategy is to retry twice
 	// with 30 minute intervals and continue at 120 minute intervals until four
-	// days have elapsed.
+	// days have elapsed. That's *roughly* what is done here.
 	for i := 0; i < 50; i++ {
 
-		// Attempt to connect to each of the mail servers from the list in the
-		// order that was provided - return immediately if a connection is made
+		// Try each of the servers in order
 		for _, s := range servers {
-			if client, err := smtp.Dial(fmt.Sprintf("%s:25", s)); err == nil {
-
-				// Obtain the device's current hostname and say HELO
-				var hostname string
-				if hostname, err := os.Hostname(); err == nil {
-					client.Hello(hostname)
-				}
-
-				// Check for TLS and enable if possible
-				if ok, _ := client.Extension("STARTTLS"); ok {
-					if err := client.StartTLS(&tls.Config{ServerName: hostname}); err != nil {
-						continue
-					}
-				}
-
-				// Return the client
-				return client, nil
+			if c, err := h.tryMailServer(s); err == nil {
+				return c, nil
 			}
 		}
 
-		// None of the connections succeeded, so it is time to wait either for
-		// the specified timeout duration or a receive on the stop channel
+		// None of the servers could be reached - wait a few minutes before
+		// trying to connect again
 		var d time.Duration
 		if i < 2 {
 			d = 30 * time.Minute
@@ -87,7 +133,7 @@ func connectToMailServer(host string, stop chan bool) (*smtp.Client, error) {
 
 		select {
 		case <-time.After(d):
-		case <-stop:
+		case <-h.stop:
 			return nil, nil
 		}
 	}
@@ -96,23 +142,23 @@ func connectToMailServer(host string, stop chan bool) (*smtp.Client, error) {
 	return nil, errors.New("unable to connect to a mail server")
 }
 
-// Attempt to deliver the specified email to the server.
-func deliverToMailServer(client *smtp.Client, e *email.Email) error {
+// Attempt to deliver the specified email to the specifed client
+func (h *Host) deliverToMailServer(c *smtp.Client, e *email.Email) error {
 
 	// Specify the sender of the emails
-	if err := client.Mail(e.From); err != nil {
+	if err := c.Mail(e.From); err != nil {
 		return err
 	}
 
 	// Add each of the recipients
 	for _, t := range e.To {
-		if err := client.Rcpt(t); err != nil {
+		if err := c.Rcpt(t); err != nil {
 			return err
 		}
 	}
 
 	// Obtain a writer for writing the actual email
-	w, err := client.Data()
+	w, err := c.Data()
 	if err != nil {
 		return err
 	}
@@ -126,114 +172,88 @@ func deliverToMailServer(client *smtp.Client, e *email.Email) error {
 	return nil
 }
 
+// Receive emails and deliver them to their recipients.
+func (h *Host) run() {
+
+	// Close the stop channel when the goroutine exits
+	defer close(h.stop)
+
+	// The client must be declared here so that it can be closed after the loop
+	var (
+		c   *smtp.Client
+		e   *email.Email
+		err error
+	)
+
+	for {
+
+		// Receive the next email from the queue if one hasn't already been
+		// retrieved
+		if e == nil {
+			h.log("waiting for email in queue...")
+			if e = h.receiveEmail(); e == nil {
+				break
+			}
+			h.log("email received in queue")
+		}
+
+		// Connect to the server if a connection does not already exist
+		if c == nil {
+			h.log("connecting to mail server...")
+			if c, err = h.connectToMailServer(); c == nil {
+				if err == nil {
+					break
+				} else {
+					h.log(err.Error())
+					continue
+				}
+			}
+			h.log("connection established")
+		}
+
+		// Attempt delivery of the message
+		if err = h.deliverToMailServer(c, e); err != nil {
+
+			// If the type of error has anything to do with a syscall, assume
+			// that the connection was broken and try reconnecting - otherwise,
+			// discard the email - either way, reset the error
+			if _, ok := err.(syscall.Errno); ok {
+				h.log("connection to server lost")
+				c, err = nil, nil
+				continue
+			} else {
+				h.log(err.Error())
+				e, err = nil, nil
+			}
+		} else {
+			h.log("email successfully delivered")
+		}
+
+		// Delete the email
+		e.Delete(h.directory)
+	}
+
+	// Close the connection if it is still open
+	if c != nil {
+		c.Quit()
+	}
+
+	h.log("shutting down queue")
+}
+
 // Create a new host connection.
 func NewHost(host, directory string) *Host {
 
 	// Create the host, including the channel used for delivering new emails
 	h := &Host{
-		newEmail: util.NewNonBlockingChan(),
-		stop:     make(chan bool),
+		host:      host,
+		directory: directory,
+		newEmail:  util.NewNonBlockingChan(),
+		stop:      make(chan bool),
 	}
 
 	// Start a goroutine to manage the lifecycle of the host connection
-	go func() {
-
-		// Close the stop channel when the goroutine exits
-		defer close(h.stop)
-
-		// If the sight of a "goto" statement makes you cringe, you should
-		// probably close your eyes and skip over the next section. Although
-		// what follows could in theory be written without "goto", it wouldn't
-		// be nearly as concise or easy to follow. Therefore it is used here.
-
-		var (
-			client *smtp.Client
-			e      *email.Email
-		)
-
-		// Receive a new email from the channel
-	receive:
-
-		// The connection (if one exists) is considered idle while waiting for
-		// a new email to be received for delivery
-
-		h.Lock()
-		h.lastActivity = time.Now()
-		h.Unlock()
-
-		select {
-		case i := <-h.newEmail.Recv:
-
-			log.Printf("[%s queue] received new email", host)
-
-			// Convert the item to an Email pointer
-			e = i.(*email.Email)
-
-		case <-h.stop:
-			goto quit
-		}
-
-		h.Lock()
-		h.lastActivity = time.Time{}
-		h.Unlock()
-
-		// Connect to the mail server (if not connected) and deliver an email
-	connect:
-
-		if client == nil {
-			var err error
-			client, err = connectToMailServer(host, h.stop)
-			if client == nil {
-
-				// Stop if there was no client and no error - otherwise,
-				// discard the current email and wait for the next one
-				if err == nil {
-					goto quit
-				} else {
-
-					log.Printf("[%s queue] unable to connect to host", host)
-
-					// TODO: discard remaining emails?
-
-					goto receive
-				}
-			}
-		}
-
-		log.Printf("[%s queue] connected to host")
-
-		// Attempt to deliver the email and then wait for the next one
-		if err := deliverToMailServer(client, e); err != nil {
-
-			// If the type of error has anything to do with a syscall, assume
-			// that the connection was broken and try reconnecting - otherwise,
-			// discard the email
-			if _, ok := err.(syscall.Errno); ok {
-
-				log.Printf("[%s queue] unable to deliver email", host)
-
-				client = nil
-				goto connect
-			}
-		}
-
-		log.Printf("[%s queue] email delivered", host)
-
-		// Delete the email
-		e.Delete(directory)
-
-		// Receive the next message
-		goto receive
-
-		// Close the connection (if open) and quit
-	quit:
-
-		log.Printf("[%s queue] shutting down queue", host)
-
-		if client != nil {
-			client.Quit()
-		}
-	}()
+	go h.run()
 
 	return h
 }
