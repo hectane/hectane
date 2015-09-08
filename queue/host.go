@@ -87,7 +87,7 @@ func (h *Host) tryMailServer(server string) (*smtp.Client, error) {
 	// goroutine so that it can be aborted immediately
 	go func() {
 		c, err = smtp.Dial(fmt.Sprintf("%s:25", server))
-		done <- true
+		close(done)
 	}()
 
 	// Wait for either the goroutine to complete or a stop request
