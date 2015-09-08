@@ -77,10 +77,28 @@ func (h *Host) receiveEmail() *email.Email {
 // Attempt to connect to the specified server.
 func (h *Host) tryMailServer(server string) (*smtp.Client, error) {
 
-	// TODO: implement method for aborting smtp.Dial()
+	var (
+		c    *smtp.Client
+		err  error
+		done = make(chan bool)
+	)
+
+	// Because Dial() is a blocking function, it must be run in a separate
+	// goroutine so that it can be aborted immediately
+	go func() {
+		c, err = smtp.Dial(fmt.Sprintf("%s:25", server))
+		done <- true
+	}()
+
+	// Wait for either the goroutine to complete or a stop request
+	select {
+	case <-done:
+	case <-h.stop:
+		return nil, nil
+	}
 
 	// Attempt to establish a TCP connection to port 25
-	if c, err := smtp.Dial(fmt.Sprintf("%s:25", server)); err == nil {
+	if err == nil {
 
 		// Obtain this machine's hostname and say HELO
 		if hostname, err := os.Hostname(); err == nil {
