@@ -1,7 +1,6 @@
 package queue
 
 import (
-	"github.com/nathan-osman/go-cannon/email"
 	"github.com/nathan-osman/go-cannon/util"
 
 	"crypto/tls"
@@ -21,21 +20,21 @@ type Host struct {
 	host         string
 	directory    string
 	lastActivity time.Time
-	newEmail     *util.NonBlockingChan
+	newMessage   *util.NonBlockingChan
 	stop         chan bool
 }
 
-// Log the specified message.
+// Log the specified message for the specified host.
 func (h *Host) log(msg string) {
 	log.Printf("[%s] %s", h.host, msg)
 }
 
-// Receive the next email in the queue.
-func (h *Host) receiveEmail() *email.Email {
+// Receive the next message in the queue.
+func (h *Host) receiveMessage() *Message {
 
-	// The host queue is considered "inactive" while waiting for new emails to
-	// arrive - record the current time before entering the select{} block so
-	// that the Idle() method can calculate the idle time
+	// The host queue is considered "inactive" while waiting for new messages
+	// to arrive - record the current time before entering the select{} block
+	// so that the Idle() method can calculate the idle time
 	h.Lock()
 	h.lastActivity = time.Now()
 	h.Unlock()
@@ -47,10 +46,10 @@ func (h *Host) receiveEmail() *email.Email {
 		h.Unlock()
 	}()
 
-	// Either receive a new email or stop the queue
+	// Either receive a new message or stop the queue
 	select {
-	case i := <-h.newEmail.Recv:
-		return i.(*email.Email)
+	case i := <-h.newMessage.Recv:
+		return i.(*Message)
 	case <-h.stop:
 		return nil
 	}
@@ -144,37 +143,37 @@ func (h *Host) connectToMailServer() (*smtp.Client, error) {
 	return nil, errors.New("unable to connect to a mail server")
 }
 
-// Attempt to deliver the specified email to the specifed client
-func (h *Host) deliverToMailServer(c *smtp.Client, e *email.Email) error {
+// Attempt to deliver the specified message to the specifed client
+func (h *Host) deliverToMailServer(c *smtp.Client, m *Message) error {
 
-	// Specify the sender of the emails
-	if err := c.Mail(e.From); err != nil {
+	// Specify the sender of the message
+	if err := c.Mail(m.From); err != nil {
 		return err
 	}
 
 	// Add each of the recipients
-	for _, t := range e.To {
+	for _, t := range m.To {
 		if err := c.Rcpt(t); err != nil {
 			return err
 		}
 	}
 
-	// Obtain a writer for writing the actual email
+	// Obtain a writer for writing the actual message
 	w, err := c.Data()
 	if err != nil {
 		return err
 	}
 	defer w.Close()
 
-	// Write the email
-	if _, err = w.Write(e.Message); err != nil {
+	// Write the message
+	if _, err = w.Write(m.Message); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// Receive emails and deliver them to their recipients.
+// Receive message and deliver them to their recipients.
 func (h *Host) run() {
 
 	// Close the stop channel when the goroutine exits
@@ -183,20 +182,20 @@ func (h *Host) run() {
 	// The client must be declared here so that it can be closed after the loop
 	var (
 		c   *smtp.Client
-		e   *email.Email
+		m   *Message
 		err error
 	)
 
 	for {
 
-		// Receive the next email from the queue if one hasn't already been
+		// Receive the next message from the queue if one hasn't already been
 		// retrieved
-		if e == nil {
-			h.log("waiting for email in queue...")
-			if e = h.receiveEmail(); e == nil {
+		if m == nil {
+			h.log("waiting for message in queue...")
+			if m = h.receiveMessage(); m == nil {
 				break
 			}
-			h.log("email received in queue")
+			h.log("message received in queue")
 		}
 
 		// Connect to the server if a connection does not already exist
@@ -214,26 +213,26 @@ func (h *Host) run() {
 		}
 
 		// Attempt delivery of the message
-		if err = h.deliverToMailServer(c, e); err != nil {
+		if err = h.deliverToMailServer(c, m); err != nil {
 
 			// If the type of error has anything to do with a syscall, assume
 			// that the connection was broken and try reconnecting - otherwise,
-			// discard the email - either way, reset the error
+			// discard the message - either way, reset the error
 			if _, ok := err.(syscall.Errno); ok {
 				h.log("connection to server lost")
 				c, err = nil, nil
 				continue
 			} else {
 				h.log(err.Error())
-				e, err = nil, nil
+				m, err = nil, nil
 			}
 		} else {
-			h.log("email successfully delivered")
+			h.log("message successfully delivered")
 		}
 
-		// Delete the email
-		e.Delete(h.directory)
-		e = nil
+		// Delete the message
+		m.Delete(h.directory)
+		m = nil
 	}
 
 	// Close the connection if it is still open
@@ -247,12 +246,12 @@ func (h *Host) run() {
 // Create a new host connection.
 func NewHost(host, directory string) *Host {
 
-	// Create the host, including the channel used for delivering new emails
+	// Create the host, including the channel used for delivering new messages
 	h := &Host{
-		host:      host,
-		directory: directory,
-		newEmail:  util.NewNonBlockingChan(),
-		stop:      make(chan bool),
+		host:       host,
+		directory:  directory,
+		newMessage: util.NewNonBlockingChan(),
+		stop:       make(chan bool),
 	}
 
 	// Start a goroutine to manage the lifecycle of the host connection
@@ -261,9 +260,9 @@ func NewHost(host, directory string) *Host {
 	return h
 }
 
-// Attempt to deliver an email to the host.
-func (h *Host) Deliver(e *email.Email) {
-	h.newEmail.Send <- e
+// Attempt to deliver a message to the host.
+func (h *Host) Deliver(m *Message) {
+	h.newMessage.Send <- m
 }
 
 // Retrieve the connection idle time.
