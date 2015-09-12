@@ -11,40 +11,36 @@ import (
 	"net/http"
 )
 
-// Parameters for the /send method.
-type sendParams struct {
-	From    string   `json:"from"`
-	To      []string `json:"to"`
-	Cc      []string `json:"cc"`
-	Bcc     []string `json:"bcc"`
-	Subject string   `json:"subject"`
-	Text    string   `json:"text"`
-	Html    string   `json:"html"`
-}
-
 // Send an email with the specified parameters.
 func Send(c web.C, w http.ResponseWriter, r *http.Request) {
-	var p sendParams
-	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-		respondWithError(w, "malformed JSON")
+
+	// Attempt to decode the parameters as an email.Email instance
+	var e email.Email
+	if err := json.NewDecoder(r.Body).Decode(&e); err != nil {
+		respondWithError(w, err.Error())
 	} else {
 
 		// Ensure that if either 'text' or 'html' was not provided, its value
 		// is populated by the other field
-		if p.Html == "" {
-			p.Html = html.EscapeString(p.Text)
-		} else if p.Text == "" {
-			p.Text = sanitize.HTML(p.Html)
+		if e.Html == "" {
+			e.Html = html.EscapeString(e.Text)
+		} else if e.Text == "" {
+			e.Text = sanitize.HTML(e.Html)
 		}
 
-		// Create the individual emails to send and put them into the queue
-		if emails, err := email.NewEmails(p.From, p.To, p.Cc, p.Bcc, p.Subject, p.Text, p.Html); err != nil {
-			respondWithError(w, err.Error())
-		} else {
-			for _, e := range emails {
-				c.Env["queue"].(*queue.Queue).Deliver(e)
+		// Convert the email into an array of messages
+		if messages, err := e.Messages(); err == nil {
+
+			// Deliver each of the messages to the queue
+			for _, m := range messages {
+				c.Env["queue"].(*queue.Queue).Deliver(m)
 			}
+
+			// Respond with an empty object
 			respondWithJSON(w, struct{}{})
+
+		} else {
+			respondWithError(w, err.Error())
 		}
 	}
 }
