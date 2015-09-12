@@ -1,6 +1,6 @@
 ## go-cannon
 
-[![MIT License](http://img.shields.io/badge/license-MIT-purple.svg?style=flat)](http://opensource.org/licenses/MIT)
+[![MIT License](http://img.shields.io/badge/license-MIT-9370d8.svg?style=flat)](http://opensource.org/licenses/MIT)
 [![GoDoc](https://godoc.org/github.com/nathan-osman/go-cannon?status.svg)](https://godoc.org/github.com/nathan-osman/go-cannon)
 [![Build Status](https://travis-ci.org/nathan-osman/go-cannon.svg)](https://travis-ci.org/nathan-osman/go-cannon)
 
