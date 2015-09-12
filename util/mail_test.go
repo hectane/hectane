@@ -30,3 +30,13 @@ func TestGroupAddressesByHost(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestHostFromAddress(t *testing.T) {
+	if v, err := HostFromAddress("a@hotmail.com"); err == nil {
+		if v != "hotmail.com" {
+			t.Fatal("host doesn't match")
+		}
+	} else {
+		t.Fatal(err)
+	}
+}
