@@ -15,5 +15,6 @@ func (e EmailHeaders) Write(w io.Writer) error {
 			return err
 		}
 	}
-	return nil
+	_, err := w.Write([]byte("\r\n"))
+	return err
 }
