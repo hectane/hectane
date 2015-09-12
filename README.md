@@ -8,6 +8,7 @@ The goal of go-cannon is simple: to create an SMTP client that is extremely easy
 
 ### Features
 
+- ability to attach files to emails
 - support for TLS encryption and HTTP basic auth
 - mail queue that efficiently delivers emails to hosts
 - emails in the queue are stored on disk until delivery
@@ -47,6 +48,11 @@ go-cannon exposes an HTTP API that can be used to deliver emails. The API expect
 - `subject` - email subject
 - `text` - body of the email as plain text
 - `html` - body of the email as HTML
+- `attachments` - a list of attachments:
+    - `filename` - filename of the attachment
+    - `content_type` - MIME type of the attachment (for example, `text/plain`)
+    - `content` - UTF-8 or base64 encoded content of the attachment
+    - `encoded` - `true` if `content` is base64 encoded
 
 ##### Response
 
