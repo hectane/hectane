@@ -1,5 +1,9 @@
 ## go-cannon
 
+[![MIT License](http://img.shields.io/badge/license-MIT-purple.svg?style=flat)](http://opensource.org/licenses/MIT)
+[![GoDoc](https://godoc.org/github.com/nathan-osman/go-cannon?status.svg)](https://godoc.org/github.com/nathan-osman/go-cannon)
+[![Build Status](https://travis-ci.org/nathan-osman/go-cannon.svg)](https://travis-ci.org/nathan-osman/go-cannon)
+
 The goal of go-cannon is simple: to create an SMTP client that is extremely easy to configure and use. The application exposes a simple HTTP API that is used for sending emails.
 
 ### Features
