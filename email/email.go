@@ -2,174 +2,129 @@ package email
 
 import (
 	"code.google.com/p/go-uuid/uuid"
+	"github.com/nathan-osman/go-cannon/queue"
+	"github.com/nathan-osman/go-cannon/util"
 
 	"bytes"
-	"encoding/json"
 	"fmt"
+	"io"
 	"mime/multipart"
-	"net/mail"
 	"net/textproto"
-	"os"
-	"path"
 	"strings"
 	"time"
 )
 
-// Individual message for sending to a host.
+// Abstract representation of an email.
 type Email struct {
-	Id      string
-	Host    string
-	From    string
-	To      []string
-	Message []byte
+	From        string       `json:"from"`
+	To          []string     `json:"to"`
+	Cc          []string     `json:"cc"`
+	Bcc         []string     `json:"bcc"`
+	Subject     string       `json:"subject"`
+	Text        string       `json:"text"`
+	Html        string       `json:"html"`
+	Attachments []Attachment `json:"attachments"`
 }
 
-// Add the specified content to a multipart/alternative writer.
-func addPart(w *multipart.Writer, contentType string, content []byte) error {
-	header := make(textproto.MIMEHeader)
-	header.Add("Content-Type", contentType)
-	writer, err := w.CreatePart(header)
+// Create a multipart body with the specified text and HTML and write it to the
+// specified writer. A temporary buffer is used to work around a cyclical
+// dependency with respect to the writer, header, and part.
+func writeMultipartBody(w *multipart.Writer, text, html string) error {
+	var (
+		buff      = &bytes.Buffer{}
+		altWriter = multipart.NewWriter(buff)
+		headers   = textproto.MIMEHeader{
+			"Content-Type": []string{
+				fmt.Sprintf("multipart/mixed; boundary=%s", altWriter.Boundary()),
+			},
+		}
+		textPart = &Attachment{
+			ContentType: "text/plain",
+			Content:     text,
+		}
+		htmlPart = &Attachment{
+			ContentType: "text/html",
+			Content:     html,
+		}
+	)
+	part, err := w.CreatePart(headers)
 	if err != nil {
 		return err
 	}
-	_, err = writer.Write(content)
+	if err := textPart.Write(altWriter); err != nil {
+		return err
+	}
+	if err := htmlPart.Write(altWriter); err != nil {
+		return err
+	}
+	if err := altWriter.Close(); err != nil {
+		return err
+	}
+	_, err = io.Copy(part, buff)
 	return err
 }
 
-// Create a multipart/alternative body with the specified data. Both the body
-// and the separator are returned. Because data is written to a bytes.Buffer,
-// it is probably safe to ignore any errors.
-func createMultipartBody(text, html string) ([]byte, string) {
+// Convert the email into an array of messages grouped by host suitable for
+// delivery to a mail queue.
+func (e *Email) Messages() ([]*queue.Message, error) {
+
 	var (
-		buff   = &bytes.Buffer{}
-		writer = multipart.NewWriter(buff)
-	)
-	addPart(writer, "text/plain", []byte(text))
-	addPart(writer, "text/html", []byte(html))
-	writer.Close()
-	return buff.Bytes(), writer.Boundary()
-}
-
-// Attempt to extract the host from the provided email address.
-func hostFromAddress(data string) (string, error) {
-	if addr, err := mail.ParseAddress(data); err != nil {
-		return "", err
-	} else {
-		return strings.Split(addr.Address, "@")[1], nil
-	}
-}
-
-// Group a list of email addresses by their host.
-func groupAddressesByHost(addrs []string) (map[string][]string, error) {
-	m := make(map[string][]string)
-	for _, addr := range addrs {
-		if host, err := hostFromAddress(addr); err != nil {
-			return nil, err
-		} else {
-			if m[host] == nil {
-				m[host] = make([]string, 0, 1)
-			}
-			m[host] = append(m[host], addr)
-		}
-	}
-	return m, nil
-}
-
-// Create an array of emails from the specified information. An email will be
-// generated for each individual host and for each BCC recipient.
-func NewEmails(from string, to, cc, bcc []string, subject string, text, html string) ([]*Email, error) {
-
-	// Retrieve the current hostname
-	hostname, err := os.Hostname()
-	if err != nil {
-		return nil, err
-	}
-
-	// Create the array of emails that will be returned, the buffer that will
-	// be used for generating the message, and each of the individual parts
-	// of the message
-	var (
-		emails         = make([]*Email, 0, 1)
-		buff           = &bytes.Buffer{}
-		id             = uuid.New()
-		body, boundary = createMultipartBody(text, html)
-		hdrs           = map[string]string{
-			"Message-ID":   fmt.Sprintf("<%s@%s>", id, hostname),
-			"From":         from,
-			"To":           strings.Join(to, ","),
-			"Subject":      subject,
+		w       = &bytes.Buffer{}
+		m       = multipart.NewWriter(w)
+		id      = uuid.New()
+		headers = EmailHeaders{
+			"Message-Id":   id,
+			"From":         e.From,
+			"To":           strings.Join(e.To, ", "),
+			"Subject":      e.Subject,
 			"Date":         time.Now().Format(time.RubyDate),
 			"MIME-Version": "1.0",
-			"Content-Type": fmt.Sprintf("multipart/alternative; boundary=\"%s\"", boundary),
+			"Content-Type": fmt.Sprintf("multipart/mixed; boundary=%s", m.Boundary()),
 		}
+		addresses = append(append(e.To, e.Cc...), e.Bcc...)
 	)
 
 	// If any Cc addresses were provided, add them to the headers
-	if len(cc) > 0 {
-		hdrs["Cc"] = strings.Join(cc, ",")
+	if len(e.Cc) > 0 {
+		headers["Cc"] = strings.Join(e.Cc, ",")
 	}
 
-	// Write all of the headers followed by the body
-	for h := range hdrs {
-		buff.Write([]byte(fmt.Sprintf("%s: %s\r\n", h, hdrs[h])))
-	}
-
-	// Write the extra CRLF and body
-	buff.Write([]byte("\r\n"))
-	buff.Write(body)
-
-	// Combine the "To", "Cc", and "Bcc" addresses and group them by hostname
-	// in order to make delivery much more efficient
-	addrMap, err := groupAddressesByHost(append(append(to, cc...), bcc...))
-	for host := range addrMap {
-		emails = append(emails, &Email{
-			Id:      id,
-			Host:    host,
-			From:    from,
-			To:      addrMap[host],
-			Message: buff.Bytes(),
-		})
-	}
-
-	return emails, nil
-}
-
-// Load an email from disk.
-func LoadEmail(filename string) (*Email, error) {
-
-	// Attempt to open the file
-	f, err := os.Open(filename)
-	if err != nil {
+	// Write the headers
+	if err := headers.Write(w); err != nil {
 		return nil, err
 	}
 
-	// Decode the JSON from the file
-	var e Email
-	if err = json.NewDecoder(f).Decode(&e); err != nil {
+	// Write the multipart body
+	if err := writeMultipartBody(m, e.Text, e.Html); err != nil {
 		return nil, err
 	}
 
-	return &e, nil
-}
-
-// Save the email to the specified directory.
-func (e *Email) Save(directory string) error {
-
-	// Attempt to create the , making sure nobody else can read it
-	f, err := os.OpenFile(path.Join(directory, e.Id), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-	if err != nil {
-		return err
+	// Write each of the attachments
+	for _, a := range e.Attachments {
+		if err := a.Write(m); err != nil {
+			return nil, err
+		}
 	}
 
-	// Encode the data as JSON
-	if err = json.NewEncoder(f).Encode(e); err != nil {
-		return err
+	// Close the message body
+	if err := m.Close(); err != nil {
+		return nil, err
 	}
 
-	return nil
-}
-
-// Delete the email from the specified directory.
-func (e *Email) Delete(directory string) error {
-	return os.Remove(path.Join(directory, e.Id))
+	// Create one message for each host
+	if addrMap, err := util.GroupAddressesByHost(addresses); err == nil {
+		messages := make([]*queue.Message, 0, 1)
+		for h, to := range addrMap {
+			messages = append(messages, &queue.Message{
+				Id:      id,
+				Host:    h,
+				From:    e.From,
+				To:      to,
+				Message: w.Bytes(),
+			})
+		}
+		return messages, nil
+	} else {
+		return nil, err
+	}
 }
