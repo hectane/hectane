@@ -35,15 +35,15 @@ func writeMultipartBody(w *multipart.Writer, text, html string) error {
 		altWriter = multipart.NewWriter(buff)
 		headers   = textproto.MIMEHeader{
 			"Content-Type": []string{
-				fmt.Sprintf("multipart/mixed; boundary=%s", altWriter.Boundary()),
+				fmt.Sprintf("multipart/mixed; boundary=\"%s\"", altWriter.Boundary()),
 			},
 		}
 		textPart = &Attachment{
-			ContentType: "text/plain",
+			ContentType: "text/plain; charset=\"utf-8\"",
 			Content:     text,
 		}
 		htmlPart = &Attachment{
-			ContentType: "text/html",
+			ContentType: "text/html; charset=\"utf-8\"",
 			Content:     html,
 		}
 	)

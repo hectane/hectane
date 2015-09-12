@@ -18,7 +18,7 @@ type Attachment struct {
 
 // Write the attachment to the specified multipart writer.
 func (a Attachment) Write(w *multipart.Writer) error {
-	var headers textproto.MIMEHeader
+	headers := make(textproto.MIMEHeader)
 	if len(a.Filename) != 0 {
 		headers.Add("Content-Type", fmt.Sprintf("%s; name=%s", a.ContentType, a.Filename))
 	} else {
@@ -33,12 +33,17 @@ func (a Attachment) Write(w *multipart.Writer) error {
 	if err != nil {
 		return err
 	}
-	writer := p
-	if !a.Encoded {
-		writer = quotedprintable.NewWriter(p)
+	if a.Encoded {
+		if _, err := p.Write([]byte(a.Content)); err != nil {
+			return err
+		}
+	} else {
+		q := quotedprintable.NewWriter(p)
+		if _, err := q.Write([]byte(a.Content)); err != nil {
+			return err
+		}
+		return q.Close()
 	}
-	if _, err := writer.Write([]byte(a.Content)); err != nil {
-		return err
-	}
+
 	return nil
 }
