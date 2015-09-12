@@ -1,9 +1,7 @@
 package email
 
 import (
-	"encoding/base64"
 	"fmt"
-	"io"
 	"mime/multipart"
 	"mime/quotedprintable"
 	"net/textproto"
@@ -35,10 +33,8 @@ func (a Attachment) Write(w *multipart.Writer) error {
 	if err != nil {
 		return err
 	}
-	var writer io.Writer
-	if a.Encoded {
-		writer = base64.NewEncoder(base64.StdEncoding, p)
-	} else {
+	writer := p
+	if !a.Encoded {
 		writer = quotedprintable.NewWriter(p)
 	}
 	if _, err := writer.Write([]byte(a.Content)); err != nil {
