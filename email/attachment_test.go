@@ -9,13 +9,12 @@ import (
 	"testing"
 )
 
-func TestWrite(t *testing.T) {
+func TestAttachmentWrite(t *testing.T) {
 	var (
-		filename        = "test.txt"
-		contentType     = "text/plain"
-		contentTypeLine = fmt.Sprintf("%s; name=%s", contentType, filename)
-		content         = "test"
-		a               = &Attachment{
+		filename    = "test.txt"
+		contentType = "text/plain"
+		content     = "test"
+		a           = &Attachment{
 			Filename:    filename,
 			ContentType: contentType,
 			Content:     content,
@@ -31,13 +30,16 @@ func TestWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 	if part, err := r.NextPart(); err == nil {
-		hdr := part.Header.Get("Content-Type")
-		if hdr != contentTypeLine {
-			t.Fatalf("%s != %s", hdr, contentTypeLine)
+		var (
+			header          = part.Header.Get("Content-Type")
+			contentTypeLine = fmt.Sprintf("%s; name=%s", contentType, filename)
+		)
+		if header != contentTypeLine {
+			t.Fatalf("%s != %s", header, contentTypeLine)
 		}
 		if data, err := ioutil.ReadAll(part); err == nil {
-			if !reflect.DeepEqual(data, []byte(content)) {
-				t.Fatalf("%s != %s", data, []byte(content))
+			if !reflect.DeepEqual(string(data), content) {
+				t.Fatalf("%s != %s", string(data), content)
 			}
 		} else {
 			t.Fatal(err)
