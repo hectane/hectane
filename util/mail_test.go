@@ -24,7 +24,7 @@ func TestGroupAddressesByHost(t *testing.T) {
 	)
 	if a, err := GroupAddressesByHost(addrList); err == nil {
 		if !reflect.DeepEqual(addrMap, a) {
-			t.Fatal("address map doesn't match")
+			t.Fatalf("%v != %v", addrMap, a)
 		}
 	} else {
 		t.Fatal(err)
@@ -32,9 +32,13 @@ func TestGroupAddressesByHost(t *testing.T) {
 }
 
 func TestHostFromAddress(t *testing.T) {
-	if v, err := HostFromAddress("a@hotmail.com"); err == nil {
-		if v != "hotmail.com" {
-			t.Fatal("host doesn't match")
+	var (
+		addr = "a@hotmail.com"
+		host = "hotmail.com"
+	)
+	if v, err := HostFromAddress(addr); err == nil {
+		if v != host {
+			t.Fatalf("%s != %s", v, host)
 		}
 	} else {
 		t.Fatal(err)
