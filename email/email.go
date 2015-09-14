@@ -73,11 +73,11 @@ func (e *Email) Messages() ([]*queue.Message, error) {
 		m       = multipart.NewWriter(w)
 		id      = uuid.New()
 		headers = EmailHeaders{
-			"Message-Id":   id,
+			"Message-Id":   fmt.Sprintf("<%s@go-cannon>", id),
 			"From":         e.From,
 			"To":           strings.Join(e.To, ", "),
 			"Subject":      e.Subject,
-			"Date":         time.Now().Format(time.RubyDate),
+			"Date":         time.Now().Format("Mon, 02 Jan 2006 15:04:05 -0700"),
 			"MIME-Version": "1.0",
 			"Content-Type": fmt.Sprintf("multipart/mixed; boundary=%s", m.Boundary()),
 		}
