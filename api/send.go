@@ -29,7 +29,7 @@ func Send(c web.C, w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Convert the email into an array of messages
-		if messages, err := e.Messages(); err == nil {
+		if messages, err := e.Messages(c.Env["directory"].(string)); err == nil {
 
 			// Deliver each of the messages to the queue
 			for _, m := range messages {

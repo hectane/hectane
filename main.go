@@ -18,12 +18,16 @@ import (
 )
 
 // Global mail queue exposed to the API methods.
-var q *queue.Queue
+var (
+	q         *queue.Queue
+	directory string
+)
 
-// Goji middleware to expose the mail queue to the API methods.
-func queueMiddleware(c *web.C, h http.Handler) http.Handler {
+// Goji middleware to expose global variables to the API methods.
+func globalVarMiddleware(c *web.C, h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		c.Env["queue"] = q
+		c.Env["directory"] = directory
 		h.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)
@@ -33,11 +37,10 @@ func main() {
 
 	// Storage for values supplied via command-line parameters
 	var (
-		tlsCert   string
-		tlsKey    string
-		username  string
-		password  string
-		directory string
+		tlsCert  string
+		tlsKey   string
+		username string
+		password string
 	)
 
 	// Set the default port, while still allowing for the usual overrides
@@ -74,8 +77,8 @@ func main() {
 	goji.Get("/v1/version", api.Version)
 	goji.Post("/v1/send", api.Send)
 
-	// Add the queue middleware
-	goji.Use(queueMiddleware)
+	// Add the global var middleware
+	goji.Use(globalVarMiddleware)
 
 	// If username and password were provided, enable HTTP basic auth
 	if username != "" && password != "" {

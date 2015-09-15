@@ -40,12 +40,9 @@ func (q *Queue) deliverMessage(m *Message) {
 
 	log.Printf("delivering message to %s queue", m.Host)
 
-	// Save the message to the storage directory
-	m.Save(q.directory)
-
 	// Create the specified host if it doesn't exist
 	if _, ok := q.hosts[m.Host]; !ok {
-		q.hosts[m.Host] = NewHost(m.Host, q.directory)
+		q.hosts[m.Host] = NewHost(m.Host)
 	}
 
 	// Deliver the message to the host

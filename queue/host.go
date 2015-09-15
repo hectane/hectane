@@ -18,7 +18,6 @@ import (
 type Host struct {
 	sync.Mutex
 	host         string
-	directory    string
 	lastActivity time.Time
 	newMessage   *util.NonBlockingChan
 	stop         chan bool
@@ -223,14 +222,14 @@ func (h *Host) run() {
 				c, err = nil, nil
 			} else {
 				h.log(err.Error())
-				m.Delete(h.directory)
+				m.Delete()
 				m, err = nil, nil
 			}
 			continue
 
 		} else {
 			h.log("message successfully delivered")
-			m.Delete(h.directory)
+			m.Delete()
 			m = nil
 		}
 	}
@@ -244,12 +243,11 @@ func (h *Host) run() {
 }
 
 // Create a new host connection.
-func NewHost(host, directory string) *Host {
+func NewHost(host string) *Host {
 
 	// Create the host, including the channel used for delivering new messages
 	h := &Host{
 		host:       host,
-		directory:  directory,
 		newMessage: util.NewNonBlockingChan(),
 		stop:       make(chan bool),
 	}

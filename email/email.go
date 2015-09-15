@@ -66,7 +66,7 @@ func writeMultipartBody(w *multipart.Writer, text, html string) error {
 
 // Convert the email into an array of messages grouped by host suitable for
 // delivery to a mail queue.
-func (e *Email) Messages() ([]*queue.Message, error) {
+func (e *Email) Messages(directory string) ([]*queue.Message, error) {
 
 	var (
 		w       = &bytes.Buffer{}
@@ -115,13 +115,11 @@ func (e *Email) Messages() ([]*queue.Message, error) {
 	if addrMap, err := util.GroupAddressesByHost(addresses); err == nil {
 		messages := make([]*queue.Message, 0, 1)
 		for h, to := range addrMap {
-			messages = append(messages, &queue.Message{
-				Id:      id,
-				Host:    h,
-				From:    e.From,
-				To:      to,
-				Message: w.Bytes(),
-			})
+			if m, err := queue.NewMessage(h, e.From, to, w.Bytes(), directory); err != nil {
+				return nil, err
+			} else {
+				messages = append(messages, m)
+			}
 		}
 		return messages, nil
 	} else {
