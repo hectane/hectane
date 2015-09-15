@@ -221,18 +221,18 @@ func (h *Host) run() {
 			if _, ok := err.(syscall.Errno); ok {
 				h.log("connection to server lost")
 				c, err = nil, nil
-				continue
 			} else {
 				h.log(err.Error())
+				m.Delete(h.directory)
 				m, err = nil, nil
 			}
+			continue
+
 		} else {
 			h.log("message successfully delivered")
+			m.Delete(h.directory)
+			m = nil
 		}
-
-		// Delete the message
-		m.Delete(h.directory)
-		m = nil
 	}
 
 	// Close the connection if it is still open
