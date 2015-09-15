@@ -1,8 +1,6 @@
 package queue
 
 import (
-	"code.google.com/p/go-uuid/uuid"
-
 	"encoding/json"
 	"fmt"
 	"io"
@@ -30,7 +28,7 @@ func (b *Body) messageBodyFilename() string {
 
 // Determine the name of the file where metadata is stored.
 func (b *Body) metadataFilename() string {
-	return fmt.Sprint("%s.json", b.messageBodyFilename())
+	return fmt.Sprintf("%s.json", b.messageBodyFilename())
 }
 
 // Update the metadata on disk.
@@ -43,10 +41,15 @@ func (b *Body) updateMetadata() error {
 }
 
 // Create a new message body from the specified reader.
-func NewBody(directory string) *Body {
-	return &Body{
+func NewBody(directory, id string) (*Body, io.WriteCloser, error) {
+	b := &Body{
+		id:        id,
 		directory: directory,
-		id:        uuid.New(),
+	}
+	if f, err := os.OpenFile(b.messageBodyFilename(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600); err != nil {
+		return nil, nil, err
+	} else {
+		return b, f, nil
 	}
 }
 
@@ -88,9 +91,4 @@ func (b *Body) Release() error {
 // Obtain an io.Reader for the message body.
 func (b *Body) Reader() (io.Reader, error) {
 	return os.Open(b.messageBodyFilename())
-}
-
-// Obtain an io.Writer for the message body.
-func (b *Body) Writer() (io.Writer, error) {
-	return os.OpenFile(b.messageBodyFilename(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 }
