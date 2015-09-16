@@ -72,7 +72,7 @@ func TestLoadBody(t *testing.T) {
 		t.Fatal(err)
 	}
 	if b, err := LoadBody(directory, id); err == nil {
-		if r, err := b.Reader(); err == nil {
+		if r, err := b.reader(); err == nil {
 			if d, err := ioutil.ReadAll(r); err == nil {
 				if !reflect.DeepEqual(d, data) {
 					t.Fatal("%v != %v", d, data)

@@ -28,7 +28,7 @@ func (b *Body) messageBodyFilename() string {
 
 // Determine the name of the file where metadata is stored.
 func (b *Body) metadataFilename() string {
-	return fmt.Sprintf("%s.json", b.messageBodyFilename())
+	return fmt.Sprintf("%s.body", b.messageBodyFilename())
 }
 
 // Update the metadata on disk.
@@ -38,6 +38,11 @@ func (b *Body) updateMetadata() error {
 		return err
 	}
 	return json.NewEncoder(f).Encode(&b.m)
+}
+
+// Obtain an io.Reader for the message body.
+func (b *Body) reader() (io.Reader, error) {
+	return os.Open(b.messageBodyFilename())
 }
 
 // Create a new message body from the specified reader.
@@ -86,9 +91,4 @@ func (b *Body) Release() error {
 	} else {
 		return b.updateMetadata()
 	}
-}
-
-// Obtain an io.Reader for the message body.
-func (b *Body) Reader() (io.Reader, error) {
-	return os.Open(b.messageBodyFilename())
 }
