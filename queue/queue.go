@@ -38,15 +38,15 @@ func (q *Queue) prepareStorage() error {
 // Deliver the specified message to the appropriate host queue.
 func (q *Queue) deliverMessage(m *Message) {
 
-	log.Printf("delivering message to %s queue", m.Host)
+	log.Printf("delivering message to %s queue", m.m.Host)
 
 	// Create the specified host if it doesn't exist
-	if _, ok := q.hosts[m.Host]; !ok {
-		q.hosts[m.Host] = NewHost(m.Host)
+	if _, ok := q.hosts[m.m.Host]; !ok {
+		q.hosts[m.m.Host] = NewHost(m.m.Host)
 	}
 
 	// Deliver the message to the host
-	q.hosts[m.Host].Deliver(m)
+	q.hosts[m.m.Host].Deliver(m)
 }
 
 // Check for inactive host queues and shut them down.

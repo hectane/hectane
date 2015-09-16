@@ -5,105 +5,145 @@ import (
 
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/smtp"
 	"os"
 	"path"
 	"strings"
 )
 
-// Message prepared for delivery to a specific host. When persisted to disk,
-// the message metadata is stored separately from the message body.
+// Message metadata.
+type messageMetadata struct {
+	Host  string
+	From  string
+	To    []string
+	Tries int
+	Body  string
+}
+
+// Message prepared for delivery to a specific host.
 type Message struct {
-	Id        string `json:"-"`
-	Host      string
-	From      string
-	To        []string
-	Tries     int
-	Message   []byte `json:"-"`
-	Directory string `json:"-"`
+	directory string
+	filename  string
+	m         messageMetadata
 }
 
-// Create a new message with a freshly generated ID.
-func NewMessage(host, from string, to []string, message []byte, directory string) (*Message, error) {
-	m := &Message{
-		Id:        uuid.New(),
-		Host:      host,
-		From:      from,
-		To:        to,
-		Message:   message,
-		Directory: directory,
-	}
-	if err := ioutil.WriteFile(m.bodyFilename(), message, 0600); err != nil {
-		return nil, err
-	}
-	if err := m.Update(); err != nil {
-		return nil, err
-	}
-	return m, nil
+// Determine the name of the file where metadata is stored.
+func (m *Message) metadataFilename() string {
+	return path.Join(m.directory, m.filename)
 }
 
-// Load the specified message from the directory with the specified ID.
-func LoadMessage(directory, id string) (*Message, error) {
-	m := &Message{
-		Id:        id,
-		Directory: directory,
+// Update the metadata on disk.
+func (m *Message) updateMetadata() error {
+
+	f, err := os.OpenFile(m.metadataFilename(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
 	}
-	if f, err := os.Open(m.metadataFilename()); err == nil {
-		if err = json.NewDecoder(f).Decode(m); err != nil {
+	return json.NewEncoder(f).Encode(&m.m)
+}
+
+// Create a new message with the specified information.
+func NewMessage(directory, host, from string, to []string, body string) (*Message, error) {
+	m := &Message{
+		directory: directory,
+		filename:  fmt.Sprintf("%s.msg", uuid.New()),
+		m: messageMetadata{
+			Host: host,
+			From: from,
+			To:   to,
+			Body: body,
+		},
+	}
+	if b, err := LoadBody(directory, body); err == nil {
+		if err := b.Add(); err != nil {
 			return nil, err
 		}
 	} else {
 		return nil, err
 	}
-	if message, err := ioutil.ReadFile(m.bodyFilename()); err != nil {
+	if err := m.updateMetadata(); err != nil {
 		return nil, err
-	} else {
-		m.Message = message
 	}
 	return m, nil
 }
 
-// Load all messages from the specified directory. If either the metadata of a
-// message or the message body could not be loaded, it will be skipped.
-func LoadMessages(directory string) ([]*Message, error) {
-	files, err := ioutil.ReadDir(directory)
-	if err != nil {
+// Load an existing message from the specified location.
+func LoadMessage(directory, filename string) (*Message, error) {
+	m := &Message{
+		directory: directory,
+		filename:  filename,
+	}
+	if f, err := os.Open(m.metadataFilename()); err == nil {
+		if err = json.NewDecoder(f).Decode(&m.m); err != nil {
+			return nil, err
+		}
+	} else {
 		return nil, err
 	}
-	messages := make([]*Message, 0)
-	for _, f := range files {
-		if strings.HasSuffix(f.Name(), ".json") {
-			if m, err := LoadMessage(directory, f.Name()); err == nil {
-				messages = append(messages, m)
+	return m, nil
+}
+
+// Load all messages from the specified directory. If the metadata of a message
+// could not be loaded, it will be skipped.
+func LoadMessages(directory string) ([]*Message, error) {
+	if files, err := ioutil.ReadDir(directory); err == nil {
+		messages := make([]*Message, 0)
+		for _, f := range files {
+			if strings.HasSuffix(f.Name(), ".msg") {
+				if m, err := LoadMessage(directory, f.Name()); err == nil {
+					messages = append(messages, m)
+				}
 			}
 		}
+		return messages, nil
+	} else {
+		return nil, err
 	}
-	return messages, nil
 }
 
-// Determine the name of the file used for storing message metadata.
-func (m *Message) metadataFilename() string {
-	return fmt.Sprintf("%s.json", m.bodyFilename())
-}
-
-// Determine the name of the file containing the message body.
-func (m *Message) bodyFilename() string {
-	return path.Join(m.Directory, m.Id)
-}
-
-// Attempt to update the message metadata on disk.
-func (m *Message) Update() error {
-	f, err := os.OpenFile(m.metadataFilename(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-	if err != nil {
+// Attempt to send the specified message using the specified client.
+func (m *Message) Send(c *smtp.Client) error {
+	if err := c.Mail(m.m.From); err != nil {
 		return err
 	}
-	return json.NewEncoder(f).Encode(m)
+	for _, t := range m.m.To {
+		if err := c.Rcpt(t); err != nil {
+			return err
+		}
+	}
+	if w, err := c.Data(); err == nil {
+		if b, err := LoadBody(m.directory, m.m.Body); err == nil {
+			if r, err := b.reader(); err == nil {
+				if _, err := io.Copy(w, r); err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		} else {
+			return err
+		}
+		if err := w.Close(); err != nil {
+			return err
+		}
+	} else {
+		return err
+	}
+	return nil
 }
 
-// Delete the message on disk - both the metadata and the message body.
+// Delete the message on disk. Note that this will decrease the reference count
+// of the message body, causing it to be deleted if the reference count hits 0.
 func (m *Message) Delete() error {
 	if err := os.Remove(m.metadataFilename()); err != nil {
 		return err
 	}
-	return os.Remove(m.bodyFilename())
+	if b, err := LoadBody(m.directory, m.m.Body); err == nil {
+		b.Release()
+		return nil
+	} else {
+		return err
+	}
 }

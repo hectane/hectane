@@ -142,36 +142,6 @@ func (h *Host) connectToMailServer() (*smtp.Client, error) {
 	return nil, errors.New("unable to connect to a mail server")
 }
 
-// Attempt to deliver the specified message to the specifed client
-func (h *Host) deliverToMailServer(c *smtp.Client, m *Message) error {
-
-	// Specify the sender of the message
-	if err := c.Mail(m.From); err != nil {
-		return err
-	}
-
-	// Add each of the recipients
-	for _, t := range m.To {
-		if err := c.Rcpt(t); err != nil {
-			return err
-		}
-	}
-
-	// Obtain a writer for writing the actual message
-	w, err := c.Data()
-	if err != nil {
-		return err
-	}
-	defer w.Close()
-
-	// Write the message
-	if _, err = w.Write(m.Message); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // Receive message and deliver them to their recipients.
 func (h *Host) run() {
 
@@ -212,7 +182,7 @@ func (h *Host) run() {
 		}
 
 		// Attempt delivery of the message
-		if err = h.deliverToMailServer(c, m); err != nil {
+		if err = m.Send(c); err != nil {
 
 			// If the type of error has anything to do with a syscall, assume
 			// that the connection was broken and try reconnecting - otherwise,
