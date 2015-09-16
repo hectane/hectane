@@ -67,61 +67,54 @@ func writeMultipartBody(w *multipart.Writer, text, html string) error {
 // Convert the email into an array of messages grouped by host suitable for
 // delivery to a mail queue.
 func (e *Email) Messages(directory string) ([]*queue.Message, error) {
-
-	var (
-		w       = &bytes.Buffer{}
-		m       = multipart.NewWriter(w)
-		id      = uuid.New()
-		headers = EmailHeaders{
-			"Message-Id":   fmt.Sprintf("<%s@go-cannon>", id),
-			"From":         e.From,
-			"To":           strings.Join(e.To, ", "),
-			"Subject":      e.Subject,
-			"Date":         time.Now().Format("Mon, 02 Jan 2006 15:04:05 -0700"),
-			"MIME-Version": "1.0",
-			"Content-Type": fmt.Sprintf("multipart/mixed; boundary=%s", m.Boundary()),
+	id := uuid.New()
+	if _, w, err := queue.NewBody(directory, id); err == nil {
+		var (
+			m       = multipart.NewWriter(w)
+			headers = EmailHeaders{
+				"Message-Id":   fmt.Sprintf("<%s@go-cannon>", id),
+				"From":         e.From,
+				"To":           strings.Join(e.To, ", "),
+				"Subject":      e.Subject,
+				"Date":         time.Now().Format("Mon, 02 Jan 2006 15:04:05 -0700"),
+				"MIME-Version": "1.0",
+				"Content-Type": fmt.Sprintf("multipart/mixed; boundary=%s", m.Boundary()),
+			}
+			addresses = append(append(e.To, e.Cc...), e.Bcc...)
+		)
+		if len(e.Cc) > 0 {
+			headers["Cc"] = strings.Join(e.Cc, ",")
 		}
-		addresses = append(append(e.To, e.Cc...), e.Bcc...)
-	)
-
-	// If any Cc addresses were provided, add them to the headers
-	if len(e.Cc) > 0 {
-		headers["Cc"] = strings.Join(e.Cc, ",")
-	}
-
-	// Write the headers
-	if err := headers.Write(w); err != nil {
-		return nil, err
-	}
-
-	// Write the multipart body
-	if err := writeMultipartBody(m, e.Text, e.Html); err != nil {
-		return nil, err
-	}
-
-	// Write each of the attachments
-	for _, a := range e.Attachments {
-		if err := a.Write(m); err != nil {
+		if err := headers.Write(w); err != nil {
 			return nil, err
 		}
-	}
-
-	// Close the message body
-	if err := m.Close(); err != nil {
-		return nil, err
-	}
-
-	// Create one message for each host
-	if addrMap, err := util.GroupAddressesByHost(addresses); err == nil {
-		messages := make([]*queue.Message, 0, 1)
-		for h, to := range addrMap {
-			if m, err := queue.NewMessage(h, e.From, to, w.Bytes(), directory); err != nil {
+		if err := writeMultipartBody(m, e.Text, e.Html); err != nil {
+			return nil, err
+		}
+		for _, a := range e.Attachments {
+			if err := a.Write(m); err != nil {
 				return nil, err
-			} else {
-				messages = append(messages, m)
 			}
 		}
-		return messages, nil
+		if err := m.Close(); err != nil {
+			return nil, err
+		}
+		if err := w.Close(); err != nil {
+			return nil, err
+		}
+		if addrMap, err := util.GroupAddressesByHost(addresses); err == nil {
+			messages := make([]*queue.Message, 0, 1)
+			for h, to := range addrMap {
+				if m, err := queue.NewMessage(directory, e.From, h, to, id); err == nil {
+					messages = append(messages, m)
+				} else {
+					return nil, err
+				}
+			}
+			return messages, nil
+		} else {
+			return nil, err
+		}
 	} else {
 		return nil, err
 	}

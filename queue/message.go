@@ -44,7 +44,8 @@ func (m *Message) updateMetadata() error {
 	return json.NewEncoder(f).Encode(&m.m)
 }
 
-// Create a new message with the specified information.
+// Create a new message with the specified information. The refcount of the
+// message body will be incremented.
 func NewMessage(directory, host, from string, to []string, body string) (*Message, error) {
 	m := &Message{
 		directory: directory,
