@@ -2,15 +2,35 @@ package queue
 
 import (
 	"code.google.com/p/go-uuid/uuid"
+	"github.com/nathan-osman/go-cannon/util"
 
 	"os"
 	"testing"
 )
 
+// Ensure that the specified file is in the specified state of existence.
+func expectExists(t *testing.T, filename string, exists bool) {
+	if e, err := util.FileExists(filename); err == nil {
+		if e != exists {
+			if e {
+				t.Fatal("file exists")
+			} else {
+				t.Fatal("file does not exist")
+			}
+		}
+	} else {
+		t.Fatal(err)
+	}
+}
+
 func TestBodyRefCount(t *testing.T) {
 	directory := os.TempDir()
 	if b, writer, err := NewBody(directory, uuid.New()); err == nil {
-		writer.Close()
+		if err := writer.Close(); err != nil {
+			t.Fatal(err)
+		}
+		expectExists(t, b.metadataFilename(), true)
+		expectExists(t, b.messageBodyFilename(), true)
 		if err := b.Add(); err != nil {
 			t.Fatal(err)
 		}
@@ -20,12 +40,8 @@ func TestBodyRefCount(t *testing.T) {
 		if err := b.Release(); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := os.Stat(b.metadataFilename()); !os.IsNotExist(err) {
-			t.Fatal("metadata file not removed")
-		}
-		if _, err := os.Stat(b.messageBodyFilename()); !os.IsNotExist(err) {
-			t.Fatal("message body file not removed")
-		}
+		expectExists(t, b.metadataFilename(), false)
+		expectExists(t, b.messageBodyFilename(), false)
 	} else {
 		t.Fatal(err)
 	}
