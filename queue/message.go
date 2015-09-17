@@ -36,7 +36,6 @@ func (m *Message) metadataFilename() string {
 
 // Update the metadata on disk.
 func (m *Message) updateMetadata() error {
-
 	f, err := os.OpenFile(m.metadataFilename(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
