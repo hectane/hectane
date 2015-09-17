@@ -68,7 +68,7 @@ func writeMultipartBody(w *multipart.Writer, text, html string) error {
 // delivery to a mail queue.
 func (e *Email) Messages(directory string) ([]*queue.Message, error) {
 	id := uuid.New()
-	if _, w, err := queue.NewBody(directory, id); err == nil {
+	if b, w, err := queue.NewBody(directory, id); err == nil {
 		var (
 			m       = multipart.NewWriter(w)
 			headers = EmailHeaders{
@@ -105,7 +105,7 @@ func (e *Email) Messages(directory string) ([]*queue.Message, error) {
 		if addrMap, err := util.GroupAddressesByHost(addresses); err == nil {
 			messages := make([]*queue.Message, 0, 1)
 			for h, to := range addrMap {
-				if m, err := queue.NewMessage(directory, e.From, h, to, id); err == nil {
+				if m, err := queue.NewMessage(directory, e.From, h, to, b); err == nil {
 					messages = append(messages, m)
 				} else {
 					return nil, err

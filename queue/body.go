@@ -33,11 +33,14 @@ func (b *Body) metadataFilename() string {
 
 // Update the metadata on disk.
 func (b *Body) updateMetadata() error {
-	f, err := os.OpenFile(b.metadataFilename(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-	if err != nil {
+	if f, err := os.OpenFile(b.metadataFilename(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600); err == nil {
+		if err := json.NewEncoder(f).Encode(&b.m); err != nil {
+			return err
+		}
+		return f.Close()
+	} else {
 		return err
 	}
-	return json.NewEncoder(f).Encode(&b.m)
 }
 
 // Obtain an io.Reader for the message body.

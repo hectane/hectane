@@ -45,7 +45,7 @@ func (m *Message) updateMetadata() error {
 
 // Create a new message with the specified information. The refcount of the
 // message body will be incremented.
-func NewMessage(directory, host, from string, to []string, body string) (*Message, error) {
+func NewMessage(directory, host, from string, to []string, body *Body) (*Message, error) {
 	m := &Message{
 		directory: directory,
 		filename:  fmt.Sprintf("%s.msg", uuid.New()),
@@ -53,14 +53,10 @@ func NewMessage(directory, host, from string, to []string, body string) (*Messag
 			Host: host,
 			From: from,
 			To:   to,
-			Body: body,
+			Body: body.id,
 		},
 	}
-	if b, err := LoadBody(directory, body); err == nil {
-		if err := b.Add(); err != nil {
-			return nil, err
-		}
-	} else {
+	if err := body.Add(); err != nil {
 		return nil, err
 	}
 	if err := m.updateMetadata(); err != nil {

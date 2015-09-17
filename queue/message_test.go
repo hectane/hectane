@@ -16,11 +16,11 @@ func TestMessage(t *testing.T) {
 		to        = []string{"you@example.com"}
 		id        = uuid.New()
 	)
-	if _, w, err := NewBody(directory, id); err == nil {
+	if b, w, err := NewBody(directory, id); err == nil {
 		if err := w.Close(); err != nil {
 			t.Fatal(err)
 		}
-		if m, err := NewMessage(directory, host, from, to, id); err == nil {
+		if m, err := NewMessage(directory, host, from, to, b); err == nil {
 			if err := util.AssertFileState(m.metadataFilename(), true); err != nil {
 				t.Fatal(err)
 			}
