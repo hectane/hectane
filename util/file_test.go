@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestFileExists(t *testing.T) {
+func TestAssertFileState(t *testing.T) {
 	var (
 		directory = os.TempDir()
 		filename  = path.Join(directory, uuid.New())
@@ -20,21 +20,19 @@ func TestFileExists(t *testing.T) {
 	} else {
 		t.Fatal(err)
 	}
-	if exists, err := FileExists(filename); err != nil {
-		t.Fatal(err)
-	} else {
-		if !exists {
-			t.Fatal("FileExists() == false")
-		}
+	if err := AssertFileState(filename, true); err != nil {
+		t.Fatal("unexpected error")
+	}
+	if err := AssertFileState(filename, false); err == nil {
+		t.Fatal("error expected")
 	}
 	if err := os.Remove(filename); err != nil {
 		t.Fatal(err)
 	}
-	if exists, err := FileExists(filename); err != nil {
-		t.Fatal(err)
-	} else {
-		if exists {
-			t.Fatal("FileExists() == true")
-		}
+	if err := AssertFileState(filename, true); err == nil {
+		t.Fatal("error expected")
+	}
+	if err := AssertFileState(filename, false); err != nil {
+		t.Fatal("unexpected error")
 	}
 }

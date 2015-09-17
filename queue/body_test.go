@@ -10,21 +10,6 @@ import (
 	"testing"
 )
 
-// Ensure that the specified file is in the specified state of existence.
-func expectExists(t *testing.T, filename string, exists bool) {
-	if e, err := util.FileExists(filename); err == nil {
-		if e != exists {
-			if e {
-				t.Fatal("file exists")
-			} else {
-				t.Fatal("file does not exist")
-			}
-		}
-	} else {
-		t.Fatal(err)
-	}
-}
-
 func TestBodyRefCount(t *testing.T) {
 	directory := os.TempDir()
 	if b, writer, err := NewBody(directory, uuid.New()); err == nil {
@@ -37,16 +22,24 @@ func TestBodyRefCount(t *testing.T) {
 		if b.m.RefCount != 1 {
 			t.Fatalf("%d != 1", b.m.RefCount)
 		}
-		expectExists(t, b.metadataFilename(), true)
-		expectExists(t, b.messageBodyFilename(), true)
+		if err := util.AssertFileState(b.metadataFilename(), true); err != nil {
+			t.Fatal(err)
+		}
+		if err := util.AssertFileState(b.messageBodyFilename(), true); err != nil {
+			t.Fatal(err)
+		}
 		if err := b.Release(); err != nil {
 			t.Fatal(err)
 		}
 		if b.m.RefCount != 0 {
 			t.Fatalf("%d != 0", b.m.RefCount)
 		}
-		expectExists(t, b.metadataFilename(), false)
-		expectExists(t, b.messageBodyFilename(), false)
+		if err := util.AssertFileState(b.metadataFilename(), false); err != nil {
+			t.Fatal(err)
+		}
+		if err := util.AssertFileState(b.messageBodyFilename(), false); err != nil {
+			t.Fatal(err)
+		}
 	} else {
 		t.Fatal(err)
 	}
