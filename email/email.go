@@ -105,7 +105,7 @@ func (e *Email) Messages(directory string) ([]*queue.Message, error) {
 		if addrMap, err := util.GroupAddressesByHost(addresses); err == nil {
 			messages := make([]*queue.Message, 0, 1)
 			for h, to := range addrMap {
-				if m, err := queue.NewMessage(directory, e.From, h, to, b); err == nil {
+				if m, err := queue.NewMessage(directory, h, e.From, to, b); err == nil {
 					messages = append(messages, m)
 				} else {
 					return nil, err
