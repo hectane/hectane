@@ -15,11 +15,10 @@ import (
 
 // Message metadata.
 type messageMetadata struct {
-	Host  string
-	From  string
-	To    []string
-	Tries int
-	Body  string
+	Host string
+	From string
+	To   []string
+	Body string
 }
 
 // Message prepared for delivery to a specific host.

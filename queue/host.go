@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/smtp"
+	"net/textproto"
 	"os"
 	"sync"
 	"syscall"
@@ -28,24 +29,19 @@ func (h *Host) log(msg string) {
 	log.Printf("[%s] %s", h.host, msg)
 }
 
-// Receive the next message in the queue.
+// Receive the next message in the queue. The host queue is considered
+// "inactive" while waiting for new messages to arrive. The current time is
+// recorded before entering the select{} block so that the Idle() method can
+// calculate the idle time.
 func (h *Host) receiveMessage() *Message {
-
-	// The host queue is considered "inactive" while waiting for new messages
-	// to arrive - record the current time before entering the select{} block
-	// so that the Idle() method can calculate the idle time
 	h.Lock()
 	h.lastActivity = time.Now()
 	h.Unlock()
-
-	// When the function exits, reset the inactive timer to 0
 	defer func() {
 		h.Lock()
 		h.lastActivity = time.Time{}
 		h.Unlock()
 	}()
-
-	// Either receive a new message or stop the queue
 	select {
 	case i := <-h.newMessage.Recv:
 		return i.(*Message)
@@ -54,177 +50,135 @@ func (h *Host) receiveMessage() *Message {
 	}
 }
 
-// Attempt to connect to the specified server.
+// Attempt to connect to the specified server. The connection attempt is
+// performed in a separate goroutine, allowing it to be aborted if the host
+// queue is shut down.
 func (h *Host) tryMailServer(server string) (*smtp.Client, error) {
-
 	var (
 		c    *smtp.Client
 		err  error
 		done = make(chan bool)
 	)
-
-	// Because Dial() is a blocking function, it must be run in a separate
-	// goroutine so that it can be aborted immediately
 	go func() {
 		c, err = smtp.Dial(fmt.Sprintf("%s:25", server))
 		close(done)
 	}()
-
-	// Wait for either the goroutine to complete or a stop request
 	select {
 	case <-done:
 	case <-h.stop:
 		return nil, nil
 	}
-
-	// Attempt to establish a TCP connection to port 25
 	if err == nil {
-
-		// Obtain this machine's hostname and say HELO
 		if hostname, err := os.Hostname(); err == nil {
 			c.Hello(hostname)
 		}
-
-		// If the server advertises TLS, attempt to use it - if the server
-		// advertises TLS but it doesn't work, that's an error
 		if ok, _ := c.Extension("STARTTLS"); ok {
 			if err := c.StartTLS(&tls.Config{ServerName: server}); err != nil {
 				return nil, err
 			}
 		}
-
 		return c, nil
-
 	} else {
 		return nil, err
 	}
 }
 
-// Attempt to connect to a mail server until the timeout is reached or until
-// stopped.
+// Attempt to connect to one of the mail servers.
 func (h *Host) connectToMailServer() (*smtp.Client, error) {
-
-	// Obtain the list of mail servers to try
-	servers := util.FindMailServers(h.host)
-
-	// RFC 5321 (4.5.4) describes the process for retrying connections to a
-	// mail server after failure. The recommended strategy is to retry twice
-	// with 30 minute intervals and continue at 120 minute intervals until four
-	// days have elapsed. That's *roughly* what is done here.
-	for i := 0; i < 50; i++ {
-
-		// Try each of the servers in order
-		for _, s := range servers {
-			if c, err := h.tryMailServer(s); err == nil {
-				return c, nil
-			} else {
-				h.log(fmt.Sprintf("unable to connect to %s", s))
-			}
-		}
-
-		// None of the servers could be reached - wait a few minutes before
-		// trying to connect again
-		var d time.Duration
-		if i < 2 {
-			d = 30 * time.Minute
+	for _, s := range util.FindMailServers(h.host) {
+		if c, err := h.tryMailServer(s); err == nil {
+			return c, nil
 		} else {
-			d = 2 * time.Hour
-		}
-
-		select {
-		case <-time.After(d):
-		case <-h.stop:
-			return nil, nil
+			h.log(fmt.Sprintf("unable to connect to %s", s))
 		}
 	}
-
-	// All attempts have failed, let the caller know we tried :)
 	return nil, errors.New("unable to connect to a mail server")
 }
 
-// Receive message and deliver them to their recipients.
+// Receive message and deliver them to their recipients. Due to the complicated
+// algorithm for message delivery, the body of the method is broken up into a
+// sequence of labeled sections.
 func (h *Host) run() {
-
-	// Close the stop channel when the goroutine exits
-	defer close(h.stop)
-
-	// The client must be declared here so that it can be closed after the loop
 	var (
-		c   *smtp.Client
-		m   *Message
-		err error
+		m        *Message
+		c        *smtp.Client
+		err      error
+		tries    int
+		duration time.Duration
 	)
-
-	for {
-
-		// Receive the next message from the queue if one hasn't already been
-		// retrieved
-		if m == nil {
-			h.log("waiting for message in queue...")
-			if m = h.receiveMessage(); m == nil {
-				break
-			}
-			h.log("message received in queue")
+receive:
+	if m == nil {
+		if m := h.receiveMessage(); m == nil {
+			goto shutdown
 		}
-
-		// Connect to the server if a connection does not already exist
+		h.log("message received in queue")
+	}
+deliver:
+	if c == nil {
+		h.log("connecting to mail server...")
+		c, err = h.connectToMailServer()
 		if c == nil {
-			h.log("connecting to mail server...")
-			if c, err = h.connectToMailServer(); c == nil {
-				if err == nil {
-					break
-				} else {
-					h.log(err.Error())
-					continue
-				}
-			}
-			h.log("connection established")
-		}
-
-		// Attempt delivery of the message
-		if err = m.Send(c); err != nil {
-
-			// If the type of error has anything to do with a syscall, assume
-			// that the connection was broken and try reconnecting - otherwise,
-			// discard the message - either way, reset the error
-			if _, ok := err.(syscall.Errno); ok {
-				h.log("connection to server lost")
-				c, err = nil, nil
-			} else {
+			if err != nil {
 				h.log(err.Error())
-				m.Delete()
-				m, err = nil, nil
+				goto wait
+			} else {
+				goto shutdown
 			}
-			continue
-
+		}
+		h.log("connection established")
+	}
+	if err := m.Send(c); err == nil {
+		h.log("mail delivered successfully")
+	} else {
+		if _, ok := err.(syscall.Errno); ok {
+			c = nil
+			goto deliver
+		} else if e, ok := err.(*textproto.Error); ok && e.Code >= 400 && e.Code <= 499 {
+			goto wait
 		} else {
-			h.log("message successfully delivered")
-			m.Delete()
-			m = nil
+			h.log(err.Error())
 		}
 	}
-
-	// Close the connection if it is still open
-	if c != nil {
-		c.Quit()
+cleanup:
+	h.log("deleting message from disk")
+	if err := m.Delete(); err != nil {
+		h.log(err.Error())
 	}
-
+	m = nil
+	tries = 0
+	goto receive
+wait:
+	tries++
+	switch {
+	case tries <= 2:
+		duration = 30 * time.Minute
+	case tries <= 50:
+		duration = 2 * time.Hour
+	default:
+		h.log("maximum retry count exceeded")
+		goto cleanup
+	}
+	select {
+	case <-h.stop:
+	case <-time.After(duration):
+		goto receive
+	}
+shutdown:
 	h.log("shutting down queue")
+	if c != nil {
+		c.Close()
+	}
+	close(h.stop)
 }
 
 // Create a new host connection.
 func NewHost(host string) *Host {
-
-	// Create the host, including the channel used for delivering new messages
 	h := &Host{
 		host:       host,
 		newMessage: util.NewNonBlockingChan(),
 		stop:       make(chan bool),
 	}
-
-	// Start a goroutine to manage the lifecycle of the host connection
 	go h.run()
-
 	return h
 }
 
@@ -246,8 +200,6 @@ func (h *Host) Idle() time.Duration {
 
 // Close the connection to the host.
 func (h *Host) Stop() {
-
-	// Send on the channel to stop it and wait for it to be closed
 	h.stop <- true
 	<-h.stop
 }
