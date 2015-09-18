@@ -24,7 +24,9 @@ func TestMessage(t *testing.T) {
 			if err := util.AssertFileState(m.metadataFilename(), true); err != nil {
 				t.Fatal(err)
 			}
-			//...
+			if _, err := LoadMessage(directory, m.filename); err != nil {
+				t.Fatal(err)
+			}
 			if err := m.Delete(); err != nil {
 				t.Fatal(err)
 			}
