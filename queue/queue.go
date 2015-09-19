@@ -66,7 +66,7 @@ func (q *Queue) run() {
 	defer close(q.stop)
 
 	// Create a ticker to periodically check for inactive hosts
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 
 	// Loop to wait for (1) a new message (2) inactive timer (3) stop request
