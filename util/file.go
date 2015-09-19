@@ -60,8 +60,11 @@ func NewFilestore(directory string) (*Filestore, error) {
 func (f *Filestore) New(id string) (io.WriteCloser, error) {
 	f.Lock()
 	defer f.Unlock()
-	// TODO
-	return nil, nil
+	if w, err := os.OpenFile(path.Join(f.directory, id), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600); err == nil {
+		return w, nil
+	} else {
+		return nil, err
+	}
 }
 
 // Obtain a reader for retrieving an exising item.
@@ -81,10 +84,10 @@ func (f *Filestore) Add(id string) error {
 	defer f.Unlock()
 	if _, ok := f.items[id]; ok {
 		f.items[id]++
-		return f.update()
 	} else {
-		return InvalidItem
+		f.items[id] = 1
 	}
+	return f.update()
 }
 
 // Decrease the reference count of the specified item. It will be deleted from
@@ -92,9 +95,15 @@ func (f *Filestore) Add(id string) error {
 func (f *Filestore) Release(id string) error {
 	f.Lock()
 	defer f.Unlock()
-	if _, ok := f.items[id]; ok {
-		f.items[id]--
-		// TODO
+	if n, ok := f.items[id]; ok {
+		if n == 1 {
+			delete(f.items, id)
+			if err := os.Remove(path.Join(f.directory, id)); err != nil {
+				return err
+			}
+		} else {
+			f.items[id]--
+		}
 		return f.update()
 	} else {
 		return InvalidItem
