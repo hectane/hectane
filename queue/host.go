@@ -108,7 +108,7 @@ func (h *Host) run() {
 	)
 receive:
 	if m == nil {
-		if m := h.receiveMessage(); m == nil {
+		if m = h.receiveMessage(); m == nil {
 			goto shutdown
 		}
 		h.log("message received in queue")
