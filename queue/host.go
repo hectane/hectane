@@ -134,6 +134,8 @@ deliver:
 			c = nil
 			goto deliver
 		} else if e, ok := err.(*textproto.Error); ok && e.Code >= 400 && e.Code <= 499 {
+			c.Close()
+			c = nil
 			goto wait
 		} else {
 			h.log(err.Error())
@@ -149,11 +151,16 @@ cleanup:
 	goto receive
 wait:
 	tries++
+	// We differ a tiny bit from the RFC spec here but this should work well
+	// enough - retry once after a minute, twice on the half-hour, and 16 more
+	// times every three hours. This is roughly 48 hours.
 	switch {
-	case tries <= 2:
+	case tries == 1:
+		duration = time.Minute
+	case tries < 4:
 		duration = 30 * time.Minute
-	case tries <= 50:
-		duration = 2 * time.Hour
+	case tries < 20:
+		duration = 3 * time.Hour
 	default:
 		h.log("maximum retry count exceeded")
 		goto cleanup
