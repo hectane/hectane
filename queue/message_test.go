@@ -11,16 +11,13 @@ import (
 func TestMessage(t *testing.T) {
 	var (
 		directory = os.TempDir()
-		host      = "example.com"
-		from      = "me@example.com"
-		to        = []string{"you@example.com"}
 		id        = uuid.New()
 	)
 	if b, w, err := NewBody(directory, id); err == nil {
 		if err := w.Close(); err != nil {
 			t.Fatal(err)
 		}
-		if m, err := NewMessage(directory, host, from, to, b); err == nil {
+		if m, err := NewMessage(directory, "", "", []string{}, b); err == nil {
 			if err := util.AssertFileState(m.metadataFilename(), true); err != nil {
 				t.Fatal(err)
 			}
