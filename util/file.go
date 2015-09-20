@@ -9,6 +9,7 @@ import (
 	"sync"
 )
 
+// The specified item does not exist.
 var InvalidItem = errors.New("invalid item")
 
 // Access broker for a key=>value store on disk with reference counting. All
