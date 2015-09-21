@@ -17,10 +17,8 @@ type Queue struct {
 }
 
 // Ensure the storage directory exists and load any messages in the directory.
+// If the directory does not exist, it will be created.
 func (q *Queue) prepareStorage() error {
-
-	// If the directory exists, load the messages contained in it - otherwise,
-	// attempt to create the directory
 	if _, err := os.Stat(q.directory); err == nil {
 		if messages, err := LoadMessages(q.directory); err == nil {
 			for _, m := range messages {
@@ -31,21 +29,16 @@ func (q *Queue) prepareStorage() error {
 			return err
 		}
 	} else {
-		return os.MkdirAll(q.directory, 0755)
+		return os.MkdirAll(q.directory, 0700)
 	}
 }
 
 // Deliver the specified message to the appropriate host queue.
 func (q *Queue) deliverMessage(m *Message) {
-
 	log.Printf("delivering message to %s queue", m.m.Host)
-
-	// Create the specified host if it doesn't exist
 	if _, ok := q.hosts[m.m.Host]; !ok {
 		q.hosts[m.m.Host] = NewHost(m.m.Host)
 	}
-
-	// Deliver the message to the host
 	q.hosts[m.m.Host].Deliver(m)
 }
 
@@ -61,15 +54,9 @@ func (q *Queue) checkForInactiveQueues() {
 
 // Receive new messages and deliver them to the specified host queue.
 func (q *Queue) run() {
-
-	// Close the stop channel when the goroutine exits
 	defer close(q.stop)
-
-	// Create a ticker to periodically check for inactive hosts
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
-
-	// Loop to wait for (1) a new message (2) inactive timer (3) stop request
 loop:
 	for {
 		select {
@@ -81,10 +68,7 @@ loop:
 			break loop
 		}
 	}
-
 	log.Println("shutting down host queues")
-
-	// Stop all host queues
 	for h := range q.hosts {
 		q.hosts[h].Stop()
 	}
@@ -92,22 +76,16 @@ loop:
 
 // Create a new message queue.
 func NewQueue(directory string) (*Queue, error) {
-
 	q := &Queue{
 		directory:  directory,
 		hosts:      make(map[string]*Host),
 		newMessage: util.NewNonBlockingChan(),
 		stop:       make(chan bool),
 	}
-
-	// Prepare the storage directory
 	if err := q.prepareStorage(); err != nil {
 		return nil, err
 	}
-
-	// Start a goroutine to manage the lifecycle of the queue
 	go q.run()
-
 	return q, nil
 }
 
