@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/smtp"
 	"net/textproto"
@@ -19,6 +20,7 @@ import (
 type Host struct {
 	sync.Mutex
 	host         string
+	storage      *Storage
 	lastActivity time.Time
 	newMessage   *util.NonBlockingChan
 	stop         chan bool
@@ -33,7 +35,7 @@ func (h *Host) log(msg string) {
 // "inactive" while waiting for new messages to arrive. The current time is
 // recorded before entering the select{} block so that the Idle() method can
 // calculate the idle time.
-func (h *Host) receiveMessage() *Message {
+func (h *Host) receiveMessage() (*Message, string) {
 	h.Lock()
 	h.lastActivity = time.Now()
 	h.Unlock()
@@ -42,11 +44,18 @@ func (h *Host) receiveMessage() *Message {
 		h.lastActivity = time.Time{}
 		h.Unlock()
 	}()
-	select {
-	case i := <-h.newMessage.Recv:
-		return i.(*Message)
-	case <-h.stop:
-		return nil
+	for {
+		select {
+		case i := <-h.newMessage.Recv:
+			id := i.(string)
+			if m, err := h.storage.GetMessage(id); err == nil {
+				return m, id
+			} else {
+				h.log(err.Error())
+			}
+		case <-h.stop:
+			return nil, ""
+		}
 	}
 }
 
@@ -95,12 +104,40 @@ func (h *Host) connectToMailServer() (*smtp.Client, error) {
 	return nil, errors.New("unable to connect to a mail server")
 }
 
+// Attempt to send the specified message to the specified client.
+func (h *Host) deliverToMailServer(c *smtp.Client, m *Message) error {
+	if r, err := h.storage.GetBody(m.Body); err == nil {
+		if err := c.Mail(m.From); err != nil {
+			return err
+		}
+		for _, t := range m.To {
+			if err := c.Rcpt(t); err != nil {
+				return err
+			}
+		}
+		if w, err := c.Data(); err == nil {
+			if _, err := io.Copy(w, r); err != nil {
+				return err
+			}
+			if err := w.Close(); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return r.Close()
+	} else {
+		return err
+	}
+}
+
 // Receive message and deliver them to their recipients. Due to the complicated
 // algorithm for message delivery, the body of the method is broken up into a
 // sequence of labeled sections.
 func (h *Host) run() {
 	var (
 		m        *Message
+		id       string
 		c        *smtp.Client
 		err      error
 		tries    int
@@ -108,7 +145,7 @@ func (h *Host) run() {
 	)
 receive:
 	if m == nil {
-		if m = h.receiveMessage(); m == nil {
+		if m, id = h.receiveMessage(); m == nil {
 			goto shutdown
 		}
 		h.log("message received in queue")
@@ -127,7 +164,7 @@ deliver:
 		}
 		h.log("connection established")
 	}
-	if err := m.Send(c); err == nil {
+	if err := h.deliverToMailServer(c, m); err == nil {
 		h.log("mail delivered successfully")
 	} else {
 		if _, ok := err.(syscall.Errno); ok {
@@ -139,11 +176,12 @@ deliver:
 			goto wait
 		} else {
 			h.log(err.Error())
+			// TODO: send RSET?
 		}
 	}
 cleanup:
 	h.log("deleting message from disk")
-	if err := m.Delete(); err != nil {
+	if err := h.storage.DeleteMessage(id); err != nil {
 		h.log(err.Error())
 	}
 	m = nil
@@ -179,9 +217,10 @@ shutdown:
 }
 
 // Create a new host connection.
-func NewHost(host string) *Host {
+func NewHost(host string, storage *Storage) *Host {
 	h := &Host{
 		host:       host,
+		storage:    storage,
 		newMessage: util.NewNonBlockingChan(),
 		stop:       make(chan bool),
 	}
@@ -190,8 +229,8 @@ func NewHost(host string) *Host {
 }
 
 // Attempt to deliver a message to the host.
-func (h *Host) Deliver(m *Message) {
-	h.newMessage.Send <- m
+func (h *Host) Deliver(id string) {
+	h.newMessage.Send <- id
 }
 
 // Retrieve the connection idle time.
