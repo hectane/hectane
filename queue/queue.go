@@ -3,6 +3,7 @@ package queue
 import (
 	"github.com/nathan-osman/go-cannon/util"
 
+	"io"
 	"log"
 	"time"
 )
@@ -78,6 +79,11 @@ func NewQueue(directory string) (*Queue, error) {
 	} else {
 		return nil, err
 	}
+}
+
+// Create a new message body.
+func (q *Queue) NewBody() (io.WriteCloser, string, error) {
+	return q.storage.NewBody()
 }
 
 // Deliver the specified message to the appropriate host queue.

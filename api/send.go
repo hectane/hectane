@@ -29,11 +29,11 @@ func Send(c web.C, w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Convert the email into an array of messages
-		if messages, err := e.Messages(c.Env["directory"].(string)); err == nil {
+		q := c.Env["queue"].(*queue.Queue)
+		if messages, err := e.Messages(q); err == nil {
 
-			// Deliver each of the messages to the queue
 			for _, m := range messages {
-				c.Env["queue"].(*queue.Queue).Deliver(m)
+				q.Deliver(m)
 			}
 
 			// Respond with an empty object

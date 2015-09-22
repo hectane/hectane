@@ -1,7 +1,6 @@
 package email
 
 import (
-	"code.google.com/p/go-uuid/uuid"
 	"github.com/nathan-osman/go-cannon/queue"
 	"github.com/nathan-osman/go-cannon/util"
 
@@ -65,10 +64,9 @@ func writeMultipartBody(w *multipart.Writer, text, html string) error {
 }
 
 // Convert the email into an array of messages grouped by host suitable for
-// delivery to a mail queue.
-func (e *Email) Messages(directory string) ([]*queue.Message, error) {
-	id := uuid.New()
-	if b, w, err := queue.NewBody(directory, id); err == nil {
+// delivery to the mail queue.
+func (e *Email) Messages(q *queue.Queue) ([]*queue.Message, error) {
+	if w, id, err := q.NewBody(); err == nil {
 		var (
 			m       = multipart.NewWriter(w)
 			headers = EmailHeaders{
@@ -105,11 +103,12 @@ func (e *Email) Messages(directory string) ([]*queue.Message, error) {
 		if addrMap, err := util.GroupAddressesByHost(addresses); err == nil {
 			messages := make([]*queue.Message, 0, 1)
 			for h, to := range addrMap {
-				if m, err := queue.NewMessage(directory, h, e.From, to, b); err == nil {
-					messages = append(messages, m)
-				} else {
-					return nil, err
-				}
+				messages = append(messages, &queue.Message{
+					Host: h,
+					From: e.From,
+					To:   to,
+					Body: id,
+				})
 			}
 			return messages, nil
 		} else {

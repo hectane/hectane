@@ -1,6 +1,8 @@
 package email
 
 import (
+	"github.com/nathan-osman/go-cannon/queue"
+
 	"os"
 	"testing"
 )
@@ -16,13 +18,17 @@ var (
 )
 
 func TestEmailMessageCount(t *testing.T) {
-	e := &Email{
-		To: []string{addr1A, addr2A},
-		Cc: []string{addr1B},
-	}
-	if messages, err := e.Messages(directory); err == nil {
-		if len(messages) != 2 {
-			t.Fatalf("%d != 2", len(messages))
+	if q, err := queue.NewQueue(directory); err == nil {
+		e := &Email{
+			To: []string{addr1A, addr2A},
+			Cc: []string{addr1B},
+		}
+		if messages, err := e.Messages(q); err == nil {
+			if len(messages) != 2 {
+				t.Fatalf("%d != 2", len(messages))
+			}
+		} else {
+			t.Fatal(err)
 		}
 	} else {
 		t.Fatal(err)
