@@ -16,8 +16,8 @@ type Queue struct {
 }
 
 // Deliver the specified message to the appropriate host queue.
-func (q *Queue) deliverMessage(id string) {
-	if m, err := q.storage.GetMessage(id); err == nil {
+func (q *Queue) deliverMessage(m *Message) {
+	if id, err := q.storage.NewMessage(m); err == nil {
 		log.Printf("delivering message to %s queue", m.Host)
 		if _, ok := q.hosts[m.Host]; !ok {
 			q.hosts[m.Host] = NewHost(m.Host, q.storage)
@@ -47,7 +47,7 @@ loop:
 	for {
 		select {
 		case i := <-q.newMessage.Recv:
-			q.deliverMessage(i.(string))
+			q.deliverMessage(i.(*Message))
 		case <-ticker.C:
 			q.checkForInactiveQueues()
 		case <-q.stop:
@@ -81,13 +81,8 @@ func NewQueue(directory string) (*Queue, error) {
 }
 
 // Deliver the specified message to the appropriate host queue.
-func (q *Queue) Deliver(m *Message) error {
-	if id, err := q.storage.NewMessage(m); err == nil {
-		q.newMessage.Send <- id
-		return nil
-	} else {
-		return err
-	}
+func (q *Queue) Deliver(m *Message) {
+	q.newMessage.Send <- m
 }
 
 // Stop all active host queues.
