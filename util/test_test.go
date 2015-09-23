@@ -18,6 +18,25 @@ func TestAssertChanSend(t *testing.T) {
 	}
 }
 
+func TestAssertChanRecv(t *testing.T) {
+	c := make(chan interface{}, 1)
+	c <- true
+	if _, err := AssertChanRecv(c); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := AssertChanRecv(c); err == nil {
+		t.Fatal("error expected")
+	}
+}
+
+func TestAssertChanRecvVal(t *testing.T) {
+	c := make(chan interface{}, 1)
+	c <- true
+	if err := AssertChanRecvVal(c, true); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestAssertFileState(t *testing.T) {
 	var (
 		directory = os.TempDir()

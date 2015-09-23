@@ -2,6 +2,7 @@ package util
 
 import (
 	"errors"
+	"fmt"
 	"os"
 )
 
@@ -12,6 +13,29 @@ func AssertChanSend(c chan interface{}, v interface{}) error {
 		return nil
 	default:
 		return errors.New("sending on channel failed")
+	}
+}
+
+// Ensure that a value is received on the specified channel.
+func AssertChanRecv(c chan interface{}) (interface{}, error) {
+	select {
+	case v := <-c:
+		return v, nil
+	default:
+		return nil, errors.New("receiving on channel failed")
+	}
+}
+
+// Ensure that the specified value is received on the channel.
+func AssertChanRecvVal(c chan interface{}, v interface{}) error {
+	if recv, err := AssertChanRecv(c); err == nil {
+		if recv != v {
+			return errors.New(fmt.Sprintf("%v != %v", recv, v))
+		} else {
+			return nil
+		}
+	} else {
+		return err
 	}
 }
 
