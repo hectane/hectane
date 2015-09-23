@@ -8,6 +8,16 @@ import (
 	"testing"
 )
 
+func TestAssertChanSend(t *testing.T) {
+	c := make(chan interface{}, 1)
+	if err := AssertChanSend(c, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := AssertChanSend(c, true); err == nil {
+		t.Fatal("error expected")
+	}
+}
+
 func TestAssertFileState(t *testing.T) {
 	var (
 		directory = os.TempDir()
