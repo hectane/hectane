@@ -17,24 +17,19 @@ type Queue struct {
 }
 
 // Deliver the specified message to the appropriate host queue.
-func (q *Queue) deliverMessage(m *Message) {
-	if id, err := q.storage.NewMessage(m); err == nil {
-		log.Printf("delivering message to %s queue", m.Host)
-		if _, ok := q.hosts[m.Host]; !ok {
-			q.hosts[m.Host] = NewHost(m.Host, q.storage)
-		}
-		q.hosts[m.Host].Deliver(id)
-	} else {
-		log.Print(err)
+func (q *Queue) deliverMessage(host, id string) {
+	if _, ok := q.hosts[host]; !ok {
+		q.hosts[host] = NewHost(host, q.storage)
 	}
+	q.hosts[host].Deliver(id)
 }
 
 // Check for inactive host queues and shut them down.
 func (q *Queue) checkForInactiveQueues() {
-	for h := range q.hosts {
-		if q.hosts[h].Idle() > time.Minute {
-			q.hosts[h].Stop()
-			delete(q.hosts, h)
+	for n, h := range q.hosts {
+		if h.Idle() > time.Minute {
+			h.Stop()
+			delete(q.hosts, n)
 		}
 	}
 }
@@ -48,7 +43,12 @@ loop:
 	for {
 		select {
 		case i := <-q.newMessage.Recv:
-			q.deliverMessage(i.(*Message))
+			m := i.(*Message)
+			if id, err := q.storage.NewMessage(m); err == nil {
+				q.deliverMessage(m.Host, id)
+			} else {
+				log.Print(err)
+			}
 		case <-ticker.C:
 			q.checkForInactiveQueues()
 		case <-q.stop:
@@ -71,8 +71,10 @@ func NewQueue(directory string) (*Queue, error) {
 			newMessage: util.NewNonBlockingChan(),
 			stop:       make(chan bool),
 		}
-		for _, m := range messages {
-			q.newMessage.Send <- m
+		for _, id := range messages {
+			if m, err := q.storage.GetMessage(id); err == nil {
+				q.deliverMessage(m.Host, id)
+			}
 		}
 		go q.run()
 		return q, nil
