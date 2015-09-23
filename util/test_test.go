@@ -30,10 +30,14 @@ func TestAssertChanRecv(t *testing.T) {
 }
 
 func TestAssertChanRecvVal(t *testing.T) {
-	c := make(chan interface{}, 1)
+	c := make(chan interface{}, 2)
 	c <- true
+	c <- false
 	if err := AssertChanRecvVal(c, true); err != nil {
 		t.Fatal(err)
+	}
+	if err := AssertChanRecvVal(c, true); err == nil {
+		t.Fatal("error expected")
 	}
 }
 
