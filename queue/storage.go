@@ -81,6 +81,18 @@ func (s *Storage) saveJSON(filename string, v interface{}) error {
 	}
 }
 
+// Retrieve a message.
+func (s *Storage) getMessage(id string) (*Message, error) {
+	var m Message
+	if err := s.loadJSON(s.messageFilename(id), &m); err == nil {
+		return &m, nil
+	} else if os.IsNotExist(err) {
+		return nil, InvalidID
+	} else {
+		return nil, err
+	}
+}
+
 // Retrieve a list of messages in the storage directory.
 func (s *Storage) findMessages() ([]string, error) {
 	if files, err := ioutil.ReadDir(s.directory); err == nil {
@@ -106,7 +118,7 @@ func NewStorage(directory string) (*Storage, []string, error) {
 	}
 	if _, err := os.Stat(directory); err == nil {
 		if messages, err := s.findMessages(); err == nil {
-			if err := s.loadJSON(s.indexFilename(), s.bodies); err == nil || os.IsNotExist(err) {
+			if err := s.loadJSON(s.indexFilename(), &s.bodies); err == nil || os.IsNotExist(err) {
 				return s, messages, nil
 			} else {
 				return nil, nil, err
@@ -115,7 +127,7 @@ func NewStorage(directory string) (*Storage, []string, error) {
 			return nil, nil, err
 		}
 	} else {
-		if err := os.MkdirAll(directory, 0600); err == nil {
+		if err := os.MkdirAll(directory, 0700); err == nil {
 			return s, []string{}, nil
 		} else {
 			return nil, nil, err
@@ -172,14 +184,7 @@ func (s *Storage) GetBody(id string) (io.ReadCloser, error) {
 func (s *Storage) GetMessage(id string) (*Message, error) {
 	s.Lock()
 	defer s.Unlock()
-	var m Message
-	if err := s.loadJSON(s.messageFilename(id), &m); err == nil {
-		return &m, nil
-	} else if os.IsNotExist(err) {
-		return nil, InvalidID
-	} else {
-		return nil, err
-	}
+	return s.getMessage(id)
 }
 
 // Attempt to delete the specified message. If no other messages are
@@ -187,7 +192,7 @@ func (s *Storage) GetMessage(id string) (*Message, error) {
 func (s *Storage) DeleteMessage(id string) error {
 	s.Lock()
 	defer s.Unlock()
-	if m, err := s.GetMessage(id); err == nil {
+	if m, err := s.getMessage(id); err == nil {
 		if err := os.Remove(s.messageFilename(id)); err != nil {
 			return err
 		}
