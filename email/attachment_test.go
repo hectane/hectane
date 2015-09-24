@@ -9,8 +9,6 @@ import (
 )
 
 func TestAttachmentWrite(t *testing.T) {
-
-	// Create the attachment and write it to a multipart writer
 	var (
 		filename    = "test.txt"
 		contentType = "text/plain"
@@ -30,14 +28,10 @@ func TestAttachmentWrite(t *testing.T) {
 	if err := w.Close(); err != nil {
 		t.Fatal(err)
 	}
-
-	// Read the next (and only) part of the message
 	part, err := r.NextPart()
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// Ensure that the content-type and filename match
 	if mediatype, params, err := mime.ParseMediaType(part.Header.Get("Content-Type")); err == nil {
 		if mediatype != contentType {
 			t.Fatalf("%s != %s", mediatype, contentType)
@@ -52,8 +46,6 @@ func TestAttachmentWrite(t *testing.T) {
 	} else {
 		t.Fatal(err)
 	}
-
-	// Ensure that the data read from the part matches the content
 	if data, err := ioutil.ReadAll(part); err == nil {
 		if string(data) != content {
 			t.Fatalf("%s != %s", string(data), content)

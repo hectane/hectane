@@ -44,6 +44,5 @@ func (a Attachment) Write(w *multipart.Writer) error {
 		}
 		return q.Close()
 	}
-
 	return nil
 }
