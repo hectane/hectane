@@ -7,7 +7,7 @@ import (
 )
 
 // Ensure that a value is immediately sent on the specified channel.
-func AssertChanSend(c chan interface{}, v interface{}) error {
+func AssertChanSend(c chan<- interface{}, v interface{}) error {
 	select {
 	case c <- v:
 		return nil
@@ -17,7 +17,7 @@ func AssertChanSend(c chan interface{}, v interface{}) error {
 }
 
 // Ensure that a value is received on the specified channel.
-func AssertChanRecv(c chan interface{}) (interface{}, error) {
+func AssertChanRecv(c <-chan interface{}) (interface{}, error) {
 	select {
 	case v := <-c:
 		return v, nil
@@ -27,7 +27,7 @@ func AssertChanRecv(c chan interface{}) (interface{}, error) {
 }
 
 // Ensure that the specified value is received on the channel.
-func AssertChanRecvVal(c chan interface{}, v interface{}) error {
+func AssertChanRecvVal(c <-chan interface{}, v interface{}) error {
 	if recv, err := AssertChanRecv(c); err == nil {
 		if recv != v {
 			return errors.New(fmt.Sprintf("%v != %v", recv, v))
@@ -37,6 +37,18 @@ func AssertChanRecvVal(c chan interface{}, v interface{}) error {
 	} else {
 		return err
 	}
+}
+
+// Ensure that the channel is closed.
+func AssertChanClosed(c <-chan interface{}) error {
+	select {
+	case _, ok := <-c:
+		if !ok {
+			return nil
+		}
+	default:
+	}
+	return errors.New("channel is not closed")
 }
 
 // Ensure file is in the specified state or return an error.
