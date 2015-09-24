@@ -176,7 +176,7 @@ deliver:
 			goto wait
 		} else {
 			h.log(err.Error())
-			// TODO: send RSET?
+			c.Reset()
 		}
 	}
 cleanup:
