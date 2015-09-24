@@ -5,42 +5,19 @@ import (
 	"time"
 )
 
-// Ensure that a value is immediately sent on the specified channel.
-func expectSend(sendChan chan<- interface{}) bool {
-	select {
-	case sendChan <- true:
-		return true
-	case <-time.After(50 * time.Millisecond):
-		return false
-	}
-}
-
-// Ensure that a value is immediately received on the specified channel. The
-// return value indicates whether the channel is open and whether a value was
-// received.
-func expectRecv(recvChan <-chan interface{}) (bool, bool) {
-	select {
-	case _, ok := <-recvChan:
-		return ok, ok
-	case <-time.After(50 * time.Millisecond):
-		return true, false
-	}
-}
-
 func TestNonBlockingChan(t *testing.T) {
 	n := NewNonBlockingChan()
-
-	// Send and receive a value on the channel
-	if !expectSend(n.Send) {
-		t.Fatal("sending on channel blocked")
+	<-time.After(50 * time.Millisecond)
+	if err := AssertChanSend(n.Send, true); err != nil {
+		t.Fatal(err)
 	}
-	if open, recvd := expectRecv(n.Recv); !open || !recvd {
-		t.Fatal("unable to receive item")
+	<-time.After(50 * time.Millisecond)
+	if err := AssertChanRecvVal(n.Recv, true); err != nil {
+		t.Fatal(err)
 	}
-
-	// Close the sending channel and ensure the receiving channel is closed
 	close(n.Send)
-	if open, recvd := expectRecv(n.Recv); open || recvd {
-		t.Fatal("receiving channel not closed")
+	<-time.After(50 * time.Millisecond)
+	if err := AssertChanClosed(n.Recv); err != nil {
+		t.Fatal(err)
 	}
 }
