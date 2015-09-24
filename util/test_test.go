@@ -11,7 +11,7 @@ import (
 func TestAssertChanSend(t *testing.T) {
 	c := make(chan interface{}, 1)
 	if err := AssertChanSend(c, true); err != nil {
-		t.Fatal(err)
+		t.Fatal("unexpected error")
 	}
 	if err := AssertChanSend(c, true); err == nil {
 		t.Fatal("error expected")
@@ -22,7 +22,7 @@ func TestAssertChanRecv(t *testing.T) {
 	c := make(chan interface{}, 1)
 	c <- true
 	if _, err := AssertChanRecv(c); err != nil {
-		t.Fatal(err)
+		t.Fatal("unexpected error")
 	}
 	if _, err := AssertChanRecv(c); err == nil {
 		t.Fatal("error expected")
@@ -34,7 +34,7 @@ func TestAssertChanRecvVal(t *testing.T) {
 	c <- true
 	c <- false
 	if err := AssertChanRecvVal(c, true); err != nil {
-		t.Fatal(err)
+		t.Fatal("unexpected error")
 	}
 	if err := AssertChanRecvVal(c, true); err == nil {
 		t.Fatal("error expected")
@@ -48,7 +48,7 @@ func TestAssertChanClosed(t *testing.T) {
 	}
 	close(c)
 	if err := AssertChanClosed(c); err != nil {
-		t.Fatal(err)
+		t.Fatal("unexpected error")
 	}
 }
 

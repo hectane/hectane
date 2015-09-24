@@ -26,13 +26,13 @@ func FindMailServers(host string) []string {
 func GroupAddressesByHost(addrs []string) (map[string][]string, error) {
 	m := make(map[string][]string)
 	for _, addr := range addrs {
-		if host, err := HostFromAddress(addr); err != nil {
-			return nil, err
-		} else {
+		if host, err := HostFromAddress(addr); err == nil {
 			if m[host] == nil {
 				m[host] = make([]string, 0, 1)
 			}
 			m[host] = append(m[host], addr)
+		} else {
+			return nil, err
 		}
 	}
 	return m, nil
