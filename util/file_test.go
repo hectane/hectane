@@ -1,7 +1,6 @@
 package util
 
 import (
-	"os"
 	"testing"
 )
 
@@ -10,7 +9,7 @@ func TestTempDir(t *testing.T) {
 		if err := AssertFileState(d.Path, true); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.RemoveAll(d.Path); err != nil {
+		if err := d.Delete(); err != nil {
 			t.Fatal(err)
 		}
 	} else {
