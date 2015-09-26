@@ -7,39 +7,27 @@ import (
 	"testing"
 )
 
-var (
-	addr1A  = "1@a.com"
-	addr2A  = "2@a.com"
-	addr1B  = "1@b.com"
-	subject = "Test"
-	text    = "test"
-	html    = "<em>test</em>"
-)
-
-func emailToMessages(e *Email) ([]*queue.Message, error) {
+func emailToMessages(e *Email) (*queue.Storage, []*queue.Message, error) {
 	if d, err := util.NewTempDir(); err == nil {
 		defer d.Delete()
 		if s, err := queue.NewStorage(d.Path); err == nil {
 			if messages, err := e.Messages(s); err == nil {
-				return messages, nil
+				return s, messages, nil
 			} else {
-				return nil, err
+				return nil, nil, err
 			}
 		} else {
-			return nil, err
+			return nil, nil, err
 		}
 	} else {
-		return nil, err
+		return nil, nil, err
 	}
 }
 
 func TestEmailCount(t *testing.T) {
-	if messages, err := emailToMessages(&Email{
-		To:      []string{addr1A, addr1B},
-		Cc:      []string{addr2A},
-		Subject: subject,
-		Text:    text,
-		Html:    html,
+	if _, messages, err := emailToMessages(&Email{
+		To: []string{"1@a.com", "1@b.com"},
+		Cc: []string{"2@a.com", "2@b.com"},
 	}); err == nil {
 		if len(messages) != 2 {
 			t.Fatal("%d != 2", len(messages))
