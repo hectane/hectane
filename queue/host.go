@@ -170,13 +170,17 @@ deliver:
 		if _, ok := err.(syscall.Errno); ok {
 			c = nil
 			goto deliver
-		} else if e, ok := err.(*textproto.Error); ok && e.Code >= 400 && e.Code <= 499 {
-			c.Close()
-			c = nil
-			goto wait
+		} else if e, ok := err.(*textproto.Error); ok {
+			if e.Code >= 400 && e.Code <= 499 {
+				c.Close()
+				c = nil
+				goto wait
+			} else {
+				c.Reset()
+			}
 		} else {
 			h.log(err.Error())
-			c.Reset()
+
 		}
 	}
 cleanup:
