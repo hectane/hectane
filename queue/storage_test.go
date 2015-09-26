@@ -15,10 +15,7 @@ func TestStorage(t *testing.T) {
 	)
 	if d, err := util.NewTempDir(); err == nil {
 		defer d.Delete()
-		if s, messages, err := NewStorage(d.Path); err == nil {
-			if len(messages) != 0 {
-				t.Fatalf("%d != 0", len(messages))
-			}
+		if s, err := NewStorage(d.Path); err == nil {
 			if w, id, err := s.NewBody(); err == nil {
 				if _, err := w.Write(data); err != nil {
 					t.Fatal(err)
@@ -37,20 +34,20 @@ func TestStorage(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-		} else {
-			t.Fatal(err)
-		}
-		if s, messages, err := NewStorage(d.Path); err == nil {
-			if len(messages) != numMessages {
-				t.Fatalf("%d != %d", len(messages), numMessages)
-			}
-			for _, id := range messageIDs {
-				if err := s.DeleteMessage(id); err != nil {
-					t.Fatal(err)
+			if messages, err := s.LoadMessages(); err == nil {
+				if len(messages) != numMessages {
+					t.Fatalf("%d != %d", len(messages), numMessages)
 				}
-			}
-			if _, err := s.GetBody(m.Body); err != InvalidID {
-				t.Fatalf("%v != %v", err, InvalidID)
+				for _, id := range messageIDs {
+					if err := s.DeleteMessage(id); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if _, err := s.GetBody(m.Body); err != InvalidID {
+					t.Fatalf("%v != %v", err, InvalidID)
+				}
+			} else {
+				t.Fatal(err)
 			}
 		} else {
 			t.Fatal(err)

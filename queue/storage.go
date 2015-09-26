@@ -93,8 +93,30 @@ func (s *Storage) getMessage(id string) (*Message, error) {
 	}
 }
 
-// Retrieve a list of messages in the storage directory.
-func (s *Storage) findMessages() ([]string, error) {
+// Create a new storage object using the specified directory. If the directory
+// does not exist, an attempt is made to create it.
+func NewStorage(directory string) (*Storage, error) {
+	s := &Storage{
+		directory: directory,
+		bodies:    make(map[string]int),
+	}
+	if _, err := os.Stat(directory); err == nil {
+		if err := s.loadJSON(s.indexFilename(), &s.bodies); err == nil || os.IsNotExist(err) {
+			return s, nil
+		} else {
+			return nil, err
+		}
+	} else {
+		if err := os.MkdirAll(directory, 0700); err == nil {
+			return s, nil
+		} else {
+			return nil, err
+		}
+	}
+}
+
+// Load messages from the storage directory.
+func (s *Storage) LoadMessages() ([]string, error) {
 	if files, err := ioutil.ReadDir(s.directory); err == nil {
 		messages := make([]string, 0)
 		for _, f := range files {
@@ -105,33 +127,6 @@ func (s *Storage) findMessages() ([]string, error) {
 		return messages, nil
 	} else {
 		return nil, err
-	}
-}
-
-// Create a new storage object using the specified directory. If the directory
-// does not exist, an attempt is made to create it. If it exists, an array of
-// message IDs is returned.
-func NewStorage(directory string) (*Storage, []string, error) {
-	s := &Storage{
-		directory: directory,
-		bodies:    make(map[string]int),
-	}
-	if _, err := os.Stat(directory); err == nil {
-		if messages, err := s.findMessages(); err == nil {
-			if err := s.loadJSON(s.indexFilename(), &s.bodies); err == nil || os.IsNotExist(err) {
-				return s, messages, nil
-			} else {
-				return nil, nil, err
-			}
-		} else {
-			return nil, nil, err
-		}
-	} else {
-		if err := os.MkdirAll(directory, 0700); err == nil {
-			return s, []string{}, nil
-		} else {
-			return nil, nil, err
-		}
 	}
 }
 
