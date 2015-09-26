@@ -16,23 +16,33 @@ var (
 	html    = "<em>test</em>"
 )
 
-func TestEmailMessageCount(t *testing.T) {
+func emailToMessages(e *Email) ([]*queue.Message, error) {
 	if d, err := util.NewTempDir(); err == nil {
 		defer d.Delete()
-		if q, err := queue.NewQueue(d.Path); err == nil {
-			e := &Email{
-				To: []string{addr1A, addr2A},
-				Cc: []string{addr1B},
-			}
-			if messages, err := e.Messages(q); err == nil {
-				if len(messages) != 2 {
-					t.Fatalf("%d != 2", len(messages))
-				}
+		if s, err := queue.NewStorage(d.Path); err == nil {
+			if messages, err := e.Messages(s); err == nil {
+				return messages, nil
 			} else {
-				t.Fatal(err)
+				return nil, err
 			}
 		} else {
-			t.Fatal(err)
+			return nil, err
+		}
+	} else {
+		return nil, err
+	}
+}
+
+func TestEmailCount(t *testing.T) {
+	if messages, err := emailToMessages(&Email{
+		To:      []string{addr1A, addr1B},
+		Cc:      []string{addr2A},
+		Subject: subject,
+		Text:    text,
+		Html:    html,
+	}); err == nil {
+		if len(messages) != 2 {
+			t.Fatal("%d != 2", len(messages))
 		}
 	} else {
 		t.Fatal(err)
