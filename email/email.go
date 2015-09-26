@@ -65,8 +65,8 @@ func writeMultipartBody(w *multipart.Writer, text, html string) error {
 
 // Convert the email into an array of messages grouped by host suitable for
 // delivery to the mail queue.
-func (e *Email) Messages(q *queue.Queue) ([]*queue.Message, error) {
-	if w, id, err := q.NewBody(); err == nil {
+func (e *Email) Messages(s *queue.Storage) ([]*queue.Message, error) {
+	if w, id, err := s.NewBody(); err == nil {
 		var (
 			m       = multipart.NewWriter(w)
 			headers = EmailHeaders{
