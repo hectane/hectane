@@ -22,27 +22,20 @@ func FindMailServers(host string) []string {
 	}
 }
 
-// Group a list of email addresses by their host.
+// Group a list of email addresses by their host. An error will be returned if
+// any of the addresses are invalid.
 func GroupAddressesByHost(addrs []string) (map[string][]string, error) {
 	m := make(map[string][]string)
-	for _, addr := range addrs {
-		if host, err := HostFromAddress(addr); err == nil {
-			if m[host] == nil {
-				m[host] = make([]string, 0, 1)
+	for _, a := range addrs {
+		if addr, err := mail.ParseAddress(a); err == nil {
+			parts := strings.Split(addr.Address, "@")
+			if m[parts[1]] == nil {
+				m[parts[1]] = make([]string, 0, 1)
 			}
-			m[host] = append(m[host], addr)
+			m[parts[1]] = append(m[parts[1]], addr.Address)
 		} else {
 			return nil, err
 		}
 	}
 	return m, nil
-}
-
-// Attempt to extract the host from the specified email address.
-func HostFromAddress(data string) (string, error) {
-	if addr, err := mail.ParseAddress(data); err != nil {
-		return "", err
-	} else {
-		return strings.Split(addr.Address, "@")[1], nil
-	}
 }
