@@ -41,21 +41,17 @@ func main() {
 	flag.StringVar(&password, "password", "", "password for HTTP basic auth")
 	flag.StringVar(&directory, "directory", directory, "directory for persistent storage")
 	flag.Parse()
-	if s, err := queue.NewStorage(directory); err == nil {
-		if q, err := queue.NewQueue(s); err == nil {
-			defer q.Stop()
-			goji.Use(func(c *web.C, h http.Handler) http.Handler {
-				fn := func(w http.ResponseWriter, r *http.Request) {
-					c.Env["storage"] = s
-					c.Env["queue"] = q
-					h.ServeHTTP(w, r)
-				}
-				return http.HandlerFunc(fn)
-			})
-		} else {
-			log.Println(err)
-			os.Exit(1)
-		}
+	s := queue.NewStorage(directory)
+	if q, err := queue.NewQueue(s); err == nil {
+		defer q.Stop()
+		goji.Use(func(c *web.C, h http.Handler) http.Handler {
+			fn := func(w http.ResponseWriter, r *http.Request) {
+				c.Env["storage"] = s
+				c.Env["queue"] = q
+				h.ServeHTTP(w, r)
+			}
+			return http.HandlerFunc(fn)
+		})
 	} else {
 		log.Println(err)
 		os.Exit(1)

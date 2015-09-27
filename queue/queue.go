@@ -16,11 +16,11 @@ type Queue struct {
 }
 
 // Deliver the specified message to the appropriate host queue.
-func (q *Queue) deliverMessage(host, id string) {
-	if _, ok := q.hosts[host]; !ok {
-		q.hosts[host] = NewHost(host, q.storage)
+func (q *Queue) deliverMessage(m *Message) {
+	if _, ok := q.hosts[m.Host]; !ok {
+		q.hosts[m.Host] = NewHost(m.Host, q.storage)
 	}
-	q.hosts[host].Deliver(id)
+	q.hosts[m.Host].Deliver(m)
 }
 
 // Check for inactive host queues and shut them down.
@@ -42,12 +42,7 @@ loop:
 	for {
 		select {
 		case i := <-q.newMessage.Recv:
-			m := i.(*Message)
-			if id, err := q.storage.NewMessage(m); err == nil {
-				q.deliverMessage(m.Host, id)
-			} else {
-				log.Print(err)
-			}
+			q.deliverMessage(i.(*Message))
 		case <-ticker.C:
 			q.checkForInactiveQueues()
 		case <-q.stop:
@@ -70,10 +65,8 @@ func NewQueue(s *Storage) (*Queue, error) {
 		stop:       make(chan bool),
 	}
 	if messages, err := s.LoadMessages(); err == nil {
-		for _, id := range messages {
-			if m, err := q.storage.GetMessage(id); err == nil {
-				q.deliverMessage(m.Host, id)
-			}
+		for _, m := range messages {
+			q.deliverMessage(m)
 		}
 	} else {
 		return nil, err

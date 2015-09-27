@@ -35,7 +35,7 @@ func (h *Host) log(msg string) {
 // "inactive" while waiting for new messages to arrive. The current time is
 // recorded before entering the select{} block so that the Idle() method can
 // calculate the idle time.
-func (h *Host) receiveMessage() (*Message, string) {
+func (h *Host) receiveMessage() *Message {
 	h.Lock()
 	h.lastActivity = time.Now()
 	h.Unlock()
@@ -47,14 +47,9 @@ func (h *Host) receiveMessage() (*Message, string) {
 	for {
 		select {
 		case i := <-h.newMessage.Recv:
-			id := i.(string)
-			if m, err := h.storage.GetMessage(id); err == nil {
-				return m, id
-			} else {
-				h.log(err.Error())
-			}
+			return i.(*Message)
 		case <-h.stop:
-			return nil, ""
+			return nil
 		}
 	}
 }
@@ -106,7 +101,7 @@ func (h *Host) connectToMailServer() (*smtp.Client, error) {
 
 // Attempt to send the specified message to the specified client.
 func (h *Host) deliverToMailServer(c *smtp.Client, m *Message) error {
-	if r, err := h.storage.GetBody(m.Body); err == nil {
+	if r, err := h.storage.GetMessageBody(m); err == nil {
 		if err := c.Mail(m.From); err != nil {
 			return err
 		}
@@ -137,7 +132,6 @@ func (h *Host) deliverToMailServer(c *smtp.Client, m *Message) error {
 func (h *Host) run() {
 	var (
 		m        *Message
-		id       string
 		c        *smtp.Client
 		err      error
 		tries    int
@@ -145,9 +139,7 @@ func (h *Host) run() {
 	)
 receive:
 	if m == nil {
-		if m, id = h.receiveMessage(); m == nil {
-			goto shutdown
-		}
+		m = h.receiveMessage()
 		h.log("message received in queue")
 	}
 deliver:
@@ -185,7 +177,7 @@ deliver:
 	}
 cleanup:
 	h.log("deleting message from disk")
-	if err := h.storage.DeleteMessage(id); err != nil {
+	if err := h.storage.DeleteMessage(m); err != nil {
 		h.log(err.Error())
 	}
 	m = nil
@@ -233,8 +225,8 @@ func NewHost(host string, storage *Storage) *Host {
 }
 
 // Attempt to deliver a message to the host.
-func (h *Host) Deliver(id string) {
-	h.newMessage.Send <- id
+func (h *Host) Deliver(m *Message) {
+	h.newMessage.Send <- m
 }
 
 // Retrieve the connection idle time.

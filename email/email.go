@@ -66,11 +66,11 @@ func writeMultipartBody(w *multipart.Writer, text, html string) error {
 // Convert the email into an array of messages grouped by host suitable for
 // delivery to the mail queue.
 func (e *Email) Messages(s *queue.Storage) ([]*queue.Message, error) {
-	if w, id, err := s.NewBody(); err == nil {
+	if w, body, err := s.NewBody(); err == nil {
 		var (
 			m       = multipart.NewWriter(w)
 			headers = EmailHeaders{
-				"Message-Id":   fmt.Sprintf("<%s@go-cannon>", id),
+				"Message-Id":   fmt.Sprintf("<%s@go-cannon>", body),
 				"From":         e.From,
 				"To":           strings.Join(e.To, ", "),
 				"Subject":      e.Subject,
@@ -103,12 +103,15 @@ func (e *Email) Messages(s *queue.Storage) ([]*queue.Message, error) {
 		if addrMap, err := util.GroupAddressesByHost(addresses); err == nil {
 			messages := make([]*queue.Message, 0, 1)
 			for h, to := range addrMap {
-				messages = append(messages, &queue.Message{
+				msg := &queue.Message{
 					Host: h,
 					From: e.From,
 					To:   to,
-					Body: id,
-				})
+				}
+				if err := s.SaveMessage(msg, body); err != nil {
+					return nil, err
+				}
+				messages = append(messages, msg)
 			}
 			return messages, nil
 		} else {
