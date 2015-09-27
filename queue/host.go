@@ -74,7 +74,9 @@ func (h *Host) tryMailServer(server string) (*smtp.Client, error) {
 	}
 	if err == nil {
 		if hostname, err := os.Hostname(); err == nil {
-			c.Hello(hostname)
+			if err := c.Hello(hostname); err != nil {
+				return nil, err
+			}
 		}
 		if ok, _ := c.Extension("STARTTLS"); ok {
 			if err := c.StartTLS(&tls.Config{ServerName: server}); err != nil {
@@ -161,6 +163,7 @@ deliver:
 	if err := h.deliverToMailServer(c, m); err == nil {
 		h.log("mail delivered successfully")
 	} else {
+		h.log(err.Error())
 		if _, ok := err.(syscall.Errno); ok {
 			c = nil
 			goto deliver
@@ -172,9 +175,6 @@ deliver:
 			} else {
 				c.Reset()
 			}
-		} else {
-			h.log(err.Error())
-
 		}
 	}
 cleanup:
