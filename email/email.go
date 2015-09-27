@@ -48,23 +48,22 @@ func (e *Email) writeBody(w *multipart.Writer) error {
 	var (
 		buff      = &bytes.Buffer{}
 		altWriter = multipart.NewWriter(buff)
-		header    = textproto.MIMEHeader{
-			"Content-Type": []string{
-				fmt.Sprintf("multipart/alternative; boundary=%s", altWriter.Boundary()),
-			},
-		}
 	)
-	if p, err := w.CreatePart(header); err == nil {
+	if p, err := w.CreatePart(textproto.MIMEHeader{
+		"Content-Type": []string{
+			fmt.Sprintf("multipart/alternative; boundary=%s", altWriter.Boundary()),
+		},
+	}); err == nil {
 		if err := (Attachment{
 			ContentType: "text/plain; charset=utf-8",
 			Content:     e.Text,
-		}.Write(w)); err != nil {
+		}.Write(altWriter)); err != nil {
 			return err
 		}
 		if err := (Attachment{
 			ContentType: "text/html; charset=utf-8",
 			Content:     e.Html,
-		}.Write(w)); err != nil {
+		}.Write(altWriter)); err != nil {
 			return err
 		}
 		if err := altWriter.Close(); err != nil {
