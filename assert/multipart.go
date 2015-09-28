@@ -14,34 +14,38 @@ type MultipartDesc struct {
 }
 
 // Ensure that a multipart message conforms to the specified description.
-func Multipart(r io.Reader, boundary string, m *MultipartDesc) error {
-	reader := multipart.NewReader(r, boundary)
-	for {
-		if p, err := reader.NextPart(); err == nil {
-			if contentType, params, err := mime.ParseMediaType(p.Header.Get("Content-Type")); err == nil {
-				if d, ok := m.Parts[contentType]; ok {
-					if len(d.Parts) == 0 {
-						if err := Read(p, d.Content); err != nil {
+func Multipart(r io.Reader, contentType string, m *MultipartDesc) error {
+	if _, params, err := mime.ParseMediaType(contentType); err != nil {
+		if len(m.Parts) == 0 {
+			return Read(r, m.Content)
+		} else {
+			if boundary, ok := params["boundary"]; ok {
+				reader := multipart.NewReader(r, boundary)
+				for {
+					if p, err := reader.NextPart(); err == nil {
+						if c, _, err := mime.ParseMediaType(p.Header.Get("Content-Type")); err == nil {
+							if d, ok := m.Parts[c]; ok {
+								if err := Multipart(p, p.Header.Get("Content-Type"), d); err != nil {
+									return err
+								}
+							} else {
+								return errors.New("unexpected content type")
+							}
+						} else {
 							return err
 						}
+					} else if err == io.EOF {
+						break
 					} else {
-						if boundary, ok := params["boundary"]; ok {
-							return Multipart(p, boundary, d)
-						} else {
-							return errors.New("\"boundary\" parameter missing")
-						}
+						return err
 					}
-				} else {
-					return errors.New("unexpected content type")
 				}
+				return nil
 			} else {
-				return err
+				return errors.New("\"boundary\" parameter missing")
 			}
-		} else if err == io.EOF {
-			break
-		} else {
-			return err
 		}
+	} else {
+		return err
 	}
-	return nil
 }

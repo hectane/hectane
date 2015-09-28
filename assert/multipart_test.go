@@ -2,6 +2,7 @@ package assert
 
 import (
 	"bytes"
+	"mime"
 	"mime/multipart"
 	"net/textproto"
 	"testing"
@@ -11,6 +12,9 @@ func TestMultipart(t *testing.T) {
 	var (
 		b           = &bytes.Buffer{}
 		w           = multipart.NewWriter(b)
+		contentType = mime.FormatMediaType("multipart/mixed", map[string]string{
+			"boundary": w.Boundary(),
+		})
 		data        = []byte("test")
 		description = &MultipartDesc{
 			Parts: map[string]*MultipartDesc{
@@ -30,7 +34,7 @@ func TestMultipart(t *testing.T) {
 	if err := w.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if err := Multipart(b, w.Boundary(), description); err != nil {
+	if err := Multipart(b, contentType, description); err != nil {
 		t.Fatal(err)
 	}
 }
