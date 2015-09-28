@@ -1,12 +1,11 @@
 package email
 
 import (
+	"github.com/nathan-osman/go-cannon/assert"
 	"github.com/nathan-osman/go-cannon/queue"
 
 	"bytes"
 	"io/ioutil"
-	"mime"
-	"mime/multipart"
 	"net/mail"
 	"os"
 	"testing"
@@ -35,18 +34,6 @@ func emailToMessages(e *Email) ([]*queue.Message, []byte, error) {
 		}
 	} else {
 		return nil, nil, err
-	}
-}
-
-func parseContentType(h string) (string, string, error) {
-	if c, params, err := mime.ParseMediaType(h); err == nil {
-		if boundary, ok := params["boundary"]; ok {
-			return c, boundary, nil
-		} else {
-			return c, "", nil
-		}
-	} else {
-		return "", "", err
 	}
 }
 
@@ -101,9 +88,27 @@ func TestEmailHeaders(t *testing.T) {
 
 func TestEmailContent(t *testing.T) {
 	var (
-		from = "me@example.com"
-		to   = "you@example.com"
-		text = "<test>"
+		from        = "me@example.com"
+		to          = "you@example.com"
+		text        = "<test>"
+		description = &assert.MultipartDesc{
+			Parts: map[string]*assert.MultipartDesc{
+				"multipart/mixed": &assert.MultipartDesc{
+					Parts: map[string]*assert.MultipartDesc{
+						"multipart/alternative": &assert.MultipartDesc{
+							Parts: map[string]*assert.MultipartDesc{
+								"text/plain": &assert.MultipartDesc{
+									Content: []byte("<test>"),
+								},
+								"text/html": &assert.MultipartDesc{
+									Content: []byte("&lt;test&gt;"),
+								},
+							},
+						},
+					},
+				},
+			},
+		}
 	)
 	if _, body, err := emailToMessages(&Email{
 		From: from,
@@ -112,12 +117,7 @@ func TestEmailContent(t *testing.T) {
 	}); err == nil {
 		r := bytes.NewBuffer(body)
 		if m, err := mail.ReadMessage(r); err == nil {
-			if _, boundary, err := parseContentType(m.Header.Get("Content-Type")); err == nil {
-				r := multipart.NewReader(m.Body, boundary)
-				if _, err := r.NextPart(); err != nil {
-					t.Fatal(err)
-				}
-			} else {
+			if err := assert.Multipart(m.Body, m.Header.Get("Content-Type"), description); err != nil {
 				t.Fatal(err)
 			}
 		} else {
