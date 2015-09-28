@@ -3,7 +3,10 @@ package util
 import (
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
+	"reflect"
 )
 
 // Ensure that a value is immediately sent on the specified channel.
@@ -69,5 +72,18 @@ func AssertFileState(filename string, exists bool) error {
 		} else {
 			return err
 		}
+	}
+}
+
+// Ensure that reading from the specified reader results in the specified data.
+func AssertRead(r io.Reader, data []byte) error {
+	if b, err := ioutil.ReadAll(r); err == nil {
+		if reflect.DeepEqual(b, data) {
+			return nil
+		} else {
+			return errors.New(fmt.Sprintf("%v != %v", b, data))
+		}
+	} else {
+		return err
 	}
 }

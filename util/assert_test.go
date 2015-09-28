@@ -3,6 +3,7 @@ package util
 import (
 	"code.google.com/p/go-uuid/uuid"
 
+	"bytes"
 	"os"
 	"path"
 	"testing"
@@ -78,5 +79,15 @@ func TestAssertFileState(t *testing.T) {
 	}
 	if err := AssertFileState(filename, false); err != nil {
 		t.Fatal("unexpected error")
+	}
+}
+
+func TestAssertRead(t *testing.T) {
+	var (
+		data = []byte("test")
+		b    = bytes.NewBuffer(data)
+	)
+	if err := AssertRead(b, data); err != nil {
+		t.Fatal(err)
 	}
 }
