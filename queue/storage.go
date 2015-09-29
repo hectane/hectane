@@ -145,6 +145,9 @@ func (s *Storage) DeleteMessage(m *Message) error {
 	}
 	if d, err := os.Open(s.bodyDirectory(m.body)); err == nil {
 		if e, err := d.Readdir(2); err == nil {
+			if err := d.Close(); err != nil {
+				return err
+			}
 			if len(e) == 1 {
 				return os.RemoveAll(s.bodyDirectory(m.body))
 			} else {
