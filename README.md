@@ -24,6 +24,7 @@ go-cannon currently recognizes the following command-line parameters (all are op
 - `-username` - username for HTTP basic auth
 - `-password` - password for HTTP basic auth
 - `-directory` - storage location for emails awaiting delivery
+- `-disable-ssl-verification` - disables verification of server SSL certificates
 
 ### Usage
 
