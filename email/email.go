@@ -1,11 +1,13 @@
 package email
 
 import (
+	"github.com/kennygrant/sanitize"
 	"github.com/nathan-osman/go-cannon/queue"
 	"github.com/nathan-osman/go-cannon/util"
 
 	"bytes"
 	"fmt"
+	"html"
 	"io"
 	"mime/multipart"
 	"net/mail"
@@ -54,6 +56,12 @@ func (e *Email) writeBody(w *multipart.Writer) error {
 			fmt.Sprintf("multipart/alternative; boundary=%s", altWriter.Boundary()),
 		},
 	}); err == nil {
+		if e.Text == "" {
+			e.Text = sanitize.HTML(e.Html)
+		}
+		if e.Html == "" {
+			e.Html = html.EscapeString(e.Text)
+		}
 		if err := (Attachment{
 			ContentType: "text/plain; charset=utf-8",
 			Content:     e.Text,

@@ -92,18 +92,18 @@ func TestEmailContent(t *testing.T) {
 		to          = "you@example.com"
 		text        = "<test>"
 		description = &assert.MultipartDesc{
-			Parts: map[string]*assert.MultipartDesc{
-				"multipart/mixed": &assert.MultipartDesc{
-					Parts: map[string]*assert.MultipartDesc{
-						"multipart/alternative": &assert.MultipartDesc{
-							Parts: map[string]*assert.MultipartDesc{
-								"text/plain": &assert.MultipartDesc{
-									Content: []byte("<test>"),
-								},
-								"text/html": &assert.MultipartDesc{
-									Content: []byte("&lt;test&gt;"),
-								},
-							},
+			ContentType: "multipart/mixed",
+			Parts: []*assert.MultipartDesc{
+				&assert.MultipartDesc{
+					ContentType: "multipart/alternative",
+					Parts: []*assert.MultipartDesc{
+						&assert.MultipartDesc{
+							ContentType: "text/plain",
+							Content:     []byte("<test>"),
+						},
+						&assert.MultipartDesc{
+							ContentType: "text/html",
+							Content:     []byte("&lt;test&gt;"),
 						},
 					},
 				},
