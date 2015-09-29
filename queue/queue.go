@@ -9,6 +9,7 @@ import (
 
 // Mail queue managing the sending of messages to hosts.
 type Queue struct {
+	config     *Config
 	storage    *Storage
 	hosts      map[string]*Host
 	newMessage *util.NonBlockingChan
@@ -18,7 +19,7 @@ type Queue struct {
 // Deliver the specified message to the appropriate host queue.
 func (q *Queue) deliverMessage(m *Message) {
 	if _, ok := q.hosts[m.Host]; !ok {
-		q.hosts[m.Host] = NewHost(m.Host, q.storage)
+		q.hosts[m.Host] = NewHost(m.Host, q.config, q.storage)
 	}
 	q.hosts[m.Host].Deliver(m)
 }
@@ -57,8 +58,9 @@ loop:
 
 // Create a new message queue. Any undelivered messages on disk will be added
 // to the appropriate queue.
-func NewQueue(s *Storage) (*Queue, error) {
+func NewQueue(c *Config, s *Storage) (*Queue, error) {
 	q := &Queue{
+		config:     c,
 		storage:    s,
 		hosts:      make(map[string]*Host),
 		newMessage: util.NewNonBlockingChan(),

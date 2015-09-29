@@ -20,6 +20,7 @@ import (
 type Host struct {
 	sync.Mutex
 	host         string
+	config       *Config
 	storage      *Storage
 	lastActivity time.Time
 	newMessage   *util.NonBlockingChan
@@ -79,7 +80,11 @@ func (h *Host) tryMailServer(server string) (*smtp.Client, error) {
 			}
 		}
 		if ok, _ := c.Extension("STARTTLS"); ok {
-			if err := c.StartTLS(&tls.Config{ServerName: server}); err != nil {
+			config := &tls.Config{ServerName: server}
+			if h.config.DisableSSLVerification {
+				config.InsecureSkipVerify = true
+			}
+			if err := c.StartTLS(config); err != nil {
 				return nil, err
 			}
 		}
@@ -215,10 +220,11 @@ shutdown:
 }
 
 // Create a new host connection.
-func NewHost(host string, storage *Storage) *Host {
+func NewHost(host string, c *Config, s *Storage) *Host {
 	h := &Host{
 		host:       host,
-		storage:    storage,
+		config:     c,
+		storage:    s,
 		newMessage: util.NewNonBlockingChan(),
 		stop:       make(chan bool),
 	}

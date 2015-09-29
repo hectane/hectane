@@ -24,6 +24,7 @@ func main() {
 		username  string
 		password  string
 		directory string
+		config    queue.Config
 	)
 	if s := bind.Sniff(); s == "" {
 		flag.Lookup("bind").Value.Set(":8025")
@@ -40,9 +41,10 @@ func main() {
 	flag.StringVar(&username, "username", "", "username for HTTP basic auth")
 	flag.StringVar(&password, "password", "", "password for HTTP basic auth")
 	flag.StringVar(&directory, "directory", directory, "directory for persistent storage")
+	flag.BoolVar(&config.DisableSSLVerification, "disable-ssl-verification", false, "don't verify SSL certificates")
 	flag.Parse()
 	s := queue.NewStorage(directory)
-	if q, err := queue.NewQueue(s); err == nil {
+	if q, err := queue.NewQueue(&config, s); err == nil {
 		defer q.Stop()
 		goji.Use(func(c *web.C, h http.Handler) http.Handler {
 			fn := func(w http.ResponseWriter, r *http.Request) {
