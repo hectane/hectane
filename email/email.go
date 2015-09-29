@@ -12,9 +12,12 @@ import (
 	"mime/multipart"
 	"net/mail"
 	"net/textproto"
+	"regexp"
 	"strings"
 	"time"
 )
+
+var replaceCRLF = regexp.MustCompile(`\r?\n`)
 
 // Abstract representation of an email.
 type Email struct {
@@ -60,7 +63,7 @@ func (e *Email) writeBody(w *multipart.Writer) error {
 			e.Text = sanitize.HTML(e.Html)
 		}
 		if e.Html == "" {
-			e.Html = html.EscapeString(e.Text)
+			e.Html = replaceCRLF.ReplaceAllString(html.EscapeString(e.Text), "<br>")
 		}
 		if err := (Attachment{
 			ContentType: "text/plain; charset=utf-8",

@@ -90,7 +90,7 @@ func TestEmailContent(t *testing.T) {
 	var (
 		from        = "me@example.com"
 		to          = "you@example.com"
-		text        = "<test>"
+		text        = "<test>\r\n"
 		description = &assert.MultipartDesc{
 			ContentType: "multipart/mixed",
 			Parts: []*assert.MultipartDesc{
@@ -99,11 +99,11 @@ func TestEmailContent(t *testing.T) {
 					Parts: []*assert.MultipartDesc{
 						&assert.MultipartDesc{
 							ContentType: "text/plain",
-							Content:     []byte("<test>"),
+							Content:     []byte("<test>\r\n"),
 						},
 						&assert.MultipartDesc{
 							ContentType: "text/html",
-							Content:     []byte("&lt;test&gt;"),
+							Content:     []byte("&lt;test&gt;<br>"),
 						},
 					},
 				},
