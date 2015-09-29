@@ -40,6 +40,9 @@ func TestStorage(t *testing.T) {
 					} else {
 						t.Fatal(err)
 					}
+					if err := r.Close(); err != nil {
+						t.Fatal(err)
+					}
 				} else {
 					t.Fatal(err)
 				}
