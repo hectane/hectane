@@ -7,10 +7,13 @@ import (
 
 func TestRead(t *testing.T) {
 	var (
-		data = []byte("test")
-		b    = bytes.NewBuffer(data)
+		data    = []byte("test")
+		badData = []byte("test2")
 	)
-	if err := Read(b, data); err != nil {
+	if err := Read(bytes.NewBuffer(data), data); err != nil {
 		t.Fatal(err)
+	}
+	if err := Read(bytes.NewBuffer(data), badData); err == nil {
+		t.Fatal("error expected")
 	}
 }
