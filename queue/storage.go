@@ -105,6 +105,8 @@ func (s *Storage) LoadMessages() ([]*Message, error) {
 			}
 		}
 		return messages, nil
+	} else if os.IsNotExist(err) {
+		return []*Message{}, nil
 	} else {
 		return nil, err
 	}
