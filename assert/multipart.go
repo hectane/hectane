@@ -2,6 +2,7 @@ package assert
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"mime"
 	"mime/multipart"
@@ -9,33 +10,27 @@ import (
 
 // Description of a multipart MIME message.
 type MultipartDesc struct {
-	Content []byte
-	Parts   map[string]*MultipartDesc
+	ContentType string
+	Content     []byte
+	Parts       []*MultipartDesc
 }
 
 // Ensure that a multipart message conforms to the specified description.
-func Multipart(r io.Reader, contentType string, m *MultipartDesc) error {
-	if _, params, err := mime.ParseMediaType(contentType); err != nil {
-		if len(m.Parts) == 0 {
-			return Read(r, m.Content)
+func Multipart(r io.Reader, contentType string, d *MultipartDesc) error {
+	if c, params, err := mime.ParseMediaType(contentType); err == nil {
+		if c != d.ContentType {
+			return errors.New(fmt.Sprintf("%s != %s", c, d.ContentType))
+		}
+		if len(d.Parts) == 0 {
+			return Read(r, d.Content)
 		} else {
 			if boundary, ok := params["boundary"]; ok {
 				reader := multipart.NewReader(r, boundary)
-				for {
+				for _, part := range d.Parts {
 					if p, err := reader.NextPart(); err == nil {
-						if c, _, err := mime.ParseMediaType(p.Header.Get("Content-Type")); err == nil {
-							if d, ok := m.Parts[c]; ok {
-								if err := Multipart(p, p.Header.Get("Content-Type"), d); err != nil {
-									return err
-								}
-							} else {
-								return errors.New("unexpected content type")
-							}
-						} else {
+						if err := Multipart(p, p.Header.Get("Content-Type"), part); err != nil {
 							return err
 						}
-					} else if err == io.EOF {
-						break
 					} else {
 						return err
 					}
