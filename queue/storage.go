@@ -62,6 +62,7 @@ func (s *Storage) loadMessages(body string) []*Message {
 					if err := json.NewDecoder(r).Decode(m); err == nil {
 						messages = append(messages, m)
 					}
+					r.Close()
 				}
 			}
 		}
@@ -116,7 +117,10 @@ func (s *Storage) SaveMessage(m *Message, body string) error {
 	m.id = uuid.New()
 	m.body = body
 	if w, err := os.OpenFile(s.messageFilename(m), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600); err == nil {
-		return json.NewEncoder(w).Encode(m)
+		if err := json.NewEncoder(w).Encode(m); err != nil {
+			return err
+		}
+		return w.Close()
 	} else {
 		return err
 	}
