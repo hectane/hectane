@@ -1,10 +1,10 @@
-## go-cannon
+## Hectane
 
 [![MIT License](http://img.shields.io/badge/license-MIT-9370d8.svg?style=flat)](http://opensource.org/licenses/MIT)
-[![GoDoc](https://godoc.org/github.com/nathan-osman/go-cannon?status.svg)](https://godoc.org/github.com/nathan-osman/go-cannon)
-[![Build Status](https://travis-ci.org/nathan-osman/go-cannon.svg)](https://travis-ci.org/nathan-osman/go-cannon)
+[![GoDoc](https://godoc.org/github.com/hectane/hectane?status.svg)](https://godoc.org/github.com/hectane/hectane)
+[![Build Status](https://travis-ci.org/hectane/hectane.svg)](https://travis-ci.org/hectane/hectane)
 
-The goal of go-cannon is simple: to create an SMTP client that is extremely easy to configure and use. The application exposes a simple HTTP API that is used for sending emails.
+The goal of Hectane is simple: to create an SMTP client that is extremely easy to configure and use. The application exposes a simple HTTP API that is used for sending emails.
 
 ### Features
 
@@ -16,7 +16,7 @@ The goal of go-cannon is simple: to create an SMTP client that is extremely easy
 
 ### Parameters
 
-go-cannon currently recognizes the following command-line parameters (all are optional):
+Hectane currently recognizes the following command-line parameters (all are optional):
 
 - `-bind` - address to bind to (in the format `host:port` - default is `:8025`)
 - `-tls-cert` - path to TLS certificate
@@ -28,7 +28,7 @@ go-cannon currently recognizes the following command-line parameters (all are op
 
 ### Usage
 
-go-cannon exposes an HTTP API that can be used to deliver emails. The API expects and responds with JSON data. Currently, the API consists of the following methods:
+Hectane exposes an HTTP API that can be used to deliver emails. The API expects and responds with JSON data. Currently, the API consists of the following methods:
 
 #### GET /v1/version
 
