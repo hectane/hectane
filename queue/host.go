@@ -1,7 +1,7 @@
 package queue
 
 import (
-	"github.com/nathan-osman/go-cannon/util"
+	"github.com/hectane/hectane/util"
 
 	"crypto/tls"
 	"errors"

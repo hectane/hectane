@@ -1,8 +1,8 @@
 package api
 
 import (
-	"github.com/nathan-osman/go-cannon/email"
-	"github.com/nathan-osman/go-cannon/queue"
+	"github.com/hectane/hectane/email"
+	"github.com/hectane/hectane/queue"
 	"github.com/zenazn/goji/web"
 
 	"encoding/json"

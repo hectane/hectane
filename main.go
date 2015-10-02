@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/goji/httpauth"
+	"github.com/hectane/hectane/api"
+	"github.com/hectane/hectane/queue"
 	"github.com/mitchellh/go-homedir"
-	"github.com/nathan-osman/go-cannon/api"
-	"github.com/nathan-osman/go-cannon/queue"
 	"github.com/zenazn/goji"
 	"github.com/zenazn/goji/bind"
 	"github.com/zenazn/goji/web"
@@ -31,7 +31,7 @@ func main() {
 		flag.Lookup("bind").DefValue = ":8025"
 	}
 	if home, err := homedir.Dir(); err == nil {
-		directory = path.Join(home, ".go-cannon")
+		directory = path.Join(home, ".hectane")
 	} else {
 		log.Println(err)
 		os.Exit(1)

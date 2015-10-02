@@ -1,7 +1,7 @@
 package util
 
 import (
-	"github.com/nathan-osman/go-cannon/assert"
+	"github.com/hectane/hectane/assert"
 
 	"testing"
 	"time"

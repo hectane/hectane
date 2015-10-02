@@ -1,8 +1,8 @@
 package email
 
 import (
-	"github.com/nathan-osman/go-cannon/assert"
-	"github.com/nathan-osman/go-cannon/queue"
+	"github.com/hectane/hectane/assert"
+	"github.com/hectane/hectane/queue"
 
 	"bytes"
 	"io/ioutil"

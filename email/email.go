@@ -1,9 +1,9 @@
 package email
 
 import (
+	"github.com/hectane/hectane/queue"
+	"github.com/hectane/hectane/util"
 	"github.com/kennygrant/sanitize"
-	"github.com/nathan-osman/go-cannon/queue"
-	"github.com/nathan-osman/go-cannon/util"
 
 	"bytes"
 	"fmt"
@@ -34,7 +34,7 @@ type Email struct {
 // Write the headers for the email to the specified writer.
 func (e *Email) writeHeaders(w io.Writer, id, boundary string) error {
 	headers := EmailHeaders{
-		"Message-Id":   fmt.Sprintf("<%s@go-cannon>", id),
+		"Message-Id":   fmt.Sprintf("<%s@hectane>", id),
 		"From":         e.From,
 		"To":           strings.Join(e.To, ", "),
 		"Subject":      e.Subject,
