@@ -9,6 +9,6 @@ import (
 // Retrieve version information.
 func Version(c web.C, w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, map[string]string{
-		"version": "0.2.1",
+		"version": "0.3.0",
 	})
 }

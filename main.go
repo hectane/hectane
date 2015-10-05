@@ -59,6 +59,7 @@ func main() {
 		os.Exit(1)
 	}
 	goji.Get("/v1/version", api.Version)
+	goji.Get("/v1/status", api.Status)
 	goji.Post("/v1/send", api.Send)
 	if username != "" && password != "" {
 		goji.Use(httpauth.SimpleBasicAuth(username, password))

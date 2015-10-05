@@ -77,6 +77,18 @@ func NewQueue(c *Config, s *Storage) (*Queue, error) {
 	return q, nil
 }
 
+// Provide the status of each host queue.
+func (q *Queue) Status() map[string]interface{} {
+	m := make(map[string]interface{})
+	for n, h := range q.hosts {
+		m[n] = map[string]interface{}{
+			"active": h.Idle() == 0,
+			"idle":   h.Idle() / time.Second,
+		}
+	}
+	return m
+}
+
 // Deliver the specified message to the appropriate host queue.
 func (q *Queue) Deliver(m *Message) {
 	q.newMessage.Send <- m
