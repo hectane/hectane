@@ -44,7 +44,7 @@ func TestEmailCount(t *testing.T) {
 		Cc:   []string{"2@a.com", "2@b.com"},
 	}); err == nil {
 		if len(messages) != 2 {
-			t.Fatal("%d != 2", len(messages))
+			t.Fatalf("%d != 2", len(messages))
 		}
 	} else {
 		t.Fatal(err)
