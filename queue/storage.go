@@ -96,7 +96,7 @@ func (s *Storage) NewBody() (io.WriteCloser, string, error) {
 // loaded are ignored.
 func (s *Storage) LoadMessages() ([]*Message, error) {
 	if directories, err := ioutil.ReadDir(s.directory); err == nil {
-		messages := make([]*Message, 0)
+		var messages []*Message
 		for _, d := range directories {
 			if d.IsDir() {
 				if _, err := os.Stat(s.bodyFilename(d.Name())); err == nil {

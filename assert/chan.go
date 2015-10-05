@@ -29,7 +29,7 @@ func ChanRecv(c <-chan interface{}) (interface{}, error) {
 func ChanRecvVal(c <-chan interface{}, v interface{}) error {
 	if recv, err := ChanRecv(c); err == nil {
 		if recv != v {
-			return errors.New(fmt.Sprintf("%v != %v", recv, v))
+			return fmt.Errorf("%v != %v", recv, v)
 		} else {
 			return nil
 		}

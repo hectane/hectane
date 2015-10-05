@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-func TestEmailHeadersWrite(t *testing.T) {
+func TestHeadersWrite(t *testing.T) {
 	var (
-		headers = EmailHeaders{
+		headers = Headers{
 			"Test": "test",
 		}
 		buff  = &bytes.Buffer{}

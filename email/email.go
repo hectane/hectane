@@ -33,7 +33,7 @@ type Email struct {
 
 // Write the headers for the email to the specified writer.
 func (e *Email) writeHeaders(w io.Writer, id, boundary string) error {
-	headers := EmailHeaders{
+	headers := Headers{
 		"Message-Id":   fmt.Sprintf("<%s@hectane>", id),
 		"From":         e.From,
 		"To":           strings.Join(e.To, ", "),

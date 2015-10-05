@@ -19,7 +19,7 @@ type MultipartDesc struct {
 func Multipart(r io.Reader, contentType string, d *MultipartDesc) error {
 	if c, params, err := mime.ParseMediaType(contentType); err == nil {
 		if c != d.ContentType {
-			return errors.New(fmt.Sprintf("%s != %s", c, d.ContentType))
+			return fmt.Errorf("%s != %s", c, d.ContentType)
 		}
 		if len(d.Parts) == 0 {
 			return Read(r, d.Content)

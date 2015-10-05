@@ -1,7 +1,6 @@
 package assert
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,7 +13,7 @@ func Read(r io.Reader, data []byte) error {
 		if reflect.DeepEqual(b, data) {
 			return nil
 		} else {
-			return errors.New(fmt.Sprintf("%v != %v", b, data))
+			return fmt.Errorf("%v != %v", b, data)
 		}
 	} else {
 		return err
