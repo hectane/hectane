@@ -1,14 +1,15 @@
 package api
 
 import (
-	"github.com/zenazn/goji/web"
-
 	"net/http"
 )
 
-// Retrieve version information.
-func Version(c web.C, w http.ResponseWriter, r *http.Request) {
-	respondWithJSON(w, map[string]string{
-		"version": "0.3.0",
-	})
+// Retrieve version information, including the current version of the
+// application.
+func (a *API) version(w http.ResponseWriter, r *http.Request) {
+	if a.validRequest(w, r, get) {
+		a.respondWithJSON(w, map[string]string{
+			"version": "0.3.0",
+		})
+	}
 }
