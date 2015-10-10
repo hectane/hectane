@@ -20,7 +20,6 @@ type API struct {
 	serveMux *http.ServeMux
 	config   *Config
 	queue    *queue.Queue
-	storage  *queue.Storage
 }
 
 // Create a handler that logs and validates requests as they come in.
@@ -41,7 +40,7 @@ func (a *API) method(method string, handler func(r *http.Request) interface{}) h
 }
 
 // Create a new API instance for the specified queue.
-func New(config *Config, queue *queue.Queue, storage *queue.Storage) *API {
+func New(config *Config, queue *queue.Queue) *API {
 	a := &API{
 		server: &http.Server{
 			Addr: config.Addr,
@@ -49,7 +48,6 @@ func New(config *Config, queue *queue.Queue, storage *queue.Storage) *API {
 		serveMux: http.NewServeMux(),
 		config:   config,
 		queue:    queue,
-		storage:  storage,
 	}
 	a.server.Handler = a
 	a.serveMux.HandleFunc("/v1/send", a.method(post, a.send))
