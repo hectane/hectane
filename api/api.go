@@ -16,66 +16,70 @@ const (
 
 // HTTP API for managing a mail queue.
 type API struct {
-	server  *http.Server
-	config  *Config
-	queue   *queue.Queue
-	storage *queue.Storage
+	server   *http.Server
+	serveMux *http.ServeMux
+	config   *Config
+	queue    *queue.Queue
+	storage  *queue.Storage
 }
 
 // Create a handler that logs and validates requests as they come in.
-func (a *API) method(method string, handler http.HandlerFunc) http.HandlerFunc {
+func (a *API) method(method string, handler func(r *http.Request) interface{}) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("[API] %s - %s %s", r.RemoteAddr, r.Method, r.RequestURI)
-		if r.Method != method {
-			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-			return
-		}
-		if a.config.Username != "" && a.config.Password != "" {
-			if username, password, ok := r.BasicAuth(); ok {
-				if username != a.config.Username || password != a.config.Password {
-					http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-					return
-				}
+		if r.Method == method {
+			if v, err := json.Marshal(handler(r)); err == nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				w.Write(v)
 			} else {
-				w.Header().Set("WWW-Authenticate", "Basic realm=Hectane")
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-				return
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			}
+		} else {
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		}
-		handler(w, r)
 	}
-}
-
-// Respond with the specified error message. No error checking is done when
-// writing the data since nothing could really be done about it.
-func (a *API) respondWithJSON(w http.ResponseWriter, v interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(v)
 }
 
 // Create a new API instance for the specified queue.
 func New(config *Config, queue *queue.Queue, storage *queue.Storage) *API {
-	var (
-		s = http.NewServeMux()
-		a = &API{
-			server: &http.Server{
-				Addr:    config.Addr,
-				Handler: s,
-			},
-			config:  config,
-			queue:   queue,
-			storage: storage,
-		}
-	)
-	s.HandleFunc("/v1/send", a.method(post, a.send))
-	s.HandleFunc("/v1/status", a.method(get, a.status))
-	s.HandleFunc("/v1/version", a.method(get, a.version))
+	a := &API{
+		server: &http.Server{
+			Addr: config.Addr,
+		},
+		serveMux: http.NewServeMux(),
+		config:   config,
+		queue:    queue,
+		storage:  storage,
+	}
+	a.server.Handler = a
+	a.serveMux.HandleFunc("/v1/send", a.method(post, a.send))
+	a.serveMux.HandleFunc("/v1/status", a.method(get, a.status))
+	a.serveMux.HandleFunc("/v1/version", a.method(get, a.version))
 	return a
+}
+
+// Process an incoming request. This method logs the request and checks to
+// ensure that HTTP basic auth credentials were supplied if required.
+func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[API] %s - %s %s", r.RemoteAddr, r.Method, r.RequestURI)
+	if a.config.Username != "" && a.config.Password != "" {
+		if username, password, ok := r.BasicAuth(); ok {
+			if username != a.config.Username || password != a.config.Password {
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+				return
+			}
+		} else {
+			w.Header().Set("WWW-Authenticate", "Basic realm=Hectane")
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+	}
+	a.serveMux.ServeHTTP(w, r)
 }
 
 // Listen for new requests.
 func (a *API) Listen() error {
+	log.Printf("[API] Listening on %s...", a.config.Addr)
 	if a.config.TLSCert != "" && a.config.TLSKey != "" {
 		return a.server.ListenAndServeTLS(a.config.TLSCert, a.config.TLSKey)
 	} else {
