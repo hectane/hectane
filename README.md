@@ -18,6 +18,7 @@ The goal of Hectane is simple: to create an SMTP client that is extremely easy t
 
 Hectane currently recognizes the following command-line parameters (all are optional):
 
+- `-config` - JSON file containing configuration
 - `-bind` - address to bind to (in the format `host:port` - default is `:8025`)
 - `-tls-cert` - path to TLS certificate
 - `-tls-key` - path to TLS key
