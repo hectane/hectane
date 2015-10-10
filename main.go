@@ -3,53 +3,33 @@ package main
 import (
 	"github.com/hectane/hectane/api"
 	"github.com/hectane/hectane/queue"
-	"github.com/mitchellh/go-homedir"
 
 	"flag"
 	"log"
 	"os"
-	"path"
 )
 
 func main() {
 	var (
-		bind      string
-		tlsCert   string
-		tlsKey    string
-		username  string
-		password  string
-		directory string
-		config    queue.Config
+		filename string
+		config   Config
+		err      error
 	)
-	if home, err := homedir.Dir(); err == nil {
-		directory = path.Join(home, ".hectane")
-	} else {
-		log.Println(err)
-		os.Exit(1)
-	}
-	flag.StringVar(&bind, "bind", ":8025", "address and port to bind to")
-	flag.StringVar(&tlsCert, "tls-cert", "", "certificate for TLS")
-	flag.StringVar(&tlsKey, "tls-key", "", "private key for TLS")
-	flag.StringVar(&username, "username", "", "username for HTTP basic auth")
-	flag.StringVar(&password, "password", "", "password for HTTP basic auth")
-	flag.StringVar(&directory, "directory", directory, "directory for persistent storage")
-	flag.BoolVar(&config.DisableSSLVerification, "disable-ssl-verification", false, "don't verify SSL certificates")
+	config.RegisterFlags()
+	flag.StringVar(&filename, "config", "", "file containing configuration")
 	flag.Parse()
-	s := queue.NewStorage(directory)
-	if q, err := queue.NewQueue(&config, s); err == nil {
-		defer q.Stop()
-		a := api.New(&api.Config{
-			Addr:     bind,
-			TLSCert:  tlsCert,
-			TLSKey:   tlsKey,
-			Username: username,
-			Password: password,
-		}, q, s)
-		if err := a.Listen(); err != nil {
+	if filename != "" {
+		if err := config.LoadFromFile(filename); err != nil {
 			log.Println(err)
 			os.Exit(1)
 		}
-	} else {
+	}
+	if q, err := queue.NewQueue(&config.Queue); err == nil {
+		defer q.Stop()
+		a := api.New(&config.API, q)
+		err = a.Listen()
+	}
+	if err != nil {
 		log.Println(err)
 		os.Exit(1)
 	}
