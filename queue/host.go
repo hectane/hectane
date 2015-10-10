@@ -20,8 +20,8 @@ import (
 type Host struct {
 	sync.Mutex
 	host         string
-	config       *Config
 	storage      *Storage
+	config       *Config
 	lastActivity time.Time
 	newMessage   *util.NonBlockingChan
 	stop         chan bool
@@ -220,11 +220,11 @@ shutdown:
 }
 
 // Create a new host connection.
-func NewHost(host string, c *Config, s *Storage) *Host {
+func NewHost(host string, s *Storage, c *Config) *Host {
 	h := &Host{
 		host:       host,
-		config:     c,
 		storage:    s,
+		config:     c,
 		newMessage: util.NewNonBlockingChan(),
 		stop:       make(chan bool),
 	}
