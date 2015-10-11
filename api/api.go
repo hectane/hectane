@@ -31,14 +31,21 @@ func (a *API) log(msg string, v ...interface{}) {
 	log.Printf(fmt.Sprintf("[API] %s", msg), v...)
 }
 
-// Create a handler that logs and validates requests as they come in.
+// Create a handler that logs and validates requests as they come in. The
+// return value of the handler is assumed to be either an error or a map.
 func (a *API) method(method string, handler func(r *http.Request) interface{}) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == method {
-			if v, err := json.Marshal(handler(r)); err == nil {
+			v := handler(r)
+			if err, ok := v.(error); ok {
+				v = map[string]string{
+					"error": err.Error(),
+				}
+			}
+			if data, err := json.Marshal(v); err == nil {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				w.Write(v)
+				w.Write(data)
 			} else {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			}
