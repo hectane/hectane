@@ -13,8 +13,8 @@ import (
 // Global configuration for the application. This data is either read from the
 // command-line or from a configuration file.
 type Config struct {
-	API   api.Config
-	Queue queue.Config
+	API   api.Config   `json:"api"`
+	Queue queue.Config `json:"queue"`
 }
 
 // Register command-line flags for each of the options.

@@ -2,6 +2,6 @@ package queue
 
 // Application configuration.
 type Config struct {
-	Directory              string
-	DisableSSLVerification bool
+	Directory              string `json:"directory"`
+	DisableSSLVerification bool   `json:"disable-ssl-verification"`
 }
