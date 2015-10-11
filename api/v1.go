@@ -2,10 +2,53 @@ package api
 
 import (
 	"github.com/hectane/hectane/email"
+	"github.com/hectane/hectane/queue"
+	"github.com/hectane/hectane/util"
 
 	"encoding/json"
 	"net/http"
 )
+
+type params struct {
+	From string   `json:"from"`
+	To   []string `json:"to"`
+	Body string   `json:"body"`
+}
+
+// Send a raw MIME message.
+func (a *API) raw(r *http.Request) interface{} {
+	var p params
+	if err := json.NewDecoder(r.Body).Decode(&p); err == nil {
+		if w, body, err := a.queue.Storage.NewBody(); err == nil {
+			if _, err := w.Write([]byte(p.Body)); err != nil {
+				return err
+			}
+			if err := w.Close(); err != nil {
+				return err
+			}
+			if hostMap, err := util.GroupAddressesByHost(p.To); err == nil {
+				for h, to := range hostMap {
+					m := &queue.Message{
+						Host: h,
+						From: p.From,
+						To:   to,
+					}
+					if err := a.queue.Storage.SaveMessage(m, body); err != nil {
+						return err
+					}
+					a.queue.Deliver(m)
+				}
+			} else {
+				return err
+			}
+		} else {
+			return err
+		}
+		return struct{}{}
+	} else {
+		return err
+	}
+}
 
 // Send an email with the specified parameters.
 func (a *API) send(r *http.Request) interface{} {
@@ -22,9 +65,7 @@ func (a *API) send(r *http.Request) interface{} {
 			}
 		}
 	} else {
-		return map[string]string{
-			"error": "unable to decode JSON",
-		}
+		return err
 	}
 }
 

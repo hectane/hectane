@@ -67,6 +67,7 @@ func New(config *Config, queue *queue.Queue) *API {
 		queue:    queue,
 	}
 	a.server.Handler = a
+	a.serveMux.HandleFunc("/v1/raw", a.method(post, a.raw))
 	a.serveMux.HandleFunc("/v1/send", a.method(post, a.send))
 	a.serveMux.HandleFunc("/v1/status", a.method(get, a.status))
 	a.serveMux.HandleFunc("/v1/version", a.method(get, a.version))
