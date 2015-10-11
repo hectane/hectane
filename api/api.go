@@ -109,7 +109,7 @@ func (a *API) Listen() error {
 				err = nil
 			}
 			if err == nil {
-				a.log("shutting down API server")
+				a.log("API server shutdown")
 			}
 			close(done)
 		}()

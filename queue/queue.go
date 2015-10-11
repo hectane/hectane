@@ -60,6 +60,7 @@ loop:
 	for h := range q.hosts {
 		q.hosts[h].Stop()
 	}
+	q.log("mail queue shutdown")
 }
 
 // Create a new message queue. Any undelivered messages on disk will be added
