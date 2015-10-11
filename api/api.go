@@ -3,8 +3,11 @@ package api
 import (
 	"github.com/hectane/hectane/queue"
 
+	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"log"
+	"net"
 	"net/http"
 )
 
@@ -17,9 +20,15 @@ const (
 // HTTP API for managing a mail queue.
 type API struct {
 	server   *http.Server
+	stop     chan bool
 	serveMux *http.ServeMux
 	config   *Config
 	queue    *queue.Queue
+}
+
+// Log the specified message.
+func (a *API) log(msg string, v ...interface{}) {
+	log.Printf(fmt.Sprintf("[API] %s", msg), v...)
 }
 
 // Create a handler that logs and validates requests as they come in.
@@ -45,6 +54,7 @@ func New(config *Config, queue *queue.Queue) *API {
 		server: &http.Server{
 			Addr: config.Addr,
 		},
+		stop:     make(chan bool),
 		serveMux: http.NewServeMux(),
 		config:   config,
 		queue:    queue,
@@ -75,12 +85,50 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	a.serveMux.ServeHTTP(w, r)
 }
 
-// Listen for new requests.
+// Listen for new requests until an error occurs.
 func (a *API) Listen() error {
-	log.Printf("[API] Listening on %s...", a.config.Addr)
-	if a.config.TLSCert != "" && a.config.TLSKey != "" {
-		return a.server.ListenAndServeTLS(a.config.TLSCert, a.config.TLSKey)
+	if l, err := net.Listen("tcp", a.config.Addr); err == nil {
+		if a.config.TLSCert != "" && a.config.TLSKey != "" {
+			if cert, err := tls.LoadX509KeyPair(a.config.TLSCert, a.config.TLSKey); err == nil {
+				l = tls.NewListener(l, &tls.Config{
+					Certificates: []tls.Certificate{cert},
+				})
+			} else {
+				return err
+			}
+		}
+		var (
+			done = make(chan bool)
+			err  error
+		)
+		go func() {
+			a.log("binding to %s", a.config.Addr)
+			err = a.server.Serve(l)
+			// Supress benign errors - see http://bit.ly/1WUhgDj
+			if oe, ok := err.(*net.OpError); ok && oe.Op == "accept" || oe.Op == "AcceptEx" {
+				err = nil
+			}
+			if err == nil {
+				a.log("shutting down API server")
+			}
+			close(done)
+		}()
+		for {
+			select {
+			case <-a.stop:
+				l.Close()
+			case <-done:
+				return err
+			}
+		}
 	} else {
-		return a.server.ListenAndServe()
+		return err
+	}
+}
+
+// If currently listening, stop and shutdown the server.
+func (a *API) Stop() {
+	if a.stop != nil {
+		a.stop <- true
 	}
 }

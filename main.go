@@ -7,13 +7,14 @@ import (
 	"flag"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
 	var (
 		filename string
 		config   Config
-		err      error
 	)
 	config.RegisterFlags()
 	flag.StringVar(&filename, "config", "", "file containing configuration")
@@ -26,10 +27,20 @@ func main() {
 	}
 	if q, err := queue.NewQueue(&config.Queue); err == nil {
 		defer q.Stop()
-		a := api.New(&config.API, q)
-		err = a.Listen()
-	}
-	if err != nil {
+		var (
+			a = api.New(&config.API, q)
+			c = make(chan os.Signal)
+		)
+		signal.Notify(c, syscall.SIGINT)
+		go func() {
+			<-c
+			a.Stop()
+		}()
+		if err = a.Listen(); err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+	} else {
 		log.Println(err)
 		os.Exit(1)
 	}
