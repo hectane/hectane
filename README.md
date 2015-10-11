@@ -31,13 +31,17 @@ Hectane currently recognizes the following command-line parameters (all are opti
 
 Hectane exposes an HTTP API that can be used to deliver emails. The API expects and responds with JSON data. Currently, the API consists of the following methods:
 
-#### GET /v1/version
+#### POST /v1/raw
+
+##### Parameters
+
+- `from` - sender email address
+- `to` - list of recipient email addresses
+- `body` - UTF-8 encoded message body
 
 ##### Response
 
-    {
-        "version": "x.y.z"
-    }
+The response is either an empty JSON object (indicating success) or a JSON object with an `error` key describing the problem.
 
 #### POST /v1/send
 
@@ -59,3 +63,24 @@ Hectane exposes an HTTP API that can be used to deliver emails. The API expects 
 ##### Response
 
 The response is either an empty JSON object (indicating success) or a JSON object with an `error` key describing the problem.
+
+#### GET /v1/status
+
+##### Sample Response
+
+    {
+        "hosts": {
+            "example.com": {
+                "active": false,
+                "idle": 12
+            }
+        }
+    }
+
+#### GET /v1/version
+
+##### Sample Response
+
+    {
+        "version": "x.y.z"
+    }
