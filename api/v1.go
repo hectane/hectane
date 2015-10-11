@@ -27,3 +27,18 @@ func (a *API) send(r *http.Request) interface{} {
 		}
 	}
 }
+
+// Retrieve status information.
+func (a *API) status(r *http.Request) interface{} {
+	return map[string]interface{}{
+		"hosts": a.queue.Status(),
+	}
+}
+
+// Retrieve version information, including the current version of the
+// application.
+func (a *API) version(r *http.Request) interface{} {
+	return map[string]string{
+		"version": "0.3.0",
+	}
+}
