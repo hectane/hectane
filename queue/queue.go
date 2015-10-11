@@ -3,6 +3,7 @@ package queue
 import (
 	"github.com/hectane/hectane/util"
 
+	"fmt"
 	"log"
 	"time"
 )
@@ -14,6 +15,11 @@ type Queue struct {
 	hosts      map[string]*Host
 	newMessage *util.NonBlockingChan
 	stop       chan bool
+}
+
+// Log the specified message.
+func (q *Queue) log(msg string, v ...interface{}) {
+	log.Printf(fmt.Sprintf("[Queue] %s", msg), v...)
 }
 
 // Deliver the specified message to the appropriate host queue.
@@ -50,7 +56,7 @@ loop:
 			break loop
 		}
 	}
-	log.Println("shutting down host queues")
+	q.log("shutting down host queues")
 	for h := range q.hosts {
 		q.hosts[h].Stop()
 	}
@@ -67,6 +73,7 @@ func NewQueue(c *Config) (*Queue, error) {
 		stop:       make(chan bool),
 	}
 	if messages, err := q.Storage.LoadMessages(); err == nil {
+		q.log("loaded %d message(s) from storage", len(messages))
 		for _, m := range messages {
 			q.deliverMessage(m)
 		}
