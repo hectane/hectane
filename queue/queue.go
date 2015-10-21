@@ -5,6 +5,7 @@ import (
 
 	"fmt"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -15,6 +16,7 @@ type QueueStatus struct {
 
 // Mail queue managing the sending of messages to hosts.
 type Queue struct {
+	sync.Mutex
 	Storage    *Storage
 	config     *Config
 	hosts      map[string]*Host
@@ -29,20 +31,24 @@ func (q *Queue) log(msg string, v ...interface{}) {
 
 // Deliver the specified message to the appropriate host queue.
 func (q *Queue) deliverMessage(m *Message) {
+	q.Lock()
 	if _, ok := q.hosts[m.Host]; !ok {
 		q.hosts[m.Host] = NewHost(m.Host, q.Storage, q.config)
 	}
 	q.hosts[m.Host].Deliver(m)
+	q.Unlock()
 }
 
 // Check for inactive host queues and shut them down.
 func (q *Queue) checkForInactiveQueues() {
+	q.Lock()
 	for n, h := range q.hosts {
 		if h.Idle() > time.Minute {
 			h.Stop()
 			delete(q.hosts, n)
 		}
 	}
+	q.Unlock()
 }
 
 // Receive new messages and deliver them to the specified host queue.
@@ -62,9 +68,11 @@ loop:
 		}
 	}
 	q.log("shutting down host queues")
+	q.Lock()
 	for h := range q.hosts {
 		q.hosts[h].Stop()
 	}
+	q.Unlock()
 	q.log("mail queue shutdown")
 }
 
@@ -93,11 +101,13 @@ func NewQueue(c *Config) (*Queue, error) {
 // Provide the status of each host queue.
 func (q *Queue) Status() *QueueStatus {
 	s := &QueueStatus{
-		Hosts: make(map[string]*HostStatus, len(q.hosts)),
+		Hosts: make(map[string]*HostStatus),
 	}
+	q.Lock()
 	for n, h := range q.hosts {
 		s.Hosts[n] = h.Status()
 	}
+	q.Unlock()
 	return s
 }
 
