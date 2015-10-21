@@ -2,6 +2,7 @@ package util
 
 import (
 	"container/list"
+	"sync"
 )
 
 // Channel that does not block when items are sent. To use the type, simply
@@ -9,8 +10,10 @@ import (
 // stored internally until they are received. Closing the Send channel will
 // cause the Recv channel to be also be closed after all items are received.
 type NonBlockingChan struct {
-	Send chan<- interface{}
-	Recv <-chan interface{}
+	sync.Mutex
+	Send  chan<- interface{}
+	Recv  <-chan interface{}
+	items *list.List
 }
 
 // Create a new non-blocking channel.
@@ -19,17 +22,15 @@ func NewNonBlockingChan() *NonBlockingChan {
 		in  = make(chan interface{})
 		out = make(chan interface{})
 		n   = &NonBlockingChan{
-			Send: in,
-			Recv: out,
+			Send:  in,
+			Recv:  out,
+			items: list.New(),
 		}
 	)
 	go func() {
-		var (
-			items    = list.New()
-			inClosed = false
-		)
+		inClosed := false
 		for {
-			if inClosed && items.Len() == 0 {
+			if inClosed && n.items.Len() == 0 {
 				close(out)
 				break
 			}
@@ -41,20 +42,31 @@ func NewNonBlockingChan() *NonBlockingChan {
 			if !inClosed {
 				inChan = in
 			}
-			if items.Len() > 0 {
-				outChan, outVal = out, items.Front().Value
+			if n.items.Len() > 0 {
+				outChan, outVal = out, n.items.Front().Value
 			}
 			select {
 			case i, ok := <-inChan:
 				if ok {
-					items.PushBack(i)
+					n.Lock()
+					n.items.PushBack(i)
+					n.Unlock()
 				} else {
 					inClosed = true
 				}
 			case outChan <- outVal:
-				items.Remove(items.Front())
+				n.Lock()
+				n.items.Remove(n.items.Front())
+				n.Unlock()
 			}
 		}
 	}()
 	return n
+}
+
+// Retrieve the number of items waiting to be received.
+func (n *NonBlockingChan) Len() int {
+	n.Lock()
+	defer n.Unlock()
+	return n.items.Len()
 }
