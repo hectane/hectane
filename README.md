@@ -69,6 +69,7 @@ The response is either an empty JSON object (indicating success) or a JSON objec
 ##### Sample Response
 
     {
+        "uptime": 1615,
         "hosts": {
             "example.com": {
                 "active": false,

@@ -11,7 +11,8 @@ import (
 
 // Queue status information.
 type QueueStatus struct {
-	Hosts map[string]*HostStatus `json:"hosts"`
+	Uptime int                    `json:"uptime"`
+	Hosts  map[string]*HostStatus `json:"hosts"`
 }
 
 // Mail queue managing the sending of messages to hosts.
@@ -21,6 +22,7 @@ type Queue struct {
 	config     *Config
 	hosts      map[string]*Host
 	newMessage *util.NonBlockingChan
+	startTime  time.Time
 	stop       chan bool
 }
 
@@ -84,6 +86,7 @@ func NewQueue(c *Config) (*Queue, error) {
 		config:     c,
 		hosts:      make(map[string]*Host),
 		newMessage: util.NewNonBlockingChan(),
+		startTime:  time.Now(),
 		stop:       make(chan bool),
 	}
 	if messages, err := q.Storage.LoadMessages(); err == nil {
@@ -101,7 +104,8 @@ func NewQueue(c *Config) (*Queue, error) {
 // Provide the status of each host queue.
 func (q *Queue) Status() *QueueStatus {
 	s := &QueueStatus{
-		Hosts: make(map[string]*HostStatus),
+		Uptime: int(time.Now().Sub(q.startTime) / time.Second),
+		Hosts:  make(map[string]*HostStatus),
 	}
 	q.Lock()
 	for n, h := range q.hosts {
