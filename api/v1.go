@@ -71,9 +71,7 @@ func (a *API) send(r *http.Request) interface{} {
 
 // Retrieve status information.
 func (a *API) status(r *http.Request) interface{} {
-	return map[string]interface{}{
-		"hosts": a.queue.Status(),
-	}
+	return a.queue.Status()
 }
 
 // Retrieve version information, including the current version of the

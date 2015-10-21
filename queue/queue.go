@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+// Queue status information.
+type QueueStatus struct {
+	Hosts map[string]*HostStatus `json:"hosts"`
+}
+
 // Mail queue managing the sending of messages to hosts.
 type Queue struct {
 	Storage    *Storage
@@ -86,15 +91,14 @@ func NewQueue(c *Config) (*Queue, error) {
 }
 
 // Provide the status of each host queue.
-func (q *Queue) Status() map[string]interface{} {
-	m := make(map[string]interface{})
-	for n, h := range q.hosts {
-		m[n] = map[string]interface{}{
-			"active": h.Idle() == 0,
-			"idle":   h.Idle() / time.Second,
-		}
+func (q *Queue) Status() *QueueStatus {
+	s := &QueueStatus{
+		Hosts: make(map[string]*HostStatus, len(q.hosts)),
 	}
-	return m
+	for n, h := range q.hosts {
+		s.Hosts[n] = h.Status()
+	}
+	return s
 }
 
 // Deliver the specified message to the appropriate host queue.

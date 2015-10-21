@@ -16,6 +16,12 @@ import (
 	"time"
 )
 
+// Host status information.
+type HostStatus struct {
+	Active bool `json:"active"`
+	Length int  `json:"length"`
+}
+
 // Persistent connection to an SMTP host.
 type Host struct {
 	sync.Mutex
@@ -245,6 +251,14 @@ func (h *Host) Idle() time.Duration {
 		return 0
 	} else {
 		return time.Since(h.lastActivity)
+	}
+}
+
+// Return the status of the host connection.
+func (h *Host) Status() *HostStatus {
+	return &HostStatus{
+		Active: h.Idle() == 0,
+		Length: h.newMessage.Len(),
 	}
 }
 
