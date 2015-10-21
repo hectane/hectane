@@ -1,6 +1,7 @@
 package util
 
 import (
+	"io"
 	"net"
 	"net/mail"
 	"strings"
@@ -38,4 +39,22 @@ func GroupAddressesByHost(addrs []string) (map[string][]string, error) {
 		}
 	}
 	return m, nil
+}
+
+// Given a reader for a MIME message, extract the address that the message is
+// being sent from and the addresses that it is being delivered to.
+func ExtractAddresses(r io.Reader) (string, []string, error) {
+	if m, err := mail.ReadMessage(r); err == nil {
+		addrs := make([]string, 0, 1)
+		for _, h := range []string{"To", "Cc", "Bcc"} {
+			if addrList, err := m.Header.AddressList(h); err == nil {
+				for _, a := range addrList {
+					addrs = append(addrs, a.Address)
+				}
+			}
+		}
+		return m.Header.Get("From"), addrs, nil
+	} else {
+		return "", nil, err
+	}
 }
