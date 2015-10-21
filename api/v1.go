@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-type params struct {
+type rawParams struct {
 	From string   `json:"from"`
 	To   []string `json:"to"`
 	Body string   `json:"body"`
@@ -17,7 +17,7 @@ type params struct {
 
 // Send a raw MIME message.
 func (a *API) raw(r *http.Request) interface{} {
-	var p params
+	var p rawParams
 	if err := json.NewDecoder(r.Body).Decode(&p); err == nil {
 		if w, body, err := a.queue.Storage.NewBody(); err == nil {
 			if _, err := w.Write([]byte(p.Body)); err != nil {
