@@ -72,7 +72,7 @@ The response is either an empty JSON object (indicating success) or a JSON objec
         "hosts": {
             "example.com": {
                 "active": false,
-                "idle": 12
+                "length": 2
             }
         }
     }
