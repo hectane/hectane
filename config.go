@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/hectane/hectane/api"
+	"github.com/hectane/hectane/exec"
 	"github.com/hectane/hectane/queue"
 
 	"encoding/json"
@@ -14,6 +15,7 @@ import (
 // command-line or from a configuration file.
 type Config struct {
 	API   api.Config   `json:"api"`
+	Exec  exec.Config  `json:"exec"`
 	Queue queue.Config `json:"queue"`
 }
 
@@ -24,7 +26,9 @@ func (c *Config) RegisterFlags() {
 	flag.StringVar(&c.API.TLSKey, "tls-key", "", "private key for TLS")
 	flag.StringVar(&c.API.Username, "username", "", "username for HTTP basic auth")
 	flag.StringVar(&c.API.Password, "password", "", "password for HTTP basic auth")
+	flag.StringVar(&c.Exec.Filename, "config", "", "file containing configuration")
 	flag.StringVar(&c.Queue.Directory, "directory", path.Join(os.TempDir(), "hectane"), "directory for persistent storage")
+	flag.BoolVar(&c.Exec.Service, "service", false, "run as a service (Windows only)")
 	flag.BoolVar(&c.Queue.DisableSSLVerification, "disable-ssl-verification", false, "don't verify SSL certificates")
 }
 

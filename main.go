@@ -10,14 +10,11 @@ import (
 )
 
 func main() {
-	var (
-		config   Config
-		filename = flag.String("config", "", "file containing configuration")
-	)
+	var config Config
 	config.RegisterFlags()
 	flag.Parse()
-	if *filename != "" {
-		if err := config.LoadFromFile(*filename); err != nil {
+	if config.Exec.Filename != "" {
+		if err := config.LoadFromFile(config.Exec.Filename); err != nil {
 			log.Fatal(err)
 		}
 	}
