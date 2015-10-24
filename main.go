@@ -30,15 +30,14 @@ func main() {
 			a = api.New(&config.API, q)
 			c = make(chan os.Signal)
 		)
-		signal.Notify(c, syscall.SIGINT)
-		go func() {
-			<-c
-			a.Stop()
-		}()
-		if err = a.Listen(); err != nil {
+		if err = a.Start(); err == nil {
+			defer a.Stop()
+		} else {
 			log.Println(err)
 			os.Exit(1)
 		}
+		signal.Notify(c, syscall.SIGINT)
+		<-c
 	} else {
 		log.Println(err)
 		os.Exit(1)

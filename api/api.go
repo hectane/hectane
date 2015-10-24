@@ -19,11 +19,12 @@ const (
 
 // HTTP API for managing a mail queue.
 type API struct {
-	server   *http.Server
-	stop     chan bool
-	serveMux *http.ServeMux
 	config   *Config
+	listener net.Listener
+	server   *http.Server
+	serveMux *http.ServeMux
 	queue    *queue.Queue
+	stopped  chan bool
 }
 
 // Log the specified message.
@@ -55,16 +56,29 @@ func (a *API) method(method string, handler func(r *http.Request) interface{}) h
 	}
 }
 
+// Listen for new connections, logging any errors that occur.
+func (a *API) run() {
+	a.log("serving on %s", a.config.Addr)
+	// Supress benign errors - see http://bit.ly/1WUhgDj
+	err := a.server.Serve(a.listener)
+	if oe, ok := err.(*net.OpError); err == nil || (ok && oe.Op == "accept" || oe.Op == "AcceptEx") {
+		a.log("API server shutdown")
+	} else {
+		a.log(err.Error())
+	}
+	a.stopped <- true
+}
+
 // Create a new API instance for the specified queue.
 func New(config *Config, queue *queue.Queue) *API {
 	a := &API{
+		config: config,
 		server: &http.Server{
 			Addr: config.Addr,
 		},
-		stop:     make(chan bool),
 		serveMux: http.NewServeMux(),
-		config:   config,
 		queue:    queue,
+		stopped:  make(chan bool),
 	}
 	a.server.Handler = a
 	a.serveMux.HandleFunc("/v1/raw", a.method(post, a.raw))
@@ -93,8 +107,8 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	a.serveMux.ServeHTTP(w, r)
 }
 
-// Listen for new requests until an error occurs.
-func (a *API) Listen() error {
+// Start listening for new requests.
+func (a *API) Start() error {
 	if l, err := net.Listen("tcp", a.config.Addr); err == nil {
 		if a.config.TLSCert != "" && a.config.TLSKey != "" {
 			if cert, err := tls.LoadX509KeyPair(a.config.TLSCert, a.config.TLSKey); err == nil {
@@ -102,41 +116,20 @@ func (a *API) Listen() error {
 					Certificates: []tls.Certificate{cert},
 				})
 			} else {
-				return err
-			}
-		}
-		var (
-			done = make(chan bool)
-			err  error
-		)
-		go func() {
-			a.log("binding to %s", a.config.Addr)
-			err = a.server.Serve(l)
-			// Supress benign errors - see http://bit.ly/1WUhgDj
-			if oe, ok := err.(*net.OpError); ok && oe.Op == "accept" || oe.Op == "AcceptEx" {
-				err = nil
-			}
-			if err == nil {
-				a.log("API server shutdown")
-			}
-			close(done)
-		}()
-		for {
-			select {
-			case <-a.stop:
 				l.Close()
-			case <-done:
 				return err
 			}
 		}
+		a.listener = l
+		go a.run()
+		return nil
 	} else {
 		return err
 	}
 }
 
-// If currently listening, stop and shutdown the server.
+// Stop listening for new requests.
 func (a *API) Stop() {
-	if a.stop != nil {
-		a.stop <- true
-	}
+	a.listener.Close()
+	<-a.stopped
 }

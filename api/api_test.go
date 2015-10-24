@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 )
 
 func getStatusCode(url, username, password string) (int, error) {
@@ -45,10 +44,9 @@ func TestBasicAuth(t *testing.T) {
 		}
 		a = New(config, nil)
 	)
-	go func() {
-		a.Listen()
-	}()
-	time.Sleep(50 * time.Millisecond)
+	if err := a.Start(); err != nil {
+		t.Fatal(err)
+	}
 	defer a.Stop()
 	for _, c := range testCases {
 		if s, err := getStatusCode(url, c.username, c.password); err == nil {
