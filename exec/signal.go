@@ -6,10 +6,9 @@ import (
 	"syscall"
 )
 
-// Run the application until a signal is received.
-func execSignal(stop chan<- bool) {
+// Run the application until SIGINT is received.
+func execSignal() {
 	c := make(chan os.Signal)
 	signal.Notify(c, syscall.SIGINT)
 	<-c
-	close(stop)
 }
