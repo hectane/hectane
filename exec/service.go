@@ -1,6 +1,6 @@
 // +build windows
 
-package main
+package exec
 
 import (
 	"golang.org/x/sys/windows/svc/mgr"
@@ -82,4 +82,9 @@ func uninstallService() error {
 	} else {
 		return err
 	}
+}
+
+// Run the service.
+func execService() {
+	// TODO
 }
