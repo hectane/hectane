@@ -6,7 +6,7 @@ import (
 	"syscall"
 )
 
-// Run the application until SIGINT is received.
+// Run until SIGINT is received.
 func execSignal() {
 	c := make(chan os.Signal)
 	signal.Notify(c, syscall.SIGINT)

@@ -10,15 +10,22 @@ import (
 )
 
 func main() {
-	var config Config
+	var (
+		config   Config
+		filename = flag.String("config", "", "file containing configuration")
+	)
 	config.RegisterFlags()
 	flag.Parse()
-	if config.Exec.Filename != "" {
-		if err := config.LoadFromFile(config.Exec.Filename); err != nil {
+	if *filename != "" {
+		if err := config.LoadFromFile(*filename); err != nil {
 			log.Fatal(err)
 		}
 	}
-	q, err := queue.NewQueue(&config.Queue)
+	err := exec.Init(&config.Exec)
+	if err != nil {
+		log.Fatal(err)
+	}
+	q, err = queue.NewQueue(&config.Queue)
 	if err != nil {
 		log.Fatal(err)
 	}

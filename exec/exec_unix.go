@@ -2,7 +2,12 @@
 
 package exec
 
-// Use the signal handler on Unix-based platforms.
+// No initialization is required for Unix-like platforms.
+func Init(c *Config) error {
+	return nil
+}
+
+// Only signals are available.
 func Exec() {
 	execSignal()
 }
