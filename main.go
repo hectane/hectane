@@ -25,7 +25,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	q, err = queue.NewQueue(&config.Queue)
+	q, err := queue.NewQueue(&config.Queue)
 	if err != nil {
 		log.Fatal(err)
 	}
