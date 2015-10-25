@@ -21,12 +21,12 @@ type Config struct {
 
 // Register command-line flags for each of the options.
 func (c *Config) RegisterFlags() {
-	flag.StringVar(&c.API.Addr, "bind", ":8025", "address and port to bind to")
-	flag.StringVar(&c.API.TLSCert, "tls-cert", "", "certificate for TLS")
-	flag.StringVar(&c.API.TLSKey, "tls-key", "", "private key for TLS")
-	flag.StringVar(&c.API.Username, "username", "", "username for HTTP basic auth")
-	flag.StringVar(&c.API.Password, "password", "", "password for HTTP basic auth")
-	flag.StringVar(&c.Queue.Directory, "directory", path.Join(os.TempDir(), "hectane"), "directory for persistent storage")
+	flag.StringVar(&c.API.Addr, "bind", ":8025", "`address` and port to bind to")
+	flag.StringVar(&c.API.TLSCert, "tls-cert", "", "certificate `file` for TLS")
+	flag.StringVar(&c.API.TLSKey, "tls-key", "", "private key `file` for TLS")
+	flag.StringVar(&c.API.Username, "username", "", "`username` for HTTP basic auth")
+	flag.StringVar(&c.API.Password, "password", "", "`password` for HTTP basic auth")
+	flag.StringVar(&c.Queue.Directory, "directory", path.Join(os.TempDir(), "hectane"), "`directory` for persistent storage")
 	flag.BoolVar(&c.Exec.Service, "service", false, "run as a service (Windows only)")
 	flag.BoolVar(&c.Queue.DisableSSLVerification, "disable-ssl-verification", false, "don't verify SSL certificates")
 }
