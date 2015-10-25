@@ -13,6 +13,6 @@ var Commands = make(map[string]*Command)
 // Initialize the list of commands. The map is first populated with commands
 // common to all platforms followed by platform-specific commands.
 func InitCommands() {
-	Commands["run"] = RunCommand
+	Commands[RunCommand.Name] = RunCommand
 	initPlatformCommands()
 }

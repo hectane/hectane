@@ -12,7 +12,7 @@ import (
 // Run the application until the SIGINT signal is received.
 var RunCommand = &Command{
 	Name:        "run",
-	Description: "start the application",
+	Description: "start the application (default)",
 	Exec: func(cfg *Config) error {
 		q, err := queue.NewQueue(cfg.Queue)
 		if err != nil {

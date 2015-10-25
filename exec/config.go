@@ -5,7 +5,9 @@ import (
 	"github.com/hectane/hectane/queue"
 
 	"encoding/json"
+	"errors"
 	"flag"
+	"fmt"
 	"os"
 )
 
@@ -16,25 +18,46 @@ type Config struct {
 	Queue *queue.Config `json:"queue"`
 }
 
-// Initialize the global application configuration.
-func InitConfig() (*Config, error) {
+// Display usage information for the application.
+func usage() {
+	fmt.Fprintf(os.Stderr, "USAGE\n\thectane [options] [command]\n\n")
+	fmt.Fprintf(os.Stderr, "COMMANDS\n")
+	for _, c := range Commands {
+		fmt.Fprintf(os.Stderr, "  %s\n\t%s\n", c.Name, c.Description)
+	}
+	fmt.Fprintf(os.Stderr, "\nOPTIONS\n")
+	flag.PrintDefaults()
+}
+
+// Initialize the global application configuration and parse the command line.
+func InitConfig() (string, *Config, error) {
 	var (
-		c = &Config{
+		cmd string
+		c   = &Config{
 			API:   api.InitConfig(),
 			Queue: queue.InitConfig(),
 		}
 		filename = flag.String("config", "", "file containing configuration")
 	)
+	flag.Usage = usage
 	flag.Parse()
+	switch {
+	case flag.NArg() == 0:
+		cmd = "run"
+	case flag.NArg() == 1:
+		cmd = flag.Args()[0]
+	default:
+		return "", nil, errors.New("single command expected")
+	}
 	if *filename != "" {
 		r, err := os.Open(*filename)
 		if err != nil {
-			return nil, err
+			return "", nil, err
 		}
 		defer r.Close()
 		if err = json.NewDecoder(r).Decode(c); err != nil {
-			return nil, err
+			return "", nil, err
 		}
 	}
-	return c, nil
+	return cmd, c, nil
 }
