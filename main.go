@@ -5,35 +5,26 @@ import (
 	"github.com/hectane/hectane/exec"
 	"github.com/hectane/hectane/queue"
 
-	"flag"
 	"log"
 )
 
 func main() {
-	var (
-		config   Config
-		filename = flag.String("config", "", "file containing configuration")
-	)
-	config.RegisterFlags()
-	flag.Parse()
-	if *filename != "" {
-		if err := config.LoadFromFile(*filename); err != nil {
-			log.Fatal(err)
-		}
-	}
-	err := exec.Init(&config.Exec)
+	c, err := exec.InitConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
-	q, err := queue.NewQueue(&config.Queue)
+	if err = exec.Init(c); err != nil {
+		log.Fatal(err)
+	}
+	q, err := queue.NewQueue(c.Queue)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer q.Stop()
-	a := api.New(&config.API, q)
+	a := api.New(c.API, q)
 	if err = a.Start(); err != nil {
 		log.Fatal(err)
 	}
 	defer a.Stop()
-	exec.Exec()
+	exec.Exec(c)
 }

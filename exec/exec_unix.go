@@ -8,6 +8,6 @@ func Init(c *Config) error {
 }
 
 // Only signals are available.
-func Exec() {
+func Exec(c *Config) {
 	execSignal()
 }
