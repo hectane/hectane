@@ -90,7 +90,7 @@ func NewQueue(c *Config) (*Queue, error) {
 		stop:       make(chan bool),
 	}
 	if messages, err := q.Storage.LoadMessages(); err == nil {
-		q.log("loaded %d message(s) from storage", len(messages))
+		q.log("loaded %d message(s) from %s", len(messages), c.Directory)
 		for _, m := range messages {
 			q.deliverMessage(m)
 		}
