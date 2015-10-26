@@ -118,6 +118,23 @@ var InstallCommand = &Command{
 	},
 }
 
+// Start the service.
+var StartCommand = &Command{
+	Name:        "start",
+	Description: "start the service (Windows only)",
+	Exec: func(cfg *Config) error {
+		return serviceCommand("start")
+	},
+}
+
+var StopCommand = &Command{
+	Name:        "stop",
+	Description: "stop the service (Windows only)",
+	Exec: func(cfg *Config) error {
+		return serviceCommand("stop")
+	},
+}
+
 // Remove the service.
 var RemoveCommand = &Command{
 	Name:        "remove",
