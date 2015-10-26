@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/mgr"
 
 	"encoding/json"
@@ -12,24 +13,31 @@ import (
 	"unsafe"
 )
 
+const (
+	serviceName = "Hectane"
+	displayName = "Hectane"
+	description = "Lightweight SMTP client"
+)
+
 // Retrieves the full path to the current executable.
 func exePath() (string, error) {
-	if l, err := syscall.LoadDLL("kernel32.dll"); err == nil {
-		defer l.Release()
-		if p, err := l.FindProc("GetModuleFileNameW"); err == nil {
-			b := make([]uint16, syscall.MAX_PATH)
-			if ret, _, err := p.Call(
-				0,
-				uintptr(unsafe.Pointer(&b[0])),
-				uintptr(len(b)),
-			); ret != 0 {
-				return string(utf16.Decode(b[:ret])), nil
-			} else {
-				return "", err
-			}
-		} else {
-			return "", err
-		}
+	l, err := syscall.LoadDLL("kernel32.dll")
+	if err != nil {
+		return "", err
+	}
+	defer l.Release()
+	p, err := l.FindProc("GetModuleFileNameW")
+	if err != nil {
+		return "", err
+	}
+	b := make([]uint16, syscall.MAX_PATH)
+	ret, _, err := p.Call(
+		0,
+		uintptr(unsafe.Pointer(&b[0])),
+		uintptr(len(b)),
+	)
+	if ret != 0 {
+		return string(utf16.Decode(b[:ret])), nil
 	} else {
 		return "", err
 	}
@@ -54,7 +62,31 @@ func saveConfig(exePath string, cfg *Config) (string, error) {
 	return cfgPath, nil
 }
 
-// Connect to the service manager and install the service if it isn't already.
+// Run the specified command on the service.
+func serviceCommand(cmd string) error {
+	m, err := mgr.Connect()
+	if err != nil {
+		return err
+	}
+	defer m.Disconnect()
+	s, err := m.OpenService(serviceName)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+	switch cmd {
+	case "start":
+		return s.Start()
+	case "stop":
+		_, err := s.Control(svc.Stop)
+		return err
+	case "remove":
+		return s.Delete()
+	}
+	return nil
+}
+
+// Connect to the service manager and install the service.
 var InstallCommand = &Command{
 	Name:        "install",
 	Description: "install the service (Windows only)",
@@ -64,11 +96,6 @@ var InstallCommand = &Command{
 			return err
 		}
 		defer m.Disconnect()
-		s, err := m.OpenService(serviceName)
-		if err == nil {
-			s.Close()
-			return nil
-		}
 		p, err := exePath()
 		if err != nil {
 			return err
@@ -77,7 +104,7 @@ var InstallCommand = &Command{
 		if err != nil {
 			return err
 		}
-		s, err = m.CreateService(serviceName, p, mgr.Config{
+		s, err := m.CreateService(serviceName, p, mgr.Config{
 			StartType:      mgr.StartAutomatic,
 			BinaryPathName: fmt.Sprintf("\"%s\" -f \"%s\"", p, c),
 			DisplayName:    displayName,
@@ -88,5 +115,14 @@ var InstallCommand = &Command{
 		}
 		s.Close()
 		return nil
+	},
+}
+
+// Remove the service.
+var RemoveCommand = &Command{
+	Name:        "remove",
+	Description: "remove the service (Windows only)",
+	Exec: func(cfg *Config) error {
+		return serviceCommand("remove")
 	},
 }
