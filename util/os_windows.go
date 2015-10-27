@@ -10,13 +10,13 @@ const (
 	errorSuccess = 0
 
 	seFileObject                     = 1
-	ownerSecurityInformation         = 1
-	daclSecurityInformation          = 4
+	ownerSecurityInformation         = 0x1
+	daclSecurityInformation          = 0x4
 	protectedDaclSecurityInformation = 0x80000000
 
-	standardRightsRequired = 0xF0000
-	grantAccess            = 1
-	noInheritance          = 0
+	genericAll    = 0x10000000
+	grantAccess   = 1
+	noInheritance = 0
 
 	trusteeIsSID = 0
 )
@@ -71,7 +71,7 @@ func SecurePath(path string) error {
 	var (
 		ea = []explicitAccessW{
 			{
-				grfAccessPermissions: standardRightsRequired,
+				grfAccessPermissions: genericAll,
 				grfAccessMode:        grantAccess,
 				grfInheritance:       noInheritance,
 				Trustee: trustee{
