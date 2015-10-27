@@ -14,9 +14,9 @@ const (
 	daclSecurityInformation          = 0x4
 	protectedDaclSecurityInformation = 0x80000000
 
-	genericAll    = 0x10000000
-	grantAccess   = 1
-	noInheritance = 0
+	genericAll                     = 0x10000000
+	grantAccess                    = 1
+	subContainersAndObjectsInherit = 0x3
 
 	trusteeIsSID = 0
 )
@@ -73,7 +73,7 @@ func SecurePath(path string) error {
 			{
 				grfAccessPermissions: genericAll,
 				grfAccessMode:        grantAccess,
-				grfInheritance:       noInheritance,
+				grfInheritance:       subContainersAndObjectsInherit,
 				Trustee: trustee{
 					TrusteeForm: trusteeIsSID,
 					ptstrName:   unsafe.Pointer(pSID),
