@@ -6,16 +6,9 @@ import (
 	"os"
 )
 
-// Ensure that the specified path is only accessible to the current user. Note
-// that files are directories require different permissions.
+// Ensure that the specified path is only accessible to the current user. On
+// Unix platforms, this requires nothing since the correct permissions are set
+// when the path is created.
 func SecurePath(path string) error {
-	s, err := os.Stat(path)
-	if err != nil {
-		return err
-	}
-	if s.IsDir() {
-		return os.Chmod(path, 0700)
-	} else {
-		return os.Chmod(path, 0600)
-	}
+	return nil
 }

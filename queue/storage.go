@@ -82,17 +82,17 @@ func NewStorage(directory string) *Storage {
 // message body.
 func (s *Storage) NewBody() (io.WriteCloser, string, error) {
 	body := uuid.New()
-	if err := os.MkdirAll(s.bodyDirectory(body), 0700); err != nil {
+	if err := os.MkdirAll(s.directory, 0700); err != nil {
 		return nil, "", err
 	}
-	if err := util.SecurePath(s.bodyDirectory(body)); err != nil {
+	if err := util.SecurePath(s.directory); err != nil {
 		return nil, "", err
 	}
-	w, err := os.Create(s.bodyFilename(body))
+	if err := os.Mkdir(s.bodyDirectory(body), 0700); err != nil {
+		return nil, "", err
+	}
+	w, err := os.OpenFile(s.bodyFilename(body), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		return nil, "", err
-	}
-	if err := util.SecurePath(s.bodyFilename(body)); err != nil {
 		return nil, "", err
 	}
 	return w, body, nil
@@ -126,14 +126,11 @@ func (s *Storage) SaveMessage(m *Message, body string) error {
 	defer s.m.Unlock()
 	m.id = uuid.New()
 	m.body = body
-	w, err := os.Create(s.messageFilename(m))
+	w, err := os.OpenFile(s.messageFilename(m), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
 	defer w.Close()
-	if err := util.SecurePath(s.messageFilename(m)); err != nil {
-		return err
-	}
 	if err := json.NewEncoder(w).Encode(m); err != nil {
 		return err
 	}
