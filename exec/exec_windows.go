@@ -15,6 +15,6 @@ func Exec() error {
 		execSignal()
 		return nil
 	} else {
-		return nil
+		return execService()
 	}
 }

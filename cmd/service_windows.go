@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/hectane/hectane/cfg"
+	"github.com/hectane/hectane/exec"
 	"github.com/hectane/hectane/util"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/mgr"
@@ -11,7 +12,6 @@ import (
 )
 
 const (
-	serviceName = "Hectane"
 	displayName = "Hectane"
 	description = "Lightweight SMTP client"
 )
@@ -23,7 +23,7 @@ func serviceCommand(name string) error {
 		return err
 	}
 	defer m.Disconnect()
-	s, err := m.OpenService(serviceName)
+	s, err := m.OpenService(exec.ServiceName)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ var installCommand = &command{
 		if err := util.SecurePath(cfgPath); err != nil {
 			return err
 		}
-		s, err := m.CreateService(serviceName, exePath, mgr.Config{
+		s, err := m.CreateService(exec.ServiceName, exePath, mgr.Config{
 			StartType:      mgr.StartAutomatic,
 			BinaryPathName: fmt.Sprintf("\"%s\" -f \"%s\"", exePath, cfgPath),
 			DisplayName:    displayName,
