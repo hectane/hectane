@@ -2,6 +2,7 @@ package queue
 
 import (
 	"code.google.com/p/go-uuid/uuid"
+	"github.com/hectane/hectane/util"
 
 	"encoding/json"
 	"io"
@@ -81,51 +82,62 @@ func NewStorage(directory string) *Storage {
 // message body.
 func (s *Storage) NewBody() (io.WriteCloser, string, error) {
 	body := uuid.New()
-	if err := os.MkdirAll(s.bodyDirectory(body), 0700); err == nil {
-		if w, err := os.OpenFile(s.bodyFilename(body), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600); err == nil {
-			return w, body, nil
-		} else {
-			return nil, "", err
-		}
-	} else {
+	if err := os.MkdirAll(s.bodyDirectory(body), 0700); err != nil {
 		return nil, "", err
 	}
+	if err := util.SecurePath(s.bodyDirectory(body)); err != nil {
+		return nil, "", err
+	}
+	w, err := os.Create(s.bodyFilename(body))
+	if err != nil {
+		return nil, "", err
+	}
+	if err := util.SecurePath(s.bodyFilename(body)); err != nil {
+		return nil, "", err
+	}
+	return w, body, nil
 }
 
 // Load messages from the storage directory. Any messages that could not be
 // loaded are ignored.
 func (s *Storage) LoadMessages() ([]*Message, error) {
-	if directories, err := ioutil.ReadDir(s.directory); err == nil {
-		var messages []*Message
-		for _, d := range directories {
-			if d.IsDir() {
-				if _, err := os.Stat(s.bodyFilename(d.Name())); err == nil {
-					messages = append(messages, s.loadMessages(d.Name())...)
-				}
+	directories, err := ioutil.ReadDir(s.directory)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []*Message{}, nil
+		} else {
+			return nil, err
+		}
+	}
+	var messages []*Message
+	for _, d := range directories {
+		if d.IsDir() {
+			if _, err := os.Stat(s.bodyFilename(d.Name())); err == nil {
+				messages = append(messages, s.loadMessages(d.Name())...)
 			}
 		}
-		return messages, nil
-	} else if os.IsNotExist(err) {
-		return []*Message{}, nil
-	} else {
-		return nil, err
 	}
+	return messages, nil
 }
 
-// Save the specified message.
+// Save the specified message to disk.
 func (s *Storage) SaveMessage(m *Message, body string) error {
 	s.m.Lock()
 	defer s.m.Unlock()
 	m.id = uuid.New()
 	m.body = body
-	if w, err := os.OpenFile(s.messageFilename(m), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600); err == nil {
-		if err := json.NewEncoder(w).Encode(m); err != nil {
-			return err
-		}
-		return w.Close()
-	} else {
+	w, err := os.Create(s.messageFilename(m))
+	if err != nil {
 		return err
 	}
+	defer w.Close()
+	if err := util.SecurePath(s.messageFilename(m)); err != nil {
+		return err
+	}
+	if err := json.NewEncoder(w).Encode(m); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Retreive a reader for the message body.
@@ -143,20 +155,18 @@ func (s *Storage) DeleteMessage(m *Message) error {
 	if err := os.Remove(s.messageFilename(m)); err != nil {
 		return err
 	}
-	if d, err := os.Open(s.bodyDirectory(m.body)); err == nil {
-		if e, err := d.Readdir(2); err == nil {
-			if err := d.Close(); err != nil {
-				return err
-			}
-			if len(e) == 1 {
-				return os.RemoveAll(s.bodyDirectory(m.body))
-			} else {
-				return nil
-			}
-		} else {
-			return err
-		}
-	} else {
+	d, err := os.Open(s.bodyDirectory(m.body))
+	if err != nil {
 		return err
+	}
+	defer d.Close()
+	e, err := d.Readdir(2)
+	if err != nil {
+		return err
+	}
+	if len(e) == 1 {
+		return os.RemoveAll(s.bodyDirectory(m.body))
+	} else {
+		return nil
 	}
 }
