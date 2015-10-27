@@ -5,10 +5,10 @@ import (
 	"github.com/hectane/hectane/exec"
 	"github.com/hectane/hectane/util"
 	"golang.org/x/sys/windows/svc"
+	"golang.org/x/sys/windows/svc/eventlog"
 	"golang.org/x/sys/windows/svc/mgr"
 
-	"fmt"
-	"path"
+	"path/filepath"
 )
 
 const (
@@ -57,8 +57,9 @@ var installCommand = &command{
 			return err
 		}
 		var (
-			cfgPath     = path.Join(path.Dir(exePath), "config.json")
-			storagePath = path.Join(path.Dir(exePath), "storage")
+			dir, _      = filepath.Split(exePath)
+			cfgPath     = filepath.Join(dir, "config.json")
+			storagePath = filepath.Join(dir, "storage")
 			config      = &cfg.Config{}
 		)
 		config.Queue.Directory = storagePath
@@ -69,15 +70,18 @@ var installCommand = &command{
 			return err
 		}
 		s, err := m.CreateService(exec.ServiceName, exePath, mgr.Config{
-			StartType:      mgr.StartAutomatic,
-			BinaryPathName: fmt.Sprintf("\"%s\" -f \"%s\"", exePath, cfgPath),
-			DisplayName:    displayName,
-			Description:    description,
-		})
+			StartType:   mgr.StartAutomatic,
+			DisplayName: displayName,
+			Description: description,
+		}, "-config", cfgPath)
 		if err != nil {
 			return err
 		}
-		s.Close()
+		defer s.Close()
+		if err := eventlog.InstallAsEventCreate(exec.ServiceName, eventlog.Error|eventlog.Warning|eventlog.Info); err != nil {
+			s.Delete()
+			return err
+		}
 		return nil
 	},
 }
@@ -105,7 +109,10 @@ var removeCommand = &command{
 	name:        "remove",
 	description: "remove the service (Windows only)",
 	exec: func() error {
-		return serviceCommand("remove")
+		if err := serviceCommand("remove"); err != nil {
+			return err
+		}
+		return eventlog.Remove(exec.ServiceName)
 	},
 }
 
