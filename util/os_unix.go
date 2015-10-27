@@ -2,10 +2,6 @@
 
 package util
 
-import (
-	"os"
-)
-
 // Ensure that the specified path is only accessible to the current user. On
 // Unix platforms, this requires nothing since the correct permissions are set
 // when the path is created.
