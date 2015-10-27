@@ -40,11 +40,13 @@ func serviceCommand(name string) error {
 	return nil
 }
 
-// Connect to the service manager and install the service.
+// Connect to the service manager and install the service. A default
+// configuration is generated with the storage directory set to a folder in the
+// same location as the executable.
 var installCommand = &command{
 	name:        "install",
 	description: "install the service (Windows only)",
-	exec: func(config *cfg.Config) error {
+	exec: func() error {
 		m, err := mgr.Connect()
 		if err != nil {
 			return err
@@ -54,7 +56,12 @@ var installCommand = &command{
 		if err != nil {
 			return err
 		}
-		cfgPath := path.Join(path.Dir(exePath), "config.json")
+		var (
+			cfgPath     = path.Join(path.Dir(exePath), "config.json")
+			storagePath = path.Join(path.Dir(exePath), "storage")
+			config      = &cfg.Config{}
+		)
+		config.Queue.Directory = storagePath
 		if err := config.Save(cfgPath); err != nil {
 			return err
 		}
@@ -79,7 +86,7 @@ var installCommand = &command{
 var startCommand = &command{
 	name:        "start",
 	description: "start the service (Windows only)",
-	exec: func(config *cfg.Config) error {
+	exec: func() error {
 		return serviceCommand("start")
 	},
 }
@@ -88,7 +95,7 @@ var startCommand = &command{
 var stopCommand = &command{
 	name:        "stop",
 	description: "stop the service (Windows only)",
-	exec: func(config *cfg.Config) error {
+	exec: func() error {
 		return serviceCommand("stop")
 	},
 }
@@ -97,7 +104,7 @@ var stopCommand = &command{
 var removeCommand = &command{
 	name:        "remove",
 	description: "remove the service (Windows only)",
-	exec: func(config *cfg.Config) error {
+	exec: func() error {
 		return serviceCommand("remove")
 	},
 }
