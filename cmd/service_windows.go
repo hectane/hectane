@@ -58,6 +58,9 @@ var installCommand = &command{
 		if err := config.Save(cfgPath); err != nil {
 			return err
 		}
+		if err := util.SecurePath(cfgPath); err != nil {
+			return err
+		}
 		s, err := m.CreateService(serviceName, exePath, mgr.Config{
 			StartType:      mgr.StartAutomatic,
 			BinaryPathName: fmt.Sprintf("\"%s\" -f \"%s\"", exePath, cfgPath),
