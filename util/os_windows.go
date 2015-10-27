@@ -9,9 +9,10 @@ import (
 const (
 	errorSuccess = 0
 
-	seFileObject             = 1
-	ownerSecurityInformation = 1
-	daclSecurityInformation  = 4
+	seFileObject                     = 1
+	ownerSecurityInformation         = 1
+	daclSecurityInformation          = 4
+	protectedDaclSecurityInformation = 0x80000000
 
 	standardRightsRequired = 0xF0000
 	grantAccess            = 1
@@ -94,7 +95,7 @@ func SecurePath(path string) error {
 	ret, _, err = setNamedSecurityInfoW.Call(
 		uintptr(unsafe.Pointer(windows.StringToUTF16Ptr(path))),
 		uintptr(seFileObject),
-		uintptr(daclSecurityInformation),
+		uintptr(daclSecurityInformation|protectedDaclSecurityInformation),
 		uintptr(0),
 		uintptr(0),
 		uintptr(pACL),
