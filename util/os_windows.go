@@ -10,7 +10,6 @@ const (
 	errorSuccess = 0
 
 	seFileObject                     = 1
-	ownerSecurityInformation         = 0x1
 	daclSecurityInformation          = 0x4
 	protectedDaclSecurityInformation = 0x80000000
 
@@ -23,7 +22,6 @@ const (
 
 var (
 	advapi32              = windows.MustLoadDLL("advapi32.dll")
-	getNamedSecurityInfoW = advapi32.MustFindProc("GetNamedSecurityInfoW")
 	setEntriesInAclW      = advapi32.MustFindProc("SetEntriesInAclW")
 	setNamedSecurityInfoW = advapi32.MustFindProc("SetNamedSecurityInfoW")
 
@@ -46,28 +44,24 @@ type explicitAccessW struct {
 	Trustee              trustee
 }
 
-// Ensure that the specified path is only accessible to the current user. This
-// is accomplished by setting a single ACE in the path's ACL for the owner.
+// Ensure that the specified path is only accessible to the system user. This
+// is a rather tedious operation that begins with obtaining a PSID for the
+// LocalSystem user. An EXPLICIT_ACCESS entry is created for the user granting
+// them GENERIC_ALL access. This then becomes the single entry in the path's
+// ACL, preventing all other users from accessing it.
 func SecurePath(path string) error {
-	var (
-		pSID windows.Handle
-		pSD  windows.Handle
+	var pSID *windows.SID
+	err := windows.AllocateAndInitializeSid(
+		&windows.SECURITY_NT_AUTHORITY,
+		1,
+		windows.SECURITY_LOCAL_SYSTEM_RID,
+		0, 0, 0, 0, 0, 0, 0,
+		&pSID,
 	)
-	ret, _, err := getNamedSecurityInfoW.Call(
-		uintptr(unsafe.Pointer(windows.StringToUTF16Ptr(path))),
-		uintptr(seFileObject),
-		uintptr(ownerSecurityInformation),
-		uintptr(unsafe.Pointer(&pSID)),
-		uintptr(0),
-		uintptr(0),
-		uintptr(0),
-		uintptr(unsafe.Pointer(&pSD)),
-	)
-	// TODO: for some reason the error isn't returned
-	if ret != errorSuccess {
+	if err != nil {
 		return err
 	}
-	defer windows.LocalFree(pSD)
+	defer windows.FreeSid(pSID)
 	var (
 		ea = []explicitAccessW{
 			{
@@ -82,7 +76,7 @@ func SecurePath(path string) error {
 		}
 		pACL windows.Handle
 	)
-	ret, _, err = setEntriesInAclW.Call(
+	ret, _, err := setEntriesInAclW.Call(
 		uintptr(len(ea)),
 		uintptr(unsafe.Pointer(&ea[0])),
 		uintptr(0),
@@ -107,7 +101,7 @@ func SecurePath(path string) error {
 	return nil
 }
 
-// Retrieve the full path to the current executable using the Windows API.
+// Retrieve the full path to the current executable.
 func Executable() (string, error) {
 	s := make([]uint16, windows.MAX_PATH)
 	ret, _, err := getModuleFileNameW.Call(
