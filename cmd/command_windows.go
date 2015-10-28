@@ -8,6 +8,7 @@ import (
 	"golang.org/x/sys/windows/svc/eventlog"
 	"golang.org/x/sys/windows/svc/mgr"
 
+	"os"
 	"path/filepath"
 )
 
@@ -46,7 +47,7 @@ func serviceCommand(name string) error {
 var installCommand = &command{
 	name:        "install",
 	description: "install the service (Windows only)",
-	exec: func() error {
+	exec: func(config *cfg.Config) error {
 		m, err := mgr.Connect()
 		if err != nil {
 			return err
@@ -57,17 +58,16 @@ var installCommand = &command{
 			return err
 		}
 		var (
-			dir, _      = filepath.Split(exePath)
-			cfgPath     = filepath.Join(dir, "config.json")
-			storagePath = filepath.Join(dir, "storage")
-			config      = &cfg.Config{}
+			dir, _  = filepath.Split(exePath)
+			cfgPath = filepath.Join(dir, "config.json")
 		)
-		config.Queue.Directory = storagePath
-		if err := config.Save(cfgPath); err != nil {
-			return err
-		}
-		if err := util.SecurePath(cfgPath); err != nil {
-			return err
+		if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
+			if err := config.Save(cfgPath); err != nil {
+				return err
+			}
+			if err := util.SecurePath(cfgPath); err != nil {
+				return err
+			}
 		}
 		s, err := m.CreateService(exec.ServiceName, exePath, mgr.Config{
 			StartType:   mgr.StartAutomatic,
@@ -90,7 +90,7 @@ var installCommand = &command{
 var startCommand = &command{
 	name:        "start",
 	description: "start the service (Windows only)",
-	exec: func() error {
+	exec: func(config *cfg.Config) error {
 		return serviceCommand("start")
 	},
 }
@@ -99,7 +99,7 @@ var startCommand = &command{
 var stopCommand = &command{
 	name:        "stop",
 	description: "stop the service (Windows only)",
-	exec: func() error {
+	exec: func(config *cfg.Config) error {
 		return serviceCommand("stop")
 	},
 }
@@ -108,7 +108,7 @@ var stopCommand = &command{
 var removeCommand = &command{
 	name:        "remove",
 	description: "remove the service (Windows only)",
-	exec: func() error {
+	exec: func(config *cfg.Config) error {
 		if err := serviceCommand("remove"); err != nil {
 			return err
 		}

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"github.com/hectane/hectane/cfg"
+
 	"fmt"
 	"os"
 )
@@ -9,7 +11,7 @@ import (
 type command struct {
 	name        string
 	description string
-	exec        func() error
+	exec        func(*cfg.Config) error
 }
 
 // List of valid commands.
@@ -23,10 +25,10 @@ func Print() {
 }
 
 // Execute the specified command if available.
-func Exec(name string) error {
+func Exec(name string, config *cfg.Config) error {
 	for _, c := range commands {
 		if name == c.name {
-			return c.exec()
+			return c.exec(config)
 		}
 	}
 	return fmt.Errorf("invalid command \"%s\"", name)

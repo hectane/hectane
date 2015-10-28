@@ -1,7 +1,7 @@
 package exec
 
 import (
-	log "github.com/Sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/eventlog"
 )
@@ -12,7 +12,7 @@ const (
 
 // Write log messages to the Windows event log.
 type eventLogHook struct {
-	eventLog *eventlog.Log
+	log *eventlog.Log
 }
 
 // Create a new hook for the event log.
@@ -22,28 +22,28 @@ func newEventLogHook() (*eventLogHook, error) {
 		return nil, err
 	}
 	return &eventLogHook{
-		eventlog: e,
+		log: e,
 	}, nil
 }
 
 // Indicate which event levels should be logged.
-func (e *eventLogHook) Levels() []log.Level {
-	return []log.Level{
-		log.InfoLevel,
-		log.WarnLevel,
-		log.ErrorLevel,
+func (e *eventLogHook) Levels() []logrus.Level {
+	return []logrus.Level{
+		logrus.InfoLevel,
+		logrus.WarnLevel,
+		logrus.ErrorLevel,
 	}
 }
 
 // Log the specified entry to the event log.
-func (e *eventLogHook) Fire(entry *log.Entry) error {
+func (e *eventLogHook) Fire(entry *logrus.Entry) error {
 	switch entry.Level {
-	case log.InfoLevel:
-		return e.eventLog.Info(1, entry.Message)
-	case log.WarnLevel:
-		return e.eventLog.Warning(1, entry.Message)
-	case log.ErrorLevel:
-		return e.eventLog.Error(1, entry.Message)
+	case logrus.InfoLevel:
+		return e.log.Info(1, entry.Message)
+	case logrus.WarnLevel:
+		return e.log.Warning(1, entry.Message)
+	case logrus.ErrorLevel:
+		return e.log.Error(1, entry.Message)
 	default:
 		return nil
 	}
@@ -51,7 +51,7 @@ func (e *eventLogHook) Fire(entry *log.Entry) error {
 
 // Close the event log.
 func (e *eventLogHook) close() {
-	e.eventLog.Close()
+	e.log.Close()
 }
 
 // A service must implement the svc.Handler interface.
@@ -59,7 +59,7 @@ type service struct{}
 
 // Run the service, responding to control commands as necessary.
 func (s *service) Execute(args []string, chChan <-chan svc.ChangeRequest, stChan chan<- svc.Status) (bool, uint32) {
-	log.Infoln("service started")
+	logrus.Info("service starting")
 	stChan <- svc.Status{
 		State:   svc.Running,
 		Accepts: svc.AcceptStop | svc.AcceptShutdown,
@@ -75,6 +75,7 @@ loop:
 			break loop
 		}
 	}
+	logrus.Info("service stopping")
 	return false, 0
 }
 
@@ -91,13 +92,13 @@ func Init() error {
 		return err
 	}
 	isInteractive = i
-	if isInteractive {
+	if !isInteractive {
 		h, err := newEventLogHook()
 		if err != nil {
 			return err
 		}
 		hook = h
-		log.AddHook(hook)
+		logrus.AddHook(hook)
 	}
 	return nil
 }
