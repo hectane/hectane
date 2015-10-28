@@ -100,7 +100,7 @@ func (h *Host) connectToMailServer() (*smtp.Client, error) {
 	for _, s := range util.FindMailServers(h.host) {
 		c, err := h.tryMailServer(s)
 		if err != nil {
-			h.log.Errorf("unable to connect to %s", s)
+			h.log.Warningf("unable to connect to %s", s)
 			continue
 		}
 		return c, nil

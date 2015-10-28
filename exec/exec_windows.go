@@ -4,6 +4,8 @@ import (
 	"github.com/Sirupsen/logrus"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/eventlog"
+
+	"fmt"
 )
 
 const (
@@ -35,15 +37,19 @@ func (e *eventLogHook) Levels() []logrus.Level {
 	}
 }
 
-// Log the specified entry to the event log.
+// Log the specified entry to the event log. Add the context to the message.
 func (e *eventLogHook) Fire(entry *logrus.Entry) error {
+	msg := entry.Message
+	if c, ok := entry.Data["context"]; ok {
+		msg = fmt.Sprintf("[%s] %s", c, msg)
+	}
 	switch entry.Level {
 	case logrus.InfoLevel:
-		return e.log.Info(1, entry.Message)
+		return e.log.Info(1, msg)
 	case logrus.WarnLevel:
-		return e.log.Warning(1, entry.Message)
+		return e.log.Warning(1, msg)
 	case logrus.ErrorLevel:
-		return e.log.Error(1, entry.Message)
+		return e.log.Error(1, msg)
 	default:
 		return nil
 	}
@@ -59,7 +65,7 @@ type service struct{}
 
 // Run the service, responding to control commands as necessary.
 func (s *service) Execute(args []string, chChan <-chan svc.ChangeRequest, stChan chan<- svc.Status) (bool, uint32) {
-	logrus.Info("service starting")
+	logrus.Info("service started")
 	stChan <- svc.Status{
 		State:   svc.Running,
 		Accepts: svc.AcceptStop | svc.AcceptShutdown,
@@ -75,7 +81,7 @@ loop:
 			break loop
 		}
 	}
-	logrus.Info("service stopping")
+	logrus.Info("service stopped")
 	return false, 0
 }
 
