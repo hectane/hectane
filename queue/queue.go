@@ -1,10 +1,9 @@
 package queue
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/hectane/hectane/util"
 
-	"fmt"
-	"log"
 	"sync"
 	"time"
 )
@@ -17,43 +16,40 @@ type QueueStatus struct {
 
 // Mail queue managing the sending of messages to hosts.
 type Queue struct {
-	sync.Mutex
-	Storage    *Storage
+	m          sync.Mutex
 	config     *Config
+	Storage    *Storage
+	log        *logrus.Entry
 	hosts      map[string]*Host
 	newMessage *util.NonBlockingChan
 	startTime  time.Time
 	stop       chan bool
 }
 
-// Log the specified message.
-func (q *Queue) log(msg string, v ...interface{}) {
-	log.Printf(fmt.Sprintf("[Queue] %s", msg), v...)
-}
-
 // Deliver the specified message to the appropriate host queue.
 func (q *Queue) deliverMessage(m *Message) {
-	q.Lock()
+	q.m.Lock()
 	if _, ok := q.hosts[m.Host]; !ok {
 		q.hosts[m.Host] = NewHost(m.Host, q.Storage, q.config)
 	}
 	q.hosts[m.Host].Deliver(m)
-	q.Unlock()
+	q.m.Unlock()
 }
 
 // Check for inactive host queues and shut them down.
 func (q *Queue) checkForInactiveQueues() {
-	q.Lock()
+	q.m.Lock()
 	for n, h := range q.hosts {
 		if h.Idle() > time.Minute {
 			h.Stop()
 			delete(q.hosts, n)
 		}
 	}
-	q.Unlock()
+	q.m.Unlock()
 }
 
-// Receive new messages and deliver them to the specified host queue.
+// Receive new messages and deliver them to the specified host queue. Check for
+// idle queues every so often and shut them down if they haven't been used.
 func (q *Queue) run() {
 	defer close(q.stop)
 	ticker := time.NewTicker(time.Minute)
@@ -69,33 +65,34 @@ loop:
 			break loop
 		}
 	}
-	q.log("shutting down host queues")
-	q.Lock()
+	q.log.Info("stopping host queues")
+	q.m.Lock()
 	for h := range q.hosts {
 		q.hosts[h].Stop()
 	}
-	q.Unlock()
-	q.log("mail queue shutdown")
+	q.m.Unlock()
+	q.log.Info("shutting down")
 }
 
 // Create a new message queue. Any undelivered messages on disk will be added
 // to the appropriate queue.
 func NewQueue(c *Config) (*Queue, error) {
 	q := &Queue{
-		Storage:    NewStorage(c.Directory),
 		config:     c,
+		Storage:    NewStorage(c.Directory),
+		log:        logrus.WithField("context", "Queue"),
 		hosts:      make(map[string]*Host),
 		newMessage: util.NewNonBlockingChan(),
 		startTime:  time.Now(),
 		stop:       make(chan bool),
 	}
-	if messages, err := q.Storage.LoadMessages(); err == nil {
-		q.log("loaded %d message(s) from %s", len(messages), c.Directory)
-		for _, m := range messages {
-			q.deliverMessage(m)
-		}
-	} else {
+	messages, err := q.Storage.LoadMessages()
+	if err != nil {
 		return nil, err
+	}
+	q.log.Infof("loaded %d message(s) from %s", len(messages), c.Directory)
+	for _, m := range messages {
+		q.deliverMessage(m)
 	}
 	go q.run()
 	return q, nil
@@ -107,11 +104,11 @@ func (q *Queue) Status() *QueueStatus {
 		Uptime: int(time.Now().Sub(q.startTime) / time.Second),
 		Hosts:  make(map[string]*HostStatus),
 	}
-	q.Lock()
+	q.m.Lock()
 	for n, h := range q.hosts {
 		s.Hosts[n] = h.Status()
 	}
-	q.Unlock()
+	q.m.Unlock()
 	return s
 }
 

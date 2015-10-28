@@ -1,13 +1,13 @@
 package queue
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/hectane/hectane/util"
 
 	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/smtp"
 	"net/textproto"
 	"os"
@@ -24,18 +24,14 @@ type HostStatus struct {
 
 // Persistent connection to an SMTP host.
 type Host struct {
-	sync.Mutex
-	host         string
-	storage      *Storage
+	m            sync.Mutex
 	config       *Config
-	lastActivity time.Time
+	storage      *Storage
+	log          *logrus.Entry
+	host         string
 	newMessage   *util.NonBlockingChan
+	lastActivity time.Time
 	stop         chan bool
-}
-
-// Log the specified message for the specified host.
-func (h *Host) log(msg string) {
-	log.Printf("[%s] %s", h.host, msg)
 }
 
 // Receive the next message in the queue. The host queue is considered
@@ -43,13 +39,13 @@ func (h *Host) log(msg string) {
 // recorded before entering the select{} block so that the Idle() method can
 // calculate the idle time.
 func (h *Host) receiveMessage() *Message {
-	h.Lock()
+	h.m.Lock()
 	h.lastActivity = time.Now()
-	h.Unlock()
+	h.m.Unlock()
 	defer func() {
-		h.Lock()
+		h.m.Lock()
 		h.lastActivity = time.Time{}
-		h.Unlock()
+		h.m.Unlock()
 	}()
 	for {
 		select {
@@ -79,70 +75,70 @@ func (h *Host) tryMailServer(server string) (*smtp.Client, error) {
 	case <-h.stop:
 		return nil, nil
 	}
-	if err == nil {
-		if hostname, err := os.Hostname(); err == nil {
-			if err := c.Hello(hostname); err != nil {
-				return nil, err
-			}
-		}
-		if ok, _ := c.Extension("STARTTLS"); ok {
-			config := &tls.Config{ServerName: server}
-			if h.config.DisableSSLVerification {
-				config.InsecureSkipVerify = true
-			}
-			if err := c.StartTLS(config); err != nil {
-				return nil, err
-			}
-		}
-		return c, nil
-	} else {
+	if err != nil {
 		return nil, err
 	}
+	if hostname, err := os.Hostname(); err == nil {
+		if err := c.Hello(hostname); err != nil {
+			return nil, err
+		}
+	}
+	if ok, _ := c.Extension("STARTTLS"); ok {
+		config := &tls.Config{ServerName: server}
+		if h.config.DisableSSLVerification {
+			config.InsecureSkipVerify = true
+		}
+		if err := c.StartTLS(config); err != nil {
+			return nil, err
+		}
+	}
+	return c, nil
 }
 
 // Attempt to connect to one of the mail servers.
 func (h *Host) connectToMailServer() (*smtp.Client, error) {
 	for _, s := range util.FindMailServers(h.host) {
-		if c, err := h.tryMailServer(s); err == nil {
-			return c, nil
-		} else {
-			h.log(fmt.Sprintf("unable to connect to %s", s))
+		c, err := h.tryMailServer(s)
+		if err != nil {
+			h.log.Error("unable to connect to %s", s)
+			continue
 		}
+		return c, nil
 	}
 	return nil, errors.New("unable to connect to a mail server")
 }
 
 // Attempt to send the specified message to the specified client.
 func (h *Host) deliverToMailServer(c *smtp.Client, m *Message) error {
-	if r, err := h.storage.GetMessageBody(m); err == nil {
-		if err := c.Mail(m.From); err != nil {
-			return err
-		}
-		for _, t := range m.To {
-			if err := c.Rcpt(t); err != nil {
-				return err
-			}
-		}
-		if w, err := c.Data(); err == nil {
-			if _, err := io.Copy(w, r); err != nil {
-				return err
-			}
-			if err := w.Close(); err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
-		return r.Close()
-	} else {
+	r, err := h.storage.GetMessageBody(m)
+	if err != nil {
 		return err
 	}
+	defer r.Close()
+	if err := c.Mail(m.From); err != nil {
+		return err
+	}
+	for _, t := range m.To {
+		if err := c.Rcpt(t); err != nil {
+			return err
+		}
+	}
+	w, err := c.Data()
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+	if _, err := io.Copy(w, r); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Receive message and deliver them to their recipients. Due to the complicated
 // algorithm for message delivery, the body of the method is broken up into a
 // sequence of labeled sections.
 func (h *Host) run() {
+	defer close(h.stop)
 	var (
 		m        *Message
 		c        *smtp.Client
@@ -152,46 +148,49 @@ func (h *Host) run() {
 	)
 receive:
 	if m == nil {
-		if m = h.receiveMessage(); m == nil {
+		m = h.receiveMessage()
+		if m == nil {
 			goto shutdown
 		}
-		h.log("message received in queue")
+		h.log.Info("message received in queue")
 	}
 deliver:
 	if c == nil {
-		h.log("connecting to mail server...")
+		h.log.Info("connecting to mail server...")
 		c, err = h.connectToMailServer()
 		if c == nil {
 			if err != nil {
-				h.log(err.Error())
+				h.log.Error(err)
 				goto wait
 			} else {
 				goto shutdown
 			}
 		}
-		h.log("connection established")
+		h.log.Info("connection established")
 	}
-	if err := h.deliverToMailServer(c, m); err == nil {
-		h.log("mail delivered successfully")
-	} else {
-		h.log(err.Error())
+	err = h.deliverToMailServer(c, m)
+	if err != nil {
+		h.log.Error(err)
 		if _, ok := err.(syscall.Errno); ok {
 			c = nil
 			goto deliver
-		} else if e, ok := err.(*textproto.Error); ok {
+		}
+		if e, ok := err.(*textproto.Error); ok {
 			if e.Code >= 400 && e.Code <= 499 {
 				c.Close()
 				c = nil
 				goto wait
-			} else {
-				c.Reset()
 			}
+			c.Reset()
 		}
+		goto cleanup
 	}
+	h.log.Info("message delivered successfully")
 cleanup:
-	h.log("deleting message from disk")
-	if err := h.storage.DeleteMessage(m); err != nil {
-		h.log(err.Error())
+	h.log.Info("deleting message from disk")
+	err = h.storage.DeleteMessage(m)
+	if err != nil {
+		h.log.Error(err.Error())
 	}
 	m = nil
 	tries = 0
@@ -209,7 +208,7 @@ wait:
 	case tries < 20:
 		duration = 3 * time.Hour
 	default:
-		h.log("maximum retry count exceeded")
+		h.log.Warning("maximum retry count exceeded")
 		goto cleanup
 	}
 	select {
@@ -218,19 +217,19 @@ wait:
 		goto receive
 	}
 shutdown:
-	h.log("shutting down queue")
+	h.log.Info("shutting down")
 	if c != nil {
 		c.Close()
 	}
-	close(h.stop)
 }
 
 // Create a new host connection.
 func NewHost(host string, s *Storage, c *Config) *Host {
 	h := &Host{
-		host:       host,
-		storage:    s,
 		config:     c,
+		storage:    s,
+		log:        logrus.WithField("context", host),
+		host:       host,
 		newMessage: util.NewNonBlockingChan(),
 		stop:       make(chan bool),
 	}
@@ -245,8 +244,8 @@ func (h *Host) Deliver(m *Message) {
 
 // Retrieve the connection idle time.
 func (h *Host) Idle() time.Duration {
-	h.Lock()
-	defer h.Unlock()
+	h.m.Lock()
+	defer h.m.Unlock()
 	if h.lastActivity.IsZero() {
 		return 0
 	} else {
