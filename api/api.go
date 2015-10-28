@@ -1,12 +1,11 @@
 package api
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/hectane/hectane/queue"
 
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
-	"log"
 	"net"
 	"net/http"
 )
@@ -20,16 +19,12 @@ const (
 // HTTP API for managing a mail queue.
 type API struct {
 	config   *Config
+	log      *logrus.Entry
 	listener net.Listener
 	server   *http.Server
 	serveMux *http.ServeMux
 	queue    *queue.Queue
 	stopped  chan bool
-}
-
-// Log the specified message.
-func (a *API) log(msg string, v ...interface{}) {
-	log.Printf(fmt.Sprintf("[API] %s", msg), v...)
 }
 
 // Create a handler that logs and validates requests as they come in. The
@@ -58,13 +53,13 @@ func (a *API) method(method string, handler func(r *http.Request) interface{}) h
 
 // Listen for new connections, logging any errors that occur.
 func (a *API) run() {
-	a.log("serving on %s", a.config.Addr)
+	a.log.Infof("serving on %s", a.config.Addr)
 	// Supress benign errors - see http://bit.ly/1WUhgDj
 	err := a.server.Serve(a.listener)
 	if oe, ok := err.(*net.OpError); err == nil || (ok && oe.Op == "accept" || oe.Op == "AcceptEx") {
-		a.log("API server shutdown")
+		a.log.Info("shutting down")
 	} else {
-		a.log(err.Error())
+		a.log.Error(err)
 	}
 	a.stopped <- true
 }
@@ -73,6 +68,7 @@ func (a *API) run() {
 func New(config *Config, queue *queue.Queue) *API {
 	a := &API{
 		config: config,
+		log:    logrus.WithField("context", "API"),
 		server: &http.Server{
 			Addr: config.Addr,
 		},
@@ -91,7 +87,7 @@ func New(config *Config, queue *queue.Queue) *API {
 // Process an incoming request. This method logs the request and checks to
 // ensure that HTTP basic auth credentials were supplied if required.
 func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("[API] %s - %s %s", r.RemoteAddr, r.Method, r.RequestURI)
+	a.log.Infof("%s - %s %s", r.RemoteAddr, r.Method, r.RequestURI)
 	if a.config.Username != "" && a.config.Password != "" {
 		if username, password, ok := r.BasicAuth(); ok {
 			if username != a.config.Username || password != a.config.Password {
