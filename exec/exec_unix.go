@@ -3,7 +3,7 @@
 package exec
 
 // No initialization required.
-func Init() error {
+func platformInit() error {
 	return nil
 }
 

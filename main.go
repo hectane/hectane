@@ -8,6 +8,7 @@ import (
 	"github.com/hectane/hectane/exec"
 	"github.com/hectane/hectane/queue"
 
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -22,63 +23,53 @@ func printUsage() {
 	flag.PrintDefaults()
 }
 
-// Log the specified message and return a suitable error code.
-func logError(err error) int {
-	logrus.Error(err)
-	return 1
+// Run the application.
+func runApplication(config *cfg.Config) error {
+	if err := exec.Init(config); err != nil {
+		return err
+	}
+	defer exec.Cleanup()
+	q, err := queue.NewQueue(&config.Queue)
+	if err != nil {
+		return err
+	}
+	defer q.Stop()
+	a := api.New(&config.API, q)
+	if err = a.Start(); err != nil {
+		return err
+	}
+	defer a.Stop()
+	if err = exec.Exec(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // This needs to be a separate function from main in order to ensure that the
 // deferred statements are run while still allowing os.Exit() to be given an
-// error code.
-func run() int {
-
-	// Initialize the execution environment
-	if err := exec.Init(); err != nil {
-		return logError(err)
-	}
-	defer exec.Cleanup()
-
-	// Initialize the list of commands
+// error code. If a single argument was specified, it's a command. Otherwise,
+// run the application using the current platform's execution environment.
+func run() error {
 	cmd.Init()
-
-	// Set up the usage function for flags and parse them
 	flag.Usage = printUsage
 	config, err := cfg.Parse()
 	if err != nil {
-		return logError(err)
+		return err
 	}
-
-	// If a single argument was specified, it's a command - otherwise, run the
-	// application using the current platform's execution environment
 	switch {
 	case flag.NArg() == 0:
-		q, err := queue.NewQueue(&config.Queue)
-		if err != nil {
-			return logError(err)
-		}
-		defer q.Stop()
-		a := api.New(&config.API, q)
-		if err = a.Start(); err != nil {
-			return logError(err)
-		}
-		defer a.Stop()
-		if err = exec.Exec(); err != nil {
-			return logError(err)
-		}
+		return runApplication(config)
 	case flag.NArg() == 1:
-		if err := cmd.Exec(flag.Args()[0], config); err != nil {
-			return logError(err)
-		}
+		return cmd.Exec(flag.Args()[0], config)
 	default:
-		logrus.Error("single command expected")
-		return 1
+		return errors.New("single command expected")
 	}
-
-	// If execution reaches this point, there were no errors
-	return 0
+	return nil
 }
 
 func main() {
-	os.Exit(run())
+	if err := run(); err != nil {
+		logrus.Error(err)
+		os.Exit(1)
+	}
 }

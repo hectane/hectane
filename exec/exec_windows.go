@@ -92,7 +92,7 @@ var (
 
 // Determine if the application is running interactively or as a service. If
 // running as a service, add the event log hook.
-func Init() error {
+func platformInit() error {
 	i, err := svc.IsAnInteractiveSession()
 	if err != nil {
 		return err

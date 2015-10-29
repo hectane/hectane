@@ -14,6 +14,7 @@ import (
 type Config struct {
 	API   api.Config   `json:"api"`
 	Queue queue.Config `json:"queue"`
+	Log   string       `json:"log"`
 }
 
 // Parse the flags passed to the application
@@ -29,6 +30,7 @@ func Parse() (*Config, error) {
 	flag.StringVar(&c.API.Password, "password", "", "`password` for HTTP basic auth")
 	flag.StringVar(&c.Queue.Directory, "directory", path.Join(os.TempDir(), "hectane"), "`directory` for persistent storage")
 	flag.BoolVar(&c.Queue.DisableSSLVerification, "disable-ssl-verification", false, "don't verify SSL certificates")
+	flag.StringVar(&c.Log, "log", "", "`file` to write log output to")
 	flag.Parse()
 	if *filename != "" {
 		r, err := os.Open(*filename)
