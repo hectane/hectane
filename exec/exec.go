@@ -7,6 +7,13 @@ import (
 	"os"
 )
 
+// Disable colored output.
+func init() {
+	logrus.SetFormatter(&logrus.TextFormatter{
+		DisableColors: true,
+	})
+}
+
 // Setup log redirection (if requested) and initialize the execution
 // environment for the current platform.
 func Init(config *cfg.Config) error {
