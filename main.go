@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/Sirupsen/logrus"
 	"github.com/hectane/hectane/api"
 	"github.com/hectane/hectane/cfg"
 	"github.com/hectane/hectane/cmd"
 	"github.com/hectane/hectane/exec"
+	"github.com/hectane/hectane/log"
 	"github.com/hectane/hectane/queue"
 
 	"errors"
@@ -25,10 +25,10 @@ func printUsage() {
 
 // Run the application.
 func runApplication(config *cfg.Config) error {
-	if err := exec.Init(config); err != nil {
+	if err := log.Init(&config.Log); err != nil {
 		return err
 	}
-	defer exec.Cleanup()
+	defer log.Cleanup()
 	q, err := queue.NewQueue(&config.Queue)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func run() error {
 
 func main() {
 	if err := run(); err != nil {
-		logrus.Error(err)
+		fmt.Fprintf(os.Stderr, "Fatal error: %s\n", err)
 		os.Exit(1)
 	}
 }

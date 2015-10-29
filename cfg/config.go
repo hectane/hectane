@@ -2,6 +2,7 @@ package cfg
 
 import (
 	"github.com/hectane/hectane/api"
+	"github.com/hectane/hectane/log"
 	"github.com/hectane/hectane/queue"
 
 	"encoding/json"
@@ -13,8 +14,8 @@ import (
 // Global configuration for the application.
 type Config struct {
 	API   api.Config   `json:"api"`
+	Log   log.Config   `json:"log"`
 	Queue queue.Config `json:"queue"`
-	Log   string       `json:"log"`
 }
 
 // Parse the flags passed to the application
@@ -28,9 +29,9 @@ func Parse() (*Config, error) {
 	flag.StringVar(&c.API.TLSKey, "tls-key", "", "private key `file` for TLS")
 	flag.StringVar(&c.API.Username, "username", "", "`username` for HTTP basic auth")
 	flag.StringVar(&c.API.Password, "password", "", "`password` for HTTP basic auth")
+	flag.StringVar(&c.Log.Logfile, "logfile", "", "`file` to write log output to")
 	flag.StringVar(&c.Queue.Directory, "directory", path.Join(os.TempDir(), "hectane"), "`directory` for persistent storage")
 	flag.BoolVar(&c.Queue.DisableSSLVerification, "disable-ssl-verification", false, "don't verify SSL certificates")
-	flag.StringVar(&c.Log, "log", "", "`file` to write log output to")
 	flag.Parse()
 	if *filename != "" {
 		r, err := os.Open(*filename)
