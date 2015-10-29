@@ -2,7 +2,6 @@ package queue
 
 import (
 	"code.google.com/p/go-uuid/uuid"
-	"github.com/hectane/hectane/util"
 
 	"encoding/json"
 	"io"
@@ -82,13 +81,7 @@ func NewStorage(directory string) *Storage {
 // message body.
 func (s *Storage) NewBody() (io.WriteCloser, string, error) {
 	body := uuid.New()
-	if err := os.MkdirAll(s.directory, 0700); err != nil {
-		return nil, "", err
-	}
-	if err := util.SecurePath(s.directory); err != nil {
-		return nil, "", err
-	}
-	if err := os.Mkdir(s.bodyDirectory(body), 0700); err != nil {
+	if err := os.MkdirAll(s.bodyDirectory(body), 0700); err != nil {
 		return nil, "", err
 	}
 	w, err := os.OpenFile(s.bodyFilename(body), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)

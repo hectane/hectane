@@ -41,9 +41,9 @@ func serviceCommand(name string) error {
 	return nil
 }
 
-// Connect to the service manager and install the service. A default
-// configuration is generated with the storage directory set to a folder in the
-// same location as the executable.
+// Connect to the service manager and install the service. A folder is created
+// in the same location as the executable named "data" which is used for
+// delivery storage as well as the configuration file.
 var installCommand = &command{
 	name:        "install",
 	description: "install the service (Windows only)",
@@ -66,6 +66,14 @@ var installCommand = &command{
 				return err
 			}
 			if err := util.SecurePath(cfgPath); err != nil {
+				return err
+			}
+		}
+		if _, err := os.Stat(config.Queue.Directory); os.IsNotExist(err) {
+			if err := os.MkdirAll(config.Queue.Directory, 0700); err != nil {
+				return err
+			}
+			if err := util.SecurePath(config.Queue.Directory); err != nil {
 				return err
 			}
 		}
