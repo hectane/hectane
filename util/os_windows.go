@@ -9,19 +9,25 @@ import (
 const (
 	errorSuccess = 0
 
-	seFileObject                     = 1
-	daclSecurityInformation          = 0x4
-	protectedDaclSecurityInformation = 0x80000000
+	securityMaxSidSize = 68
+
+	winServiceSid               = 12
+	winBuiltinAdministratorsSid = 26
 
 	genericAll                     = 0x10000000
 	grantAccess                    = 1
 	subContainersAndObjectsInherit = 0x3
+
+	seFileObject                     = 1
+	daclSecurityInformation          = 0x4
+	protectedDaclSecurityInformation = 0x80000000
 
 	trusteeIsSID = 0
 )
 
 var (
 	advapi32              = windows.MustLoadDLL("advapi32.dll")
+	createWellKnownSid    = advapi32.MustFindProc("CreateWellKnownSid")
 	setEntriesInAclW      = advapi32.MustFindProc("SetEntriesInAclW")
 	setNamedSecurityInfoW = advapi32.MustFindProc("SetNamedSecurityInfoW")
 
@@ -44,24 +50,43 @@ type explicitAccessW struct {
 	Trustee              trustee
 }
 
-// Ensure that the specified path is only accessible to the system user. This
-// is a rather tedious operation that begins with obtaining a PSID for the
-// LocalSystem user. An EXPLICIT_ACCESS entry is created for the user granting
-// them GENERIC_ALL access. This then becomes the single entry in the path's
-// ACL, preventing all other users from accessing it.
-func SecurePath(path string) error {
-	var pSID *windows.SID
-	err := windows.AllocateAndInitializeSid(
-		&windows.SECURITY_NT_AUTHORITY,
-		1,
-		windows.SECURITY_LOCAL_SYSTEM_RID,
-		0, 0, 0, 0, 0, 0, 0,
-		&pSID,
+// Create a SID for the specified user or group.
+func createSid(sidType int32) ([]byte, error) {
+	var (
+		sid    = make([]byte, securityMaxSidSize)
+		sidLen = uint32(securityMaxSidSize)
 	)
+	ret, _, err := createWellKnownSid.Call(
+		uintptr(sidType),
+		uintptr(0),
+		uintptr(unsafe.Pointer(&sid[0])),
+		uintptr(unsafe.Pointer(&sidLen)),
+	)
+	if ret == 0 {
+		return nil, err
+	} else {
+		return sid, nil
+	}
+}
+
+// Ensure that the specified path is only accessible to the administrator
+// builtin group. This is a rather tedious operation that begins with obtaining
+// a PSID for the LocalSystem user. An EXPLICIT_ACCESS entry is created for the
+// user granting them GENERIC_ALL access. This then becomes the single entry in
+// the path's ACL, preventing all other users from accessing it.
+func SecurePath(path string) error {
+	var (
+		sidService []byte
+		sidAdmins  []byte
+	)
+	sidService, err := createSid(winServiceSid)
 	if err != nil {
 		return err
 	}
-	defer windows.FreeSid(pSID)
+	sidAdmins, err = createSid(winBuiltinAdministratorsSid)
+	if err != nil {
+		return err
+	}
 	var (
 		ea = []explicitAccessW{
 			{
@@ -70,7 +95,16 @@ func SecurePath(path string) error {
 				grfInheritance:       subContainersAndObjectsInherit,
 				Trustee: trustee{
 					TrusteeForm: trusteeIsSID,
-					ptstrName:   unsafe.Pointer(pSID),
+					ptstrName:   unsafe.Pointer(&sidService[0]),
+				},
+			},
+			{
+				grfAccessPermissions: genericAll,
+				grfAccessMode:        grantAccess,
+				grfInheritance:       subContainersAndObjectsInherit,
+				Trustee: trustee{
+					TrusteeForm: trusteeIsSID,
+					ptstrName:   unsafe.Pointer(&sidAdmins[0]),
 				},
 			},
 		}
