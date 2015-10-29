@@ -19,8 +19,12 @@ var commands []*command
 
 // Display a list of valid commands.
 func Print() {
-	for _, c := range commands {
-		fmt.Fprintf(os.Stderr, "  %s\n\t%s\n", c.name, c.description)
+	if len(commands) != 0 {
+		for _, c := range commands {
+			fmt.Fprintf(os.Stderr, "  %s\n\t%s\n", c.name, c.description)
+		}
+	} else {
+		fmt.Fprintln(os.Stderr, "\tno commands available on current platform")
 	}
 }
 

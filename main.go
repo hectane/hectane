@@ -15,10 +15,10 @@ import (
 
 // Display usage information for the application.
 func printUsage() {
-	fmt.Fprintf(os.Stderr, "USAGE\n\thectane [options] [command]\n\n")
+	fmt.Fprintf(os.Stderr, "USAGE\n\thectane [flags] [command]\n\n")
 	fmt.Fprintf(os.Stderr, "COMMANDS\n")
 	cmd.Print()
-	fmt.Fprintf(os.Stderr, "\nOPTIONS\n")
+	fmt.Fprintf(os.Stderr, "\nFLAGS\n")
 	flag.PrintDefaults()
 }
 
@@ -35,7 +35,7 @@ func run() int {
 
 	// Initialize the execution environment
 	if err := exec.Init(); err != nil {
-		logrus.Fatal(err)
+		return logError(err)
 	}
 	defer exec.Cleanup()
 
