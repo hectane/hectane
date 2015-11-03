@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"github.com/hectane/go-acl"
 	"github.com/hectane/hectane/cfg"
 	"github.com/hectane/hectane/exec"
-	"github.com/hectane/hectane/util"
+	"github.com/kardianos/osext"
+	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/eventlog"
 	"golang.org/x/sys/windows/svc/mgr"
@@ -16,6 +18,18 @@ const (
 	displayName = "Hectane"
 	description = "Lightweight SMTP client"
 )
+
+// Ensure that only local administrators and services can access the specified
+// path.
+func securePath(name string) error {
+	return acl.Apply(
+		name,
+		true,
+		false,
+		acl.GrantName(windows.GENERIC_ALL, "ADMINISTRATORS"),
+		acl.GrantName(windows.GENERIC_ALL, "SERVICE"),
+	)
+}
 
 // Run the specified command on the service.
 func serviceCommand(name string) error {
@@ -53,7 +67,7 @@ var installCommand = &command{
 			return err
 		}
 		defer m.Disconnect()
-		exePath, err := util.Executable()
+		exePath, err := osext.ExecutableFolder()
 		if err != nil {
 			return err
 		}
@@ -65,7 +79,7 @@ var installCommand = &command{
 			if err := config.Save(cfgPath); err != nil {
 				return err
 			}
-			if err := util.SecurePath(cfgPath); err != nil {
+			if err := securePath(cfgPath); err != nil {
 				return err
 			}
 		}
@@ -73,7 +87,7 @@ var installCommand = &command{
 			if err := os.MkdirAll(config.Queue.Directory, 0700); err != nil {
 				return err
 			}
-			if err := util.SecurePath(config.Queue.Directory); err != nil {
+			if err := securePath(config.Queue.Directory); err != nil {
 				return err
 			}
 		}
