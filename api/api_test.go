@@ -7,18 +7,18 @@ import (
 )
 
 func getStatusCode(url, username, password string) (int, error) {
-	if r, err := http.NewRequest("GET", url, nil); err == nil {
-		if username != "" && password != "" {
-			r.SetBasicAuth(username, password)
-		}
-		if resp, err := http.DefaultClient.Do(r); err == nil {
-			return resp.StatusCode, nil
-		} else {
-			return 0, err
-		}
-	} else {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
 		return 0, err
 	}
+	if username != "" && password != "" {
+		req.SetBasicAuth(username, password)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	return resp.StatusCode, nil
 }
 
 func TestBasicAuth(t *testing.T) {
@@ -34,7 +34,7 @@ func TestBasicAuth(t *testing.T) {
 			statusCode int
 		}{
 			{"", "", http.StatusUnauthorized},
-			{username, badPassword, http.StatusForbidden},
+			{username, badPassword, http.StatusUnauthorized},
 			{username, password, http.StatusOK},
 		}
 		config = &Config{
@@ -49,12 +49,12 @@ func TestBasicAuth(t *testing.T) {
 	}
 	defer a.Stop()
 	for _, c := range testCases {
-		if s, err := getStatusCode(url, c.username, c.password); err == nil {
-			if s != c.statusCode {
-				t.Fatalf("%d != %d", s, c.statusCode)
-			}
-		} else {
+		s, err := getStatusCode(url, c.username, c.password)
+		if err != nil {
 			t.Fatal(err)
+		}
+		if s != c.statusCode {
+			t.Fatalf("%d != %d", s, c.statusCode)
 		}
 	}
 }
