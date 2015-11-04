@@ -144,7 +144,7 @@ func (h *Host) run() {
 		c        *smtp.Client
 		err      error
 		tries    int
-		duration time.Duration
+		duration = time.Minute
 	)
 receive:
 	if m == nil {
@@ -197,17 +197,13 @@ cleanup:
 	tries = 0
 	goto receive
 wait:
-	tries++
 	// We differ a tiny bit from the RFC spec here but this should work well
-	// enough - retry once after a minute, twice on the half-hour, and 16 more
-	// times every three hours. This is roughly 48 hours.
+	// enough - the goal is to retry lots of times early on and space out the
+	// remaining attempts as time goes on. (Roughly 48 hours total.)
 	switch {
-	case tries == 1:
-		duration = time.Minute
-	case tries < 4:
-		duration = 30 * time.Minute
-	case tries < 20:
-		duration = 3 * time.Hour
+	case tries < 8:
+		duration *= 2
+	case tries < 18:
 	default:
 		h.log.Error("maximum retry count exceeded")
 		goto cleanup
@@ -217,6 +213,7 @@ wait:
 	case <-time.After(duration):
 		goto receive
 	}
+	tries++
 shutdown:
 	h.log.Debug("shutting down")
 	if c != nil {
