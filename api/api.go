@@ -92,8 +92,8 @@ func New(config *Config, queue *queue.Queue) *API {
 func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	a.log.Debugf("%s - %s %s", r.RemoteAddr, r.Method, r.RequestURI)
 	if a.config.Username != "" && a.config.Password != "" {
-		if username, password, ok := r.BasicAuth(); !ok ||
-			username != a.config.Username || password != a.config.Password {
+		username, password, ok := r.BasicAuth()
+		if !ok || username != a.config.Username || password != a.config.Password {
 			w.Header().Set("WWW-Authenticate", "Basic realm=Hectane")
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
@@ -104,23 +104,23 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Start listening for new requests.
 func (a *API) Start() error {
-	if l, err := net.Listen("tcp", a.config.Addr); err == nil {
-		if a.config.TLSCert != "" && a.config.TLSKey != "" {
-			if cert, err := tls.LoadX509KeyPair(a.config.TLSCert, a.config.TLSKey); err == nil {
-				l = tls.NewListener(l, &tls.Config{
-					Certificates: []tls.Certificate{cert},
-				})
-			} else {
-				l.Close()
-				return err
-			}
-		}
-		a.listener = l
-		go a.run()
-		return nil
-	} else {
+	l, err := net.Listen("tcp", a.config.Addr)
+	if err != nil {
 		return err
 	}
+	if a.config.TLSCert != "" && a.config.TLSKey != "" {
+		c, err := tls.LoadX509KeyPair(a.config.TLSCert, a.config.TLSKey)
+		if err != nil {
+			l.Close()
+			return err
+		}
+		l = tls.NewListener(l, &tls.Config{
+			Certificates: []tls.Certificate{c},
+		})
+	}
+	a.listener = l
+	go a.run()
+	return nil
 }
 
 // Stop listening for new requests.
