@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"strconv"
 )
 
 // Request methods.
@@ -39,6 +40,7 @@ func (a *API) method(method string, handler func(r *http.Request) interface{}) h
 				}
 			}
 			if data, err := json.Marshal(v); err == nil {
+				w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
 				w.Write(data)
