@@ -53,10 +53,11 @@ func (a *API) method(method string, handler func(r *http.Request) interface{}) h
 	}
 }
 
-// Listen for new connections, logging any errors that occur.
+// Listen for new connections, logging any errors that occur. A special
+// exception must be made for errors caused by closing the server (see
+// http://bit.ly/1WUhgDj for more details).
 func (a *API) run() {
 	a.log.Infof("serving on %s", a.config.Addr)
-	// Supress benign errors - see http://bit.ly/1WUhgDj
 	err := a.server.Serve(a.listener)
 	if oe, ok := err.(*net.OpError); err == nil || (ok && oe.Op == "accept" || oe.Op == "AcceptEx") {
 		a.log.Info("shutting down")
@@ -91,12 +92,8 @@ func New(config *Config, queue *queue.Queue) *API {
 func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	a.log.Debugf("%s - %s %s", r.RemoteAddr, r.Method, r.RequestURI)
 	if a.config.Username != "" && a.config.Password != "" {
-		if username, password, ok := r.BasicAuth(); ok {
-			if username != a.config.Username || password != a.config.Password {
-				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-				return
-			}
-		} else {
+		if username, password, ok := r.BasicAuth(); !ok ||
+			username != a.config.Username || password != a.config.Password {
 			w.Header().Set("WWW-Authenticate", "Basic realm=Hectane")
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
