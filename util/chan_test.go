@@ -1,7 +1,7 @@
 package util
 
 import (
-	"github.com/hectane/hectane/assert"
+	"github.com/hectane/go-attest"
 
 	"testing"
 	"time"
@@ -10,15 +10,19 @@ import (
 func TestNonBlockingChan(t *testing.T) {
 	n := NewNonBlockingChan()
 	<-time.After(50 * time.Millisecond)
-	if err := assert.ChanSend(n.Send, true); err != nil {
+	if err := attest.ChanSend(n.Send, true); err != nil {
 		t.Fatal(err)
 	}
 	<-time.After(50 * time.Millisecond)
 	if n.Len() != 1 {
 		t.Fatalf("%d != %d", n.Len(), 1)
 	}
-	if err := assert.ChanRecvVal(n.Recv, true); err != nil {
+	v, err := attest.ChanRecv(n.Recv)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if v != true {
+		t.Fatalf("%v != true", v)
 	}
 	<-time.After(50 * time.Millisecond)
 	if n.Len() != 0 {
@@ -26,7 +30,7 @@ func TestNonBlockingChan(t *testing.T) {
 	}
 	close(n.Send)
 	<-time.After(50 * time.Millisecond)
-	if err := assert.ChanClosed(n.Recv); err != nil {
+	if err := attest.ChanClosed(n.Recv); err != nil {
 		t.Fatal(err)
 	}
 }

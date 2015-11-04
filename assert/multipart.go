@@ -1,6 +1,8 @@
 package assert
 
 import (
+	"github.com/hectane/go-attest"
+
 	"errors"
 	"fmt"
 	"io"
@@ -22,7 +24,7 @@ func Multipart(r io.Reader, contentType string, d *MultipartDesc) error {
 			return fmt.Errorf("%s != %s", c, d.ContentType)
 		}
 		if len(d.Parts) == 0 {
-			return Read(r, d.Content)
+			return attest.Read(r, d.Content)
 		} else {
 			if boundary, ok := params["boundary"]; ok {
 				reader := multipart.NewReader(r, boundary)
