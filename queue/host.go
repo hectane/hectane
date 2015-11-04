@@ -100,7 +100,7 @@ func (h *Host) connectToMailServer() (*smtp.Client, error) {
 	for _, s := range util.FindMailServers(h.host) {
 		c, err := h.tryMailServer(s)
 		if err != nil {
-			h.log.Warningf("unable to connect to %s", s)
+			h.log.Debugf("unable to connect to %s", s)
 			continue
 		}
 		return c, nil
@@ -156,7 +156,7 @@ receive:
 	}
 deliver:
 	if c == nil {
-		h.log.Info("connecting to mail server...")
+		h.log.Debug("connecting to mail server")
 		c, err = h.connectToMailServer()
 		if c == nil {
 			if err != nil {
@@ -166,7 +166,7 @@ deliver:
 				goto shutdown
 			}
 		}
-		h.log.Info("connection established")
+		h.log.Debug("connection established")
 	}
 	err = h.deliverToMailServer(c, m)
 	if err != nil {
@@ -183,11 +183,12 @@ deliver:
 			}
 			c.Reset()
 		}
+		h.log.Error(err.Error())
 		goto cleanup
 	}
 	h.log.Info("message delivered successfully")
 cleanup:
-	h.log.Info("deleting message from disk")
+	h.log.Debug("deleting message from disk")
 	err = h.storage.DeleteMessage(m)
 	if err != nil {
 		h.log.Error(err.Error())
@@ -208,7 +209,7 @@ wait:
 	case tries < 20:
 		duration = 3 * time.Hour
 	default:
-		h.log.Warning("maximum retry count exceeded")
+		h.log.Error("maximum retry count exceeded")
 		goto cleanup
 	}
 	select {
@@ -217,7 +218,7 @@ wait:
 		goto receive
 	}
 shutdown:
-	h.log.Info("shutting down")
+	h.log.Debug("shutting down")
 	if c != nil {
 		c.Close()
 	}

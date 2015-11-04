@@ -14,7 +14,7 @@ type service struct{}
 
 // Run the service, responding to control commands as necessary.
 func (s *service) Execute(args []string, chChan <-chan svc.ChangeRequest, stChan chan<- svc.Status) (bool, uint32) {
-	logrus.Info("service started")
+	logrus.Debug("service started")
 	stChan <- svc.Status{
 		State:   svc.Running,
 		Accepts: svc.AcceptStop | svc.AcceptShutdown,
@@ -30,7 +30,7 @@ loop:
 			break loop
 		}
 	}
-	logrus.Info("service stopped")
+	logrus.Debug("service stopped")
 	return false, 0
 }
 

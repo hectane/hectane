@@ -87,7 +87,7 @@ func New(config *Config, queue *queue.Queue) *API {
 // Process an incoming request. This method logs the request and checks to
 // ensure that HTTP basic auth credentials were supplied if required.
 func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	a.log.Infof("%s - %s %s", r.RemoteAddr, r.Method, r.RequestURI)
+	a.log.Debugf("%s - %s %s", r.RemoteAddr, r.Method, r.RequestURI)
 	if a.config.Username != "" && a.config.Password != "" {
 		if username, password, ok := r.BasicAuth(); ok {
 			if username != a.config.Username || password != a.config.Password {
