@@ -2,7 +2,6 @@ package queue
 
 import (
 	"github.com/Sirupsen/logrus"
-	"github.com/hectane/hectane/util"
 
 	"sync"
 	"time"
@@ -21,7 +20,7 @@ type Queue struct {
 	Storage    *Storage
 	log        *logrus.Entry
 	hosts      map[string]*Host
-	newMessage *util.NonBlockingChan
+	newMessage chan *Message
 	startTime  time.Time
 	stop       chan bool
 }
@@ -57,8 +56,8 @@ func (q *Queue) run() {
 loop:
 	for {
 		select {
-		case i := <-q.newMessage.Recv:
-			q.deliverMessage(i.(*Message))
+		case m := <-q.newMessage:
+			q.deliverMessage(m)
 		case <-ticker.C:
 			q.checkForInactiveQueues()
 		case <-q.stop:
@@ -82,7 +81,7 @@ func NewQueue(c *Config) (*Queue, error) {
 		Storage:    NewStorage(c.Directory),
 		log:        logrus.WithField("context", "Queue"),
 		hosts:      make(map[string]*Host),
-		newMessage: util.NewNonBlockingChan(),
+		newMessage: make(chan *Message),
 		startTime:  time.Now(),
 		stop:       make(chan bool),
 	}
@@ -114,7 +113,7 @@ func (q *Queue) Status() *QueueStatus {
 
 // Deliver the specified message to the appropriate host queue.
 func (q *Queue) Deliver(m *Message) {
-	q.newMessage.Send <- m
+	q.newMessage <- m
 }
 
 // Stop all active host queues.

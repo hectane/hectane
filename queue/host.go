@@ -2,6 +2,7 @@ package queue
 
 import (
 	"github.com/Sirupsen/logrus"
+	"github.com/hectane/go-nonblockingchan"
 	"github.com/hectane/hectane/util"
 
 	"crypto/tls"
@@ -29,7 +30,7 @@ type Host struct {
 	storage      *Storage
 	log          *logrus.Entry
 	host         string
-	newMessage   *util.NonBlockingChan
+	newMessage   *nbc.NonBlockingChan
 	lastActivity time.Time
 	stop         chan bool
 }
@@ -228,7 +229,7 @@ func NewHost(host string, s *Storage, c *Config) *Host {
 		storage:    s,
 		log:        logrus.WithField("context", host),
 		host:       host,
-		newMessage: util.NewNonBlockingChan(),
+		newMessage: nbc.New(),
 		stop:       make(chan bool),
 	}
 	go h.run()
