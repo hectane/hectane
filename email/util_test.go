@@ -22,12 +22,12 @@ func TestGroupAddressesByHost(t *testing.T) {
 			},
 		}
 	)
-	if a, err := GroupAddressesByHost(addrList); err == nil {
-		if !reflect.DeepEqual(addrMap, a) {
-			t.Fatalf("%v != %v", addrMap, a)
-		}
-	} else {
+	a, err := GroupAddressesByHost(addrList)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(addrMap, a) {
+		t.Fatalf("%v != %v", addrMap, a)
 	}
 }
 

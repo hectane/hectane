@@ -18,16 +18,16 @@ var (
 // any of the addresses are invalid.
 func GroupAddressesByHost(addrs []string) (map[string][]string, error) {
 	m := make(map[string][]string)
-	for _, a := range addrs {
-		if addr, err := mail.ParseAddress(a); err == nil {
-			parts := strings.Split(addr.Address, "@")
-			if m[parts[1]] == nil {
-				m[parts[1]] = make([]string, 0, 1)
-			}
-			m[parts[1]] = append(m[parts[1]], addr.Address)
-		} else {
+	for _, addr := range addrs {
+		a, err := mail.ParseAddress(addr)
+		if err != nil {
 			return nil, err
 		}
+		parts := strings.Split(a.Address, "@")
+		if m[parts[1]] == nil {
+			m[parts[1]] = make([]string, 0, 1)
+		}
+		m[parts[1]] = append(m[parts[1]], a.Address)
 	}
 	return m, nil
 }
