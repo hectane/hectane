@@ -49,3 +49,15 @@ func TestBasicAuth(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestShutdown(t *testing.T) {
+	a, req, err := createServer("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.Stop()
+	req.URL.Path = "/v1/version"
+	if err := attest.HttpStatusCode(req, 0); err == nil {
+		t.Fatal("error expected")
+	}
+}
