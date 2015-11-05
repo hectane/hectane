@@ -57,7 +57,7 @@ func (a *API) method(method string, handler func(r *http.Request) interface{}) h
 // exception must be made for errors caused by closing the server (see
 // http://bit.ly/1WUhgDj for more details).
 func (a *API) run() {
-	a.log.Infof("serving on %s", a.config.Addr)
+	a.log.Infof("serving on %s", a.listener.Addr())
 	err := a.server.Serve(a.listener)
 	if oe, ok := err.(*net.OpError); err == nil || (ok && oe.Op == "accept" || oe.Op == "AcceptEx") {
 		a.log.Info("shutting down")
