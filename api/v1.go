@@ -3,7 +3,6 @@ package api
 import (
 	"github.com/hectane/hectane/email"
 	"github.com/hectane/hectane/queue"
-	"github.com/hectane/hectane/util"
 
 	"encoding/json"
 	"net/http"
@@ -26,7 +25,7 @@ func (a *API) raw(r *http.Request) interface{} {
 			if err := w.Close(); err != nil {
 				return err
 			}
-			if hostMap, err := util.GroupAddressesByHost(p.To); err == nil {
+			if hostMap, err := email.GroupAddressesByHost(p.To); err == nil {
 				for h, to := range hostMap {
 					m := &queue.Message{
 						Host: h,

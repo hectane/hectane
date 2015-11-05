@@ -3,15 +3,16 @@ package queue
 import (
 	"github.com/Sirupsen/logrus"
 	"github.com/hectane/go-nonblockingchan"
-	"github.com/hectane/hectane/util"
 
 	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/smtp"
 	"net/textproto"
 	"os"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -96,9 +97,25 @@ func (h *Host) tryMailServer(server string) (*smtp.Client, error) {
 	return c, nil
 }
 
+// Attempt to find the mail servers for the specified host. MX records are
+// checked first. If one or more were found, the records are converted into an
+// array of strings (sorted by priority). If none were found, the original host
+// is returned.
+func (h *Host) findMailServers(host string) []string {
+	if mx, err := net.LookupMX(host); err == nil {
+		servers := make([]string, len(mx))
+		for i, r := range mx {
+			servers[i] = strings.TrimSuffix(r.Host, ".")
+		}
+		return servers
+	} else {
+		return []string{host}
+	}
+}
+
 // Attempt to connect to one of the mail servers.
 func (h *Host) connectToMailServer() (*smtp.Client, error) {
-	for _, s := range util.FindMailServers(h.host) {
+	for _, s := range h.findMailServers(h.host) {
 		c, err := h.tryMailServer(s)
 		if err != nil {
 			h.log.Debugf("unable to connect to %s", s)

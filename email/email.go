@@ -2,7 +2,6 @@ package email
 
 import (
 	"github.com/hectane/hectane/queue"
-	"github.com/hectane/hectane/util"
 	"github.com/kennygrant/sanitize"
 
 	"bytes"
@@ -88,7 +87,7 @@ func (e *Email) writeBody(w *multipart.Writer) error {
 // Create an array of messages with the specified body.
 func (e *Email) newMessages(s *queue.Storage, from, body string) ([]*queue.Message, error) {
 	addresses := append(append(e.To, e.Cc...), e.Bcc...)
-	if m, err := util.GroupAddressesByHost(addresses); err == nil {
+	if m, err := GroupAddressesByHost(addresses); err == nil {
 		messages := make([]*queue.Message, 0, 1)
 		for h, to := range m {
 			msg := &queue.Message{
