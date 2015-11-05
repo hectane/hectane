@@ -1,60 +1,61 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 )
 
-func getStatusCode(url, username, password string) (int, error) {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return 0, err
+func createServer(username, password string) (*API, *http.Request, error) {
+	a := New(&Config{
+		Addr:     "127.0.0.1:0",
+		Username: username,
+		Password: password,
+	}, nil)
+	if err := a.Start(); err != nil {
+		return nil, nil, err
 	}
-	if username != "" && password != "" {
-		req.SetBasicAuth(username, password)
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return 0, err
-	}
-	return resp.StatusCode, nil
+	return a, &http.Request{
+		URL: &url.URL{
+			Scheme: "http",
+			Host:   a.listener.Addr().String(),
+		},
+	}, nil
 }
 
 func TestBasicAuth(t *testing.T) {
 	var (
-		addr        = "127.0.0.1:9000"
-		url         = fmt.Sprintf("http://%s/v1/version", addr)
 		username    = "test"
 		password    = "test"
 		badPassword = "test2"
-		testCases   = []struct {
-			username   string
-			password   string
-			statusCode int
-		}{
-			{"", "", http.StatusUnauthorized},
-			{username, badPassword, http.StatusUnauthorized},
-			{username, password, http.StatusOK},
-		}
-		config = &Config{
-			Addr:     addr,
-			Username: username,
-			Password: password,
-		}
-		a = New(config, nil)
 	)
-	if err := a.Start(); err != nil {
+	a, req, err := createServer(username, password)
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer a.Stop()
-	for _, c := range testCases {
-		s, err := getStatusCode(url, c.username, c.password)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if s != c.statusCode {
-			t.Fatalf("%d != %d", s, c.statusCode)
-		}
+	req.URL.Path = "/v1/version"
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("%d != %d", resp.StatusCode, http.StatusUnauthorized)
+	}
+	req.SetBasicAuth(username, badPassword)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("%d != %d", resp.StatusCode, http.StatusUnauthorized)
+	}
+	req.SetBasicAuth(username, password)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("%d != %d", resp.StatusCode, http.StatusOK)
 	}
 }
