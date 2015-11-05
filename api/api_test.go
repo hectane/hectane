@@ -1,6 +1,8 @@
 package api
 
 import (
+	"github.com/hectane/go-attest"
+
 	"net/http"
 	"net/url"
 	"testing"
@@ -35,27 +37,15 @@ func TestBasicAuth(t *testing.T) {
 	}
 	defer a.Stop()
 	req.URL.Path = "/v1/version"
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
+	if err := attest.HttpStatusCode(req, http.StatusUnauthorized); err != nil {
 		t.Fatal(err)
-	}
-	if resp.StatusCode != http.StatusUnauthorized {
-		t.Fatalf("%d != %d", resp.StatusCode, http.StatusUnauthorized)
 	}
 	req.SetBasicAuth(username, badPassword)
-	resp, err = http.DefaultClient.Do(req)
-	if err != nil {
+	if err := attest.HttpStatusCode(req, http.StatusUnauthorized); err != nil {
 		t.Fatal(err)
-	}
-	if resp.StatusCode != http.StatusUnauthorized {
-		t.Fatalf("%d != %d", resp.StatusCode, http.StatusUnauthorized)
 	}
 	req.SetBasicAuth(username, password)
-	resp, err = http.DefaultClient.Do(req)
-	if err != nil {
+	if err := attest.HttpStatusCode(req, http.StatusOK); err != nil {
 		t.Fatal(err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("%d != %d", resp.StatusCode, http.StatusOK)
 	}
 }
