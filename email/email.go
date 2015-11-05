@@ -49,91 +49,91 @@ func (e *Email) writeBody(w *multipart.Writer) error {
 		buff      = &bytes.Buffer{}
 		altWriter = multipart.NewWriter(buff)
 	)
-	if p, err := w.CreatePart(textproto.MIMEHeader{
+	p, err := w.CreatePart(textproto.MIMEHeader{
 		"Content-Type": []string{
 			fmt.Sprintf("multipart/alternative; boundary=%s", altWriter.Boundary()),
 		},
-	}); err == nil {
-		if e.Text == "" {
-			e.Text = sanitize.HTML(e.Html)
-		}
-		if e.Html == "" {
-			e.Html = toHTML(e.Text)
-		}
-		if err := (Attachment{
-			ContentType: "text/plain; charset=utf-8",
-			Content:     e.Text,
-		}.Write(altWriter)); err != nil {
-			return err
-		}
-		if err := (Attachment{
-			ContentType: "text/html; charset=utf-8",
-			Content:     e.Html,
-		}.Write(altWriter)); err != nil {
-			return err
-		}
-		if err := altWriter.Close(); err != nil {
-			return err
-		}
-		if _, err := io.Copy(p, buff); err != nil {
-			return err
-		}
-		return nil
-	} else {
+	})
+	if err != nil {
 		return err
 	}
+	if e.Text == "" {
+		e.Text = sanitize.HTML(e.Html)
+	}
+	if e.Html == "" {
+		e.Html = toHTML(e.Text)
+	}
+	if err := (Attachment{
+		ContentType: "text/plain; charset=utf-8",
+		Content:     e.Text,
+	}.Write(altWriter)); err != nil {
+		return err
+	}
+	if err := (Attachment{
+		ContentType: "text/html; charset=utf-8",
+		Content:     e.Html,
+	}.Write(altWriter)); err != nil {
+		return err
+	}
+	if err := altWriter.Close(); err != nil {
+		return err
+	}
+	if _, err := io.Copy(p, buff); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Create an array of messages with the specified body.
 func (e *Email) newMessages(s *queue.Storage, from, body string) ([]*queue.Message, error) {
 	addresses := append(append(e.To, e.Cc...), e.Bcc...)
-	if m, err := GroupAddressesByHost(addresses); err == nil {
-		messages := make([]*queue.Message, 0, 1)
-		for h, to := range m {
-			msg := &queue.Message{
-				Host: h,
-				From: from,
-				To:   to,
-			}
-			if err := s.SaveMessage(msg, body); err != nil {
-				return nil, err
-			}
-			messages = append(messages, msg)
-		}
-		return messages, nil
-	} else {
+	m, err := GroupAddressesByHost(addresses)
+	if err != nil {
 		return nil, err
 	}
+	messages := make([]*queue.Message, 0, 1)
+	for h, to := range m {
+		msg := &queue.Message{
+			Host: h,
+			From: from,
+			To:   to,
+		}
+		if err := s.SaveMessage(msg, body); err != nil {
+			return nil, err
+		}
+		messages = append(messages, msg)
+	}
+	return messages, nil
 }
 
 // Convert the email into an array of messages grouped by host suitable for
 // delivery to the mail queue.
 func (e *Email) Messages(s *queue.Storage) ([]*queue.Message, error) {
-	if from, err := mail.ParseAddress(e.From); err == nil {
-		if w, body, err := s.NewBody(); err == nil {
-			mpWriter := multipart.NewWriter(w)
-			if err := e.writeHeaders(w, body, mpWriter.Boundary()); err != nil {
-				return nil, err
-			}
-			if err := e.writeBody(mpWriter); err != nil {
-				return nil, err
-			}
-			for _, a := range e.Attachments {
-				if err := a.Write(mpWriter); err != nil {
-					return nil, err
-				}
-			}
-			if err := mpWriter.Close(); err != nil {
-				return nil, err
-			}
-			if err := w.Close(); err != nil {
-				return nil, err
-			}
-			return e.newMessages(s, from.Address, body)
-		} else {
-			return nil, err
-		}
-	} else {
+	from, err := mail.ParseAddress(e.From)
+	if err != nil {
 		return nil, err
 	}
+	w, body, err := s.NewBody()
+	if err != nil {
+		return nil, err
+	}
+	mpWriter := multipart.NewWriter(w)
+	if err := e.writeHeaders(w, body, mpWriter.Boundary()); err != nil {
+		return nil, err
+	}
+	if err := e.writeBody(mpWriter); err != nil {
+		return nil, err
+	}
+	for _, a := range e.Attachments {
+		if err := a.Write(mpWriter); err != nil {
+			return nil, err
+		}
+	}
+	if err := mpWriter.Close(); err != nil {
+		return nil, err
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+	return e.newMessages(s, from.Address, body)
 }
