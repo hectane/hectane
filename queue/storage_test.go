@@ -12,55 +12,55 @@ func TestStorage(t *testing.T) {
 		data        = []byte("test")
 		numMessages = 5
 	)
-	if d, err := ioutil.TempDir(os.TempDir(), ""); err == nil {
-		defer os.RemoveAll(d)
-		s := NewStorage(d)
-		if w, body, err := s.NewBody(); err == nil {
-			if _, err := w.Write(data); err != nil {
-				t.Fatal(err)
-			}
-			if err := w.Close(); err != nil {
-				t.Fatal(err)
-			}
-			for i := 0; i < numMessages; i++ {
-				if err := s.SaveMessage(&Message{}, body); err != nil {
-					t.Fatal(err)
-				}
-			}
-		} else {
-			t.Fatal(err)
-		}
-		if messages, err := s.LoadMessages(); err == nil {
-			for _, m := range messages {
-				if r, err := s.GetMessageBody(m); err == nil {
-					if b, err := ioutil.ReadAll(r); err == nil {
-						if !reflect.DeepEqual(b, data) {
-							t.Fatalf("%v != %v", b, data)
-						}
-					} else {
-						t.Fatal(err)
-					}
-					if err := r.Close(); err != nil {
-						t.Fatal(err)
-					}
-				} else {
-					t.Fatal(err)
-				}
-				if err := s.DeleteMessage(m); err != nil {
-					t.Fatal(err)
-				}
-			}
-		} else {
-			t.Fatal(err)
-		}
-		if e, err := ioutil.ReadDir(s.directory); err == nil {
-			if len(e) != 0 {
-				t.Fatalf("%d != 0", len(e))
-			}
-		} else {
-			t.Fatal(err)
-		}
-	} else {
+	d, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
 		t.Fatal(err)
+	}
+	defer os.RemoveAll(d)
+	s := NewStorage(d)
+	w, body, err := s.NewBody()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Write(data); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < numMessages; i++ {
+		if err := s.SaveMessage(&Message{}, body); err != nil {
+			t.Fatal(err)
+		}
+	}
+	messages, err := s.LoadMessages()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range messages {
+		r, err := s.GetMessageBody(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := ioutil.ReadAll(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(b, data) {
+			t.Fatalf("%v != %v", b, data)
+		}
+		if err := r.Close(); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.DeleteMessage(m); err != nil {
+			t.Fatal(err)
+		}
+	}
+	e, err := ioutil.ReadDir(s.directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(e) != 0 {
+		t.Fatalf("%d != 0", len(e))
 	}
 }
