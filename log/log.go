@@ -13,6 +13,9 @@ func Init(config *Config) error {
 	logrus.SetFormatter(&logrus.TextFormatter{
 		DisableColors: true,
 	})
+	if config.Debug {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
 	if config.Logfile != "" {
 		f, err := os.OpenFile(config.Logfile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
 		if err != nil {
