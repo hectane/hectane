@@ -34,23 +34,22 @@ func checkMultipart(r io.Reader, contentType string, d *multipartDesc) error {
 	}
 	if len(d.Parts) == 0 {
 		return attest.Read(r, d.Content)
-	} else {
-		boundary, ok := params["boundary"]
-		if !ok {
-			return errors.New("\"boundary\" parameter missing")
-		}
-		reader := multipart.NewReader(r, boundary)
-		for _, part := range d.Parts {
-			p, err := reader.NextPart()
-			if err != nil {
-				return err
-			}
-			if err := checkMultipart(p, p.Header.Get("Content-Type"), part); err != nil {
-				return err
-			}
-		}
-		return nil
 	}
+	boundary, ok := params["boundary"]
+	if !ok {
+		return errors.New("\"boundary\" parameter missing")
+	}
+	reader := multipart.NewReader(r, boundary)
+	for _, part := range d.Parts {
+		p, err := reader.NextPart()
+		if err != nil {
+			return err
+		}
+		if err := checkMultipart(p, p.Header.Get("Content-Type"), part); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func emailToMessages(e *Email) ([]*queue.Message, []byte, error) {
@@ -71,11 +70,11 @@ func emailToMessages(e *Email) ([]*queue.Message, []byte, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	if b, err := ioutil.ReadAll(r); err == nil {
-		return m, b, nil
-	} else {
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
 		return nil, nil, err
 	}
+	return m, b, nil
 }
 
 func TestEmailCount(t *testing.T) {

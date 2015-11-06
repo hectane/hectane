@@ -96,11 +96,10 @@ func (s *Storage) NewBody() (io.WriteCloser, string, error) {
 func (s *Storage) LoadMessages() ([]*Message, error) {
 	directories, err := ioutil.ReadDir(s.directory)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return []*Message{}, nil
-		} else {
+		if !os.IsNotExist(err) {
 			return nil, err
 		}
+		return []*Message{}, nil
 	}
 	var messages []*Message
 	for _, d := range directories {
@@ -156,7 +155,6 @@ func (s *Storage) DeleteMessage(m *Message) error {
 	}
 	if len(e) == 1 {
 		return os.RemoveAll(s.bodyDirectory(m.body))
-	} else {
-		return nil
 	}
+	return nil
 }

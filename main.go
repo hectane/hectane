@@ -64,7 +64,6 @@ func run() error {
 	default:
 		return errors.New("single command expected")
 	}
-	return nil
 }
 
 func main() {

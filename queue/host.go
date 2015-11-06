@@ -102,15 +102,15 @@ func (h *Host) tryMailServer(server string) (*smtp.Client, error) {
 // array of strings (sorted by priority). If none were found, the original host
 // is returned.
 func (h *Host) findMailServers(host string) []string {
-	if mx, err := net.LookupMX(host); err == nil {
-		servers := make([]string, len(mx))
-		for i, r := range mx {
-			servers[i] = strings.TrimSuffix(r.Host, ".")
-		}
-		return servers
-	} else {
+	r, err := net.LookupMX(host)
+	if err != nil {
 		return []string{host}
 	}
+	servers := make([]string, len(r))
+	for i, r := range r {
+		servers[i] = strings.TrimSuffix(r.Host, ".")
+	}
+	return servers
 }
 
 // Attempt to connect to one of the mail servers.
@@ -264,9 +264,8 @@ func (h *Host) Idle() time.Duration {
 	defer h.m.Unlock()
 	if h.lastActivity.IsZero() {
 		return 0
-	} else {
-		return time.Since(h.lastActivity)
 	}
+	return time.Since(h.lastActivity)
 }
 
 // Return the status of the host connection.
