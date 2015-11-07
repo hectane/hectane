@@ -67,7 +67,7 @@ var installCommand = &command{
 			return err
 		}
 		defer m.Disconnect()
-		exePath, err := osext.ExecutableFolder()
+		exePath, err := osext.Executable()
 		if err != nil {
 			return err
 		}
