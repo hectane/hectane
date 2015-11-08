@@ -13,6 +13,7 @@ The goal of Hectane is simple: to create an SMTP client that is extremely easy t
 - mail queue that efficiently delivers emails to hosts
 - emails in the queue are stored on disk until delivery
 - MX records for the destination host are tried in order of priority
+- run the application as a service on Windows
 
 ### Parameters
 
@@ -26,6 +27,8 @@ Hectane currently recognizes the following command-line parameters (all are opti
 - `-password` - password for HTTP basic auth
 - `-directory` - storage location for emails awaiting delivery
 - `-disable-ssl-verification` - disables verification of server SSL certificates
+- `-logfile` - file to write log output to
+- `-debug` - show debug log messages
 
 ### Usage
 
