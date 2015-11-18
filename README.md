@@ -1,6 +1,7 @@
 ## Hectane
 
-[![Build Status](https://travis-ci.org/hectane/hectane.svg)](https://travis-ci.org/hectane/hectane)
+[![Build Status - Linux](https://travis-ci.org/hectane/hectane.svg)](https://travis-ci.org/hectane/hectane)
+[![Build status - Windows](https://ci.appveyor.com/api/projects/status/h3r46k12llvw18u6?svg=true)](https://ci.appveyor.com/project/nathan-osman/hectane)
 [![GoDoc](https://godoc.org/github.com/hectane/hectane?status.svg)](https://godoc.org/github.com/hectane/hectane)
 [![MIT License](http://img.shields.io/badge/license-MIT-9370d8.svg?style=flat)](http://opensource.org/licenses/MIT)
 
