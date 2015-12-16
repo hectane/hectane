@@ -21,6 +21,7 @@ type Email struct {
 	Cc          []string     `json:"cc"`
 	Bcc         []string     `json:"bcc"`
 	Subject     string       `json:"subject"`
+	Headers     Headers      `json:"headers"`
 	Text        string       `json:"text"`
 	Html        string       `json:"html"`
 	Attachments []Attachment `json:"attachments"`
@@ -36,6 +37,9 @@ func (e *Email) writeHeaders(w io.Writer, id, boundary string) error {
 		"Date":         time.Now().Format("Mon, 02 Jan 2006 15:04:05 -0700"),
 		"MIME-Version": "1.0",
 		"Content-Type": fmt.Sprintf("multipart/mixed; boundary=%s", boundary),
+	}
+	for k, v := range e.Headers {
+		headers[k] = v
 	}
 	if len(e.Cc) > 0 {
 		headers["Cc"] = strings.Join(e.Cc, ", ")
