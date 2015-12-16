@@ -77,6 +77,20 @@ func emailToMessages(e *Email) ([]*queue.Message, []byte, error) {
 	return m, b, nil
 }
 
+func TestEmailErrors(t *testing.T) {
+	badEmails := []*Email{
+		{},
+		{From: "me@example.com"},
+		{To: []string{"you@example.com"}},
+	}
+	for _, e := range badEmails {
+		_, _, err := emailToMessages(e)
+		if err == nil {
+			t.Fatal("error expected")
+		}
+	}
+}
+
 func TestEmailCount(t *testing.T) {
 	m, _, err := emailToMessages(&Email{
 		From: "me@example.com",
