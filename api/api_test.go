@@ -17,12 +17,15 @@ func createServer(username, password string) (*API, *http.Request, error) {
 	if err := a.Start(); err != nil {
 		return nil, nil, err
 	}
-	return a, &http.Request{
-		URL: &url.URL{
-			Scheme: "http",
-			Host:   a.listener.Addr().String(),
-		},
-	}, nil
+	u := &url.URL{
+		Scheme: "http",
+		Host:   a.listener.Addr().String(),
+	}
+	req, err := http.NewRequest("", u.String(), nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	return a, req, nil
 }
 
 func TestBasicAuth(t *testing.T) {
