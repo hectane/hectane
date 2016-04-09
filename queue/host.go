@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/mail"
 	"net/smtp"
 	"net/textproto"
-	"os"
 	"strings"
 	"sync"
 	"syscall"
@@ -59,10 +59,19 @@ func (h *Host) receiveMessage() *Message {
 	}
 }
 
+// Parse an email address and extract the hostname.
+func (h *Host) parseHostname(addr string) (string, error) {
+	a, err := mail.ParseAddress(addr)
+	if err != nil {
+		return "", err
+	}
+	return strings.Split(a.Address, "@")[1], nil
+}
+
 // Attempt to connect to the specified server. The connection attempt is
 // performed in a separate goroutine, allowing it to be aborted if the host
 // queue is shut down.
-func (h *Host) tryMailServer(server string) (*smtp.Client, error) {
+func (h *Host) tryMailServer(server, hostname string) (*smtp.Client, error) {
 	var (
 		c    *smtp.Client
 		err  error
@@ -80,10 +89,8 @@ func (h *Host) tryMailServer(server string) (*smtp.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	if hostname, err := os.Hostname(); err == nil {
-		if err := c.Hello(hostname); err != nil {
-			return nil, err
-		}
+	if err := c.Hello(hostname); err != nil {
+		return nil, err
 	}
 	if ok, _ := c.Extension("STARTTLS"); ok {
 		config := &tls.Config{ServerName: server}
@@ -114,9 +121,9 @@ func (h *Host) findMailServers(host string) []string {
 }
 
 // Attempt to connect to one of the mail servers.
-func (h *Host) connectToMailServer() (*smtp.Client, error) {
+func (h *Host) connectToMailServer(hostname string) (*smtp.Client, error) {
 	for _, s := range h.findMailServers(h.host) {
-		c, err := h.tryMailServer(s)
+		c, err := h.tryMailServer(s, hostname)
 		if err != nil {
 			h.log.Debugf("unable to connect to %s", s)
 			continue
@@ -159,6 +166,7 @@ func (h *Host) run() {
 	defer close(h.stop)
 	var (
 		m        *Message
+		hostname string
 		c        *smtp.Client
 		err      error
 		tries    int
@@ -172,10 +180,15 @@ receive:
 		}
 		h.log.Info("message received in queue")
 	}
+	hostname, err = h.parseHostname(m.From)
+	if err != nil {
+		h.log.Error(err.Error())
+		goto cleanup
+	}
 deliver:
 	if c == nil {
 		h.log.Debug("connecting to mail server")
-		c, err = h.connectToMailServer()
+		c, err = h.connectToMailServer(hostname)
 		if c == nil {
 			if err != nil {
 				h.log.Error(err)
