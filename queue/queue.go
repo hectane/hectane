@@ -3,7 +3,6 @@ package queue
 import (
 	"github.com/Sirupsen/logrus"
 
-	"sync"
 	"time"
 )
 
@@ -15,42 +14,54 @@ type QueueStatus struct {
 
 // Mail queue managing the sending of messages to hosts.
 type Queue struct {
-	m          sync.Mutex
 	config     *Config
 	Storage    *Storage
 	log        *logrus.Entry
 	hosts      map[string]*Host
 	newMessage chan *Message
-	startTime  time.Time
+	getStats   chan chan *QueueStatus
 	stop       chan bool
 }
 
 // Deliver the specified message to the appropriate host queue.
 func (q *Queue) deliverMessage(m *Message) {
-	q.m.Lock()
 	if _, ok := q.hosts[m.Host]; !ok {
 		q.hosts[m.Host] = NewHost(m.Host, q.Storage, q.config)
 	}
 	q.hosts[m.Host].Deliver(m)
-	q.m.Unlock()
+}
+
+// Generate stats for the queue. This is done by obtaining the information
+// asynchronously and delivering it on the supplied channel when available.
+func (q *Queue) stats(c chan *QueueStatus, startTime time.Time) {
+	go func() {
+		s := &QueueStatus{
+			Uptime: int(time.Now().Sub(startTime) / time.Second),
+			Hosts:  map[string]*HostStatus{},
+		}
+		for n, h := range q.hosts {
+			s.Hosts[n] = h.Status()
+		}
+		c <- s
+		close(c)
+	}()
 }
 
 // Check for inactive host queues and shut them down.
 func (q *Queue) checkForInactiveQueues() {
-	q.m.Lock()
 	for n, h := range q.hosts {
 		if h.Idle() > time.Minute {
 			h.Stop()
 			delete(q.hosts, n)
 		}
 	}
-	q.m.Unlock()
 }
 
 // Receive new messages and deliver them to the specified host queue. Check for
 // idle queues every so often and shut them down if they haven't been used.
 func (q *Queue) run() {
 	defer close(q.stop)
+	startTime := time.Now()
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 loop:
@@ -58,6 +69,8 @@ loop:
 		select {
 		case m := <-q.newMessage:
 			q.deliverMessage(m)
+		case c := <-q.getStats:
+			q.stats(c, startTime)
 		case <-ticker.C:
 			q.checkForInactiveQueues()
 		case <-q.stop:
@@ -65,11 +78,9 @@ loop:
 		}
 	}
 	q.log.Info("stopping host queues")
-	q.m.Lock()
 	for h := range q.hosts {
 		q.hosts[h].Stop()
 	}
-	q.m.Unlock()
 	q.log.Info("shutting down")
 }
 
@@ -82,7 +93,7 @@ func NewQueue(c *Config) (*Queue, error) {
 		log:        logrus.WithField("context", "Queue"),
 		hosts:      make(map[string]*Host),
 		newMessage: make(chan *Message),
-		startTime:  time.Now(),
+		getStats:   make(chan chan *QueueStatus),
 		stop:       make(chan bool),
 	}
 	messages, err := q.Storage.LoadMessages()
@@ -99,16 +110,9 @@ func NewQueue(c *Config) (*Queue, error) {
 
 // Provide the status of each host queue.
 func (q *Queue) Status() *QueueStatus {
-	s := &QueueStatus{
-		Uptime: int(time.Now().Sub(q.startTime) / time.Second),
-		Hosts:  make(map[string]*HostStatus),
-	}
-	q.m.Lock()
-	for n, h := range q.hosts {
-		s.Hosts[n] = h.Status()
-	}
-	q.m.Unlock()
-	return s
+	c := make(chan *QueueStatus)
+	q.getStats <- c
+	return <-c
 }
 
 // Deliver the specified message to the appropriate host queue.
