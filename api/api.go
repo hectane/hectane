@@ -2,11 +2,11 @@ package api
 
 import (
 	"github.com/Sirupsen/logrus"
+	"github.com/hectane/go-asyncserver"
 	"github.com/hectane/hectane/queue"
 
 	"crypto/tls"
 	"encoding/json"
-	"net"
 	"net/http"
 	"strconv"
 )
@@ -21,8 +21,7 @@ const (
 type API struct {
 	config   *Config
 	log      *logrus.Entry
-	listener net.Listener
-	server   *http.Server
+	server   *server.AsyncServer
 	serveMux *http.ServeMux
 	queue    *queue.Queue
 	stopped  chan bool
@@ -53,28 +52,12 @@ func (a *API) method(method string, handler func(r *http.Request) interface{}) h
 	}
 }
 
-// Listen for new connections, logging any errors that occur. A special
-// exception must be made for errors caused by closing the server (see
-// http://bit.ly/1WUhgDj for more details).
-func (a *API) run() {
-	a.log.Infof("serving on %s", a.listener.Addr())
-	err := a.server.Serve(a.listener)
-	if oe, ok := err.(*net.OpError); err == nil || (ok && oe.Op == "accept" || oe.Op == "AcceptEx") {
-		a.log.Info("shutting down")
-	} else {
-		a.log.Error(err)
-	}
-	a.stopped <- true
-}
-
 // Create a new API instance for the specified queue.
 func New(config *Config, queue *queue.Queue) *API {
 	a := &API{
-		config: config,
-		log:    logrus.WithField("context", "API"),
-		server: &http.Server{
-			Addr: config.Addr,
-		},
+		config:   config,
+		log:      logrus.WithField("context", "API"),
+		server:   server.New(config.Addr),
 		serveMux: http.NewServeMux(),
 		queue:    queue,
 		stopped:  make(chan bool),
@@ -104,27 +87,19 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Start listening for new requests.
 func (a *API) Start() error {
-	l, err := net.Listen("tcp", a.config.Addr)
-	if err != nil {
-		return err
-	}
 	if a.config.TLSCert != "" && a.config.TLSKey != "" {
 		c, err := tls.LoadX509KeyPair(a.config.TLSCert, a.config.TLSKey)
 		if err != nil {
-			l.Close()
 			return err
 		}
-		l = tls.NewListener(l, &tls.Config{
+		a.server.TLSConfig = &tls.Config{
 			Certificates: []tls.Certificate{c},
-		})
+		}
 	}
-	a.listener = l
-	go a.run()
-	return nil
+	return a.server.Start()
 }
 
 // Stop listening for new requests.
 func (a *API) Stop() {
-	a.listener.Close()
-	<-a.stopped
+	a.server.Stop()
 }

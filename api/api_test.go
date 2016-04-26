@@ -19,7 +19,7 @@ func createServer(username, password string) (*API, *http.Request, error) {
 	}
 	u := &url.URL{
 		Scheme: "http",
-		Host:   a.listener.Addr().String(),
+		Host:   a.server.Addr,
 	}
 	req, err := http.NewRequest("", u.String(), nil)
 	if err != nil {
