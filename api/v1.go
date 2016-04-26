@@ -75,6 +75,6 @@ func (a *API) status(r *http.Request) interface{} {
 // application.
 func (a *API) version(r *http.Request) interface{} {
 	return map[string]string{
-		"version": "0.3.0",
+		"version": "0.3.1",
 	}
 }
