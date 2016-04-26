@@ -7,6 +7,8 @@
 
 The goal of Hectane is simple: to create an SMTP client that is extremely easy to configure and use. The application exposes a simple HTTP API that is used for sending emails.
 
+Hectane can be run as a standalone application or embedded in a Go application.
+
 ### Features
 
 - ability to attach files to emails
