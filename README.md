@@ -16,9 +16,13 @@ The goal of Hectane is simple: to create an SMTP client that is extremely easy t
 - MX records for the destination host are tried in order of priority
 - run the application as a service on Windows
 
-### Parameters
+### Usage
 
-Hectane currently recognizes the following command-line parameters (all are optional):
+To launch the application, simply run the executable:
+
+    ./hectane
+
+The application recognizes the following command-line parameters (all are optional):
 
 - `-config` - JSON file containing configuration
 - `-bind` - address to bind to (in the format `host:port` - default is `:8025`)
@@ -31,7 +35,7 @@ Hectane currently recognizes the following command-line parameters (all are opti
 - `-logfile` - file to write log output to
 - `-debug` - show debug log messages
 
-### Usage
+### API
 
 Hectane exposes an HTTP API that can be used to deliver emails. The API expects and responds with JSON data. Currently, the API consists of the following methods:
 
@@ -56,6 +60,7 @@ The response is either an empty JSON object (indicating success) or a JSON objec
 - `cc` - list of carbon copy recipients
 - `bcc` - list of blind carbon copy recipients
 - `subject` - email subject
+- `headers` - a map of additional headers to include
 - `text` - body of the email as plain text
 - `html` - body of the email as HTML
 - `attachments` - a list of attachments:
