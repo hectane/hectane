@@ -5,94 +5,20 @@
 [![GoDoc](https://godoc.org/github.com/hectane/hectane?status.svg)](https://godoc.org/github.com/hectane/hectane)
 [![MIT License](http://img.shields.io/badge/license-MIT-9370d8.svg?style=flat)](http://opensource.org/licenses/MIT)
 
-The goal of Hectane is simple: to create an SMTP client that is extremely easy to configure and use. The application exposes a simple HTTP API that is used for sending emails.
-
-Hectane can be run as a standalone application or embedded in a Go application.
+Hectane is both a Go package providing an SMTP queue for sending emails and a standalone application that exposes this functionality via an HTTP API.
 
 ### Features
 
-- ability to attach files to emails
-- support for TLS encryption and HTTP basic auth
-- mail queue that efficiently delivers emails to hosts
-- emails in the queue are stored on disk until delivery
+- Ability to attach files to emails
+- Support for TLS encryption and HTTP basic auth
+- Mail queue that efficiently delivers emails to hosts
+- Emails in the queue are stored on disk until delivery
 - MX records for the destination host are tried in order of priority
-- run the application as a service on Windows
+- Run the application as a service on Windows
 
-### Usage
+### Documentation
 
-To launch the application, simply run the executable:
+Documentation for Hectane can be found below:
 
-    ./hectane
-
-The application recognizes the following command-line parameters (all are optional):
-
-- `-config` - JSON file containing configuration
-- `-bind` - address to bind to (in the format `host:port` - default is `:8025`)
-- `-tls-cert` - path to TLS certificate
-- `-tls-key` - path to TLS key
-- `-username` - username for HTTP basic auth
-- `-password` - password for HTTP basic auth
-- `-directory` - storage location for emails awaiting delivery
-- `-disable-ssl-verification` - disables verification of server SSL certificates
-- `-logfile` - file to write log output to
-- `-debug` - show debug log messages
-
-### API
-
-Hectane exposes an HTTP API that can be used to deliver emails. The API expects and responds with JSON data. Currently, the API consists of the following methods:
-
-#### POST /v1/raw
-
-##### Parameters
-
-- `from` - sender email address
-- `to` - list of recipient email addresses
-- `body` - UTF-8 encoded message body
-
-##### Response
-
-The response is either an empty JSON object (indicating success) or a JSON object with an `error` key describing the problem.
-
-#### POST /v1/send
-
-##### Parameters
-
-- `from` - sender email address
-- `to` - list of recipient email addresses
-- `cc` - list of carbon copy recipients
-- `bcc` - list of blind carbon copy recipients
-- `subject` - email subject
-- `headers` - a map of additional headers to include
-- `text` - body of the email as plain text
-- `html` - body of the email as HTML
-- `attachments` - a list of attachments:
-    - `filename` - filename of the attachment
-    - `content_type` - MIME type of the attachment (for example, `text/plain`)
-    - `content` - UTF-8 or base64 encoded content of the attachment
-    - `encoded` - `true` if `content` is base64 encoded
-
-##### Response
-
-The response is either an empty JSON object (indicating success) or a JSON object with an `error` key describing the problem.
-
-#### GET /v1/status
-
-##### Sample Response
-
-    {
-        "uptime": 1615,
-        "hosts": {
-            "example.com": {
-                "active": false,
-                "length": 2
-            }
-        }
-    }
-
-#### GET /v1/version
-
-##### Sample Response
-
-    {
-        "version": "x.y.z"
-    }
+- [Using Hectane in a Go application](https://github.com/hectane/hectane/wiki/Hectane%20Package)
+- [Using Hectane in another language or on a server](https://github.com/hectane/hectane/wiki/Hectane%20Daemon)
