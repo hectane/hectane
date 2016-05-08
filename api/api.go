@@ -82,6 +82,10 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if a.config.CORSOrigin != "" {
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
+		w.Header().Set("Access-Control-Allow-Origin", a.config.CORSOrigin)
+	}
 	a.serveMux.ServeHTTP(w, r)
 }
 

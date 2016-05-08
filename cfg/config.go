@@ -25,6 +25,7 @@ func Parse() (*Config, error) {
 		filename = flag.String("config", "", "file containing configuration")
 	)
 	flag.StringVar(&c.API.Addr, "bind", ":8025", "`address` and port to bind to")
+	flag.StringVar(&c.API.CORSOrigin, "cors-origin", "", "`origin` to use for CORS headers")
 	flag.StringVar(&c.API.TLSCert, "tls-cert", "", "certificate `file` for TLS")
 	flag.StringVar(&c.API.TLSKey, "tls-key", "", "private key `file` for TLS")
 	flag.StringVar(&c.API.Username, "username", "", "`username` for HTTP basic auth")
