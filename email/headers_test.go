@@ -20,3 +20,19 @@ func TestHeadersWrite(t *testing.T) {
 		t.Fatalf("%s != %s", string(buff.Bytes()), value)
 	}
 }
+
+func TestHeadersUTF8(t *testing.T) {
+	var (
+		headers = Headers{
+			"Test": "日本語",
+		}
+		buff  = &bytes.Buffer{}
+		value = "Test: =?utf-8?q?=E6=97=A5=E6=9C=AC=E8=AA=9E?=\r\n\r\n"
+	)
+	if err := headers.Write(buff); err != nil {
+		t.Fatal(err)
+	}
+	if string(buff.Bytes()) != value {
+		t.Fatalf("%s != %s", string(buff.Bytes()), value)
+	}
+}
