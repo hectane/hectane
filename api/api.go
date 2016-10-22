@@ -11,6 +11,13 @@ import (
 	"strconv"
 )
 
+// Request methods.
+const (
+	head = "HEAD"
+	get  = "GET"
+	post = "POST"
+)
+
 // HTTP API for managing a mail queue.
 type API struct {
 	config   *Config
@@ -42,7 +49,7 @@ func (a *API) method(methods []string, handler func(r *http.Request) interface{}
 				w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				if r.Method != http.MethodHead {
+				if r.Method != head {
 					w.Write(data)
 				}
 			} else {
@@ -65,10 +72,10 @@ func New(config *Config, queue *queue.Queue) *API {
 		stopped:  make(chan bool),
 	}
 	a.server.Handler = a
-	a.serveMux.HandleFunc("/v1/raw", a.method([]string{http.MethodPost}, a.raw))
-	a.serveMux.HandleFunc("/v1/send", a.method([]string{http.MethodPost}, a.send))
-	a.serveMux.HandleFunc("/v1/status", a.method([]string{http.MethodHead, http.MethodGet}, a.status))
-	a.serveMux.HandleFunc("/v1/version", a.method([]string{http.MethodHead, http.MethodGet}, a.version))
+	a.serveMux.HandleFunc("/v1/raw", a.method([]string{post}, a.raw))
+	a.serveMux.HandleFunc("/v1/send", a.method([]string{post}, a.send))
+	a.serveMux.HandleFunc("/v1/status", a.method([]string{head, get}, a.status))
+	a.serveMux.HandleFunc("/v1/version", a.method([]string{head, get}, a.version))
 	return a
 }
 
