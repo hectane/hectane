@@ -11,12 +11,6 @@ import (
 	"strconv"
 )
 
-// Request methods.
-const (
-	get  = "GET"
-	post = "POST"
-)
-
 // HTTP API for managing a mail queue.
 type API struct {
 	config   *Config
@@ -29,9 +23,15 @@ type API struct {
 
 // Create a handler that logs and validates requests as they come in. The
 // return value of the handler is assumed to be either an error or a map.
-func (a *API) method(method string, handler func(r *http.Request) interface{}) http.HandlerFunc {
+func (a *API) method(methods []string, handler func(r *http.Request) interface{}) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == method {
+		foundMethod := false
+		for _, m := range methods {
+			if r.Method == m {
+				foundMethod = true
+			}
+		}
+		if foundMethod {
 			v := handler(r)
 			if err, ok := v.(error); ok {
 				v = map[string]string{
@@ -42,7 +42,9 @@ func (a *API) method(method string, handler func(r *http.Request) interface{}) h
 				w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				w.Write(data)
+				if r.Method != http.MethodHead {
+					w.Write(data)
+				}
 			} else {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			}
@@ -63,10 +65,10 @@ func New(config *Config, queue *queue.Queue) *API {
 		stopped:  make(chan bool),
 	}
 	a.server.Handler = a
-	a.serveMux.HandleFunc("/v1/raw", a.method(post, a.raw))
-	a.serveMux.HandleFunc("/v1/send", a.method(post, a.send))
-	a.serveMux.HandleFunc("/v1/status", a.method(get, a.status))
-	a.serveMux.HandleFunc("/v1/version", a.method(get, a.version))
+	a.serveMux.HandleFunc("/v1/raw", a.method([]string{http.MethodPost}, a.raw))
+	a.serveMux.HandleFunc("/v1/send", a.method([]string{http.MethodPost}, a.send))
+	a.serveMux.HandleFunc("/v1/status", a.method([]string{http.MethodHead, http.MethodGet}, a.status))
+	a.serveMux.HandleFunc("/v1/version", a.method([]string{http.MethodHead, http.MethodGet}, a.version))
 	return a
 }
 
