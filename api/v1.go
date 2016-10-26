@@ -2,48 +2,20 @@ package api
 
 import (
 	"github.com/hectane/hectane/email"
-	"github.com/hectane/hectane/queue"
+	"github.com/hectane/hectane/version"
 
 	"encoding/json"
 	"net/http"
 )
 
-type rawParams struct {
-	From string   `json:"from"`
-	To   []string `json:"to"`
-	Body string   `json:"body"`
-}
-
 // Send a raw MIME message.
 func (a *API) raw(r *http.Request) interface{} {
-	var p rawParams
-	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+	var raw email.Raw
+	if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
 		return err
 	}
-	w, body, err := a.queue.Storage.NewBody()
-	if err != nil {
+	if err := raw.DeliverToQueue(a.queue); err != nil {
 		return err
-	}
-	if _, err := w.Write([]byte(p.Body)); err != nil {
-		return err
-	}
-	if err := w.Close(); err != nil {
-		return err
-	}
-	hostMap, err := email.GroupAddressesByHost(p.To)
-	if err == nil {
-		return err
-	}
-	for h, to := range hostMap {
-		m := &queue.Message{
-			Host: h,
-			From: p.From,
-			To:   to,
-		}
-		if err := a.queue.Storage.SaveMessage(m, body); err != nil {
-			return err
-		}
-		a.queue.Deliver(m)
 	}
 	return struct{}{}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/hectane/hectane/exec"
 	"github.com/hectane/hectane/log"
 	"github.com/hectane/hectane/queue"
+	"github.com/hectane/hectane/smtp"
 
 	"errors"
 	"flag"
@@ -39,6 +40,11 @@ func runApplication(config *cfg.Config) error {
 		return err
 	}
 	defer a.Stop()
+	s, err := smtp.New(&config.SMTP, q)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
 	if err = exec.Exec(); err != nil {
 		return err
 	}
