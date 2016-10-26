@@ -21,5 +21,6 @@ CMD hectane \
         -logfile="$LOGFILE" \
         -debug="$DEBUG"
 
-# Expose the port with the HTTP API
+# Expose the SMTP and HTTP API ports
+EXPOSE 25
 EXPOSE 8025
