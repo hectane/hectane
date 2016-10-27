@@ -24,7 +24,7 @@ func (r *Raw) DeliverToQueue(q *queue.Queue) error {
 		return err
 	}
 	hostMap, err := GroupAddressesByHost(r.To)
-	if err == nil {
+	if err != nil {
 		return err
 	}
 	for h, to := range hostMap {
