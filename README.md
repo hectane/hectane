@@ -25,7 +25,7 @@ Documentation for Hectane can be found below:
 
 ### Installation
 
-In addition to the files on the releases page](https://github.com/hectane/hectane/releases), Hectane can be installed from any of the sources below:
+In addition to the [files on the releases page](https://github.com/hectane/hectane/releases), Hectane can be installed from any of the sources below:
 
 - PPA: [stable](https://launchpad.net/~hectane/+archive/ubuntu/hectane) | [daily](https://launchpad.net/~hectane/+archive/ubuntu/hectane-dev)
 - [Juju charm store](https://jujucharms.com/hectane/)
