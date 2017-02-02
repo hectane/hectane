@@ -22,3 +22,11 @@ Documentation for Hectane can be found below:
 
 - [Using Hectane in a Go application](https://github.com/hectane/hectane/wiki/Hectane%20Package)
 - [Using Hectane in another language or on a server](https://github.com/hectane/hectane/wiki/Hectane%20Daemon)
+
+### Installation
+
+In addition to the files on the releases page](https://github.com/hectane/hectane/releases), Hectane can be installed from any of the sources below:
+
+- PPA: [stable](https://launchpad.net/~hectane/+archive/ubuntu/hectane) | [daily](https://launchpad.net/~hectane/+archive/ubuntu/hectane-dev)
+- [Juju charm store](https://jujucharms.com/hectane/)
+- [Docker Hub](https://hub.docker.com/r/hectane/hectane/)
