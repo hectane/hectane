@@ -13,8 +13,6 @@ type Account struct {
 	DomainID int
 }
 
-// TODO: need unique constraint for Name and DomainID
-
 func migrateAccountsTable(t *Token) error {
 	_, err := t.exec(
 		`
@@ -22,7 +20,8 @@ CREATE TABLE IF NOT EXISTS Accounts (
     ID       SERIAL PRIMARY KEY,
     Name     VARCHAR(40) NOT NULL,
     UserID   INTEGER REFERENCES Users (ID) ON DELETE CASCADE,
-    DomainID INTEGER REFERENCES Domains (ID) ON DELETE CASCADE
+    DomainID INTEGER REFERENCES Domains (ID) ON DELETE CASCADE,
+    UNIQUE (Name, DomainID)
 )
         `,
 	)
@@ -55,9 +54,22 @@ FROM Users ORDER BY Name
 	return rowsToAccounts(r)
 }
 
+// FindAccount attempts to find an account where the specified field matches
+// the specified value. Exactly one row must be returned.
+func FindAccount(t *Token, field string, value interface{}) ([]*Account, error) {
+	r, err := FindAccounts(t, field, value)
+	if err != nil {
+		return nil, err
+	}
+	if len(r) != 1 {
+		return nil, ErrRowCount
+	}
+	return r, nil
+}
+
 // FindAccounts attempts to retrieve all accounts where the specified field
 // matches the specified value.
-func FindAccounts(t *Token, field, value string) ([]*Account, error) {
+func FindAccounts(t *Token, field string, value interface{}) ([]*Account, error) {
 	r, err := t.query(
 		fmt.Sprintf(
 			`

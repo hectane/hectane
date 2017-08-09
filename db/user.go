@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"encoding/base64"
 	"fmt"
 
@@ -30,17 +31,7 @@ CREATE TABLE IF NOT EXISTS Users (
 	return err
 }
 
-// Users retrieves a list all users in the database.
-func Users(t *Token) ([]*User, error) {
-	r, err := t.query(
-		`
-SELECT ID, Username, Password, IsAdmin
-FROM Users ORDER BY Username
-        `,
-	)
-	if err != nil {
-		return nil, err
-	}
+func rowsToUsers(r *sql.Rows) ([]*User, error) {
 	users := make([]*User, 0, 1)
 	for r.Next() {
 		u := &User{}
@@ -52,24 +43,50 @@ FROM Users ORDER BY Username
 	return users, nil
 }
 
-// FindUser attempts to find a user where the specified field matches the
-// specified value.
-func FindUser(t *Token, field, value string) (*User, error) {
-	u := &User{}
-	err := t.queryRow(
+// Users retrieves a list all users in the database.
+func Users(t *Token) ([]*User, error) {
+	r, err := t.query(
+		`
+SELECT ID, Username, Password, IsAdmin
+FROM Users ORDER BY Username
+        `,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rowsToUsers(r)
+}
+
+// FundUser attempts to find a user where the specified field matches the
+// specified value. Exactly one row must be returned.
+func FundUser(t *Token, field string, value interface{}) ([]*Account, error) {
+	r, err := FindUsers(t, field, value)
+	if err != nil {
+		return nil, err
+	}
+	if len(r) != 1 {
+		return nil, ErrRowCount
+	}
+	return r, nil
+}
+
+// FindUsers attempts to retrieve all users where the specified field matches
+// the specified value.
+func FindUsers(t *Token, field string, value interface{}) ([]*Account, error) {
+	r, err := t.query(
 		fmt.Sprintf(
 			`
 SELECT ID, Username, Password, IsAdmin
-FROM Users WHERE %s = $1
+FROM Users WHERE %s = $1 ORDER BY Username
             `,
 			field,
 		),
 		value,
-	).Scan(&u.ID, &u.Username, &u.Password, &u.IsAdmin)
+	)
 	if err != nil {
 		return nil, err
 	}
-	return u, nil
+	return rowsToAccounts(r)
 }
 
 // Save persists changes to the user. If ID is set to zero, a new user is
