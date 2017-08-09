@@ -6,7 +6,7 @@ UID = $(shell id -u)
 GID = $(shell id -g)
 
 SOURCES = $(shell find -type f -name '*.go' ! -path './cache/*')
-BINDATA = $(shell find server/static server/templates)
+BINDATA = $(shell find server/static)
 
 all: dist/${CMD}
 

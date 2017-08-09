@@ -5,5 +5,4 @@ compression:
 custom:
   - files:
     - server/static
-    - server/templates
     base: server
