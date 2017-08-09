@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/base64"
+	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -51,15 +52,19 @@ FROM Users ORDER BY Username
 	return users, nil
 }
 
-// FindUser attempts to find the user with the specified username.
-func FindUser(t *Token, username string) (*User, error) {
+// FindUser attempts to find a user where the specified field matches the
+// specified value.
+func FindUser(t *Token, field, value string) (*User, error) {
 	u := &User{}
 	err := t.queryRow(
-		`
+		fmt.Sprintf(
+			`
 SELECT ID, Username, Password, IsAdmin
-FROM Users WHERE Username = $1
-        `,
-		username,
+FROM Users WHERE %s = $1
+            `,
+			field,
+		),
+		value,
 	).Scan(&u.ID, &u.Username, &u.Password, &u.IsAdmin)
 	if err != nil {
 		return nil, err
