@@ -12,6 +12,7 @@ all: dist/${CMD}
 dist/${CMD}: ${SOURCES} | cache dist
 	docker run \
 	    --rm \
+	    -e CGO_ENABLED=0 \
 	    -e UID=${UID} \
 	    -e GID=${GID} \
 	    -v ${CWD}/cache:/go/src \
@@ -19,7 +20,7 @@ dist/${CMD}: ${SOURCES} | cache dist
 	    -v ${CWD}:/go/src/${PKG} \
 	    -w /go/src/${PKG} \
 	    nathanosman/bettergo \
-	    go get ${PKG}/cmd/${CMD}
+	    go get -pkgdir /go/lib ${PKG}/cmd/${CMD}
 
 cache:
 	@mkdir cache
