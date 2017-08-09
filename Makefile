@@ -16,7 +16,8 @@ dist/${CMD}: ${SOURCES} server/ab0x.go | cache dist
 	    -e CGO_ENABLED=0 \
 	    -e UID=${UID} \
 	    -e GID=${GID} \
-	    -v ${CWD}/cache:/go/src \
+	    -v ${CWD}/cache/lib:/go/lib \
+	    -v ${CWD}/cache/src:/go/src \
 	    -v ${CWD}/dist:/go/bin \
 	    -v ${CWD}:/go/src/${PKG} \
 	    nathanosman/bettergo \
@@ -31,18 +32,20 @@ dist:
 server/ab0x.go: ${BINDATA} | dist/fileb0x
 	dist/fileb0x b0x.yaml
 
-dist/fileb0x: | dist
+dist/fileb0x: | cache dist
 	docker run \
 	    --rm \
 	    -e CGO_ENABLED=0 \
 	    -e UID=${UID} \
 	    -e GID=${GID} \
-	    -v ${CWD}/cache:/go/src \
+	    -v ${CWD}/cache/lib:/go/lib \
+	    -v ${CWD}/cache/src:/go/src \
 	    -v ${CWD}/dist:/go/bin \
 	    nathanosman/bettergo \
 	    go get -pkgdir /go/lib github.com/UnnoTed/fileb0x
 
 clean:
+	@rm -f server/ab0x.go
 	@rm -rf cache dist
 
 .PHONY: clean
