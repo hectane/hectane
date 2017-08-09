@@ -1,0 +1,9 @@
+pkg: server
+dest: server
+compression:
+  compress: true
+custom:
+  - files:
+    - server/static
+    - server/templates
+    base: server
