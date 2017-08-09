@@ -2,6 +2,7 @@ package db
 
 var migrations = []func(t *Token) error{
 	migrateDomainsTable,
+	migrateUsersTable,
 }
 
 // Migrate attempts to perform all pending database migrations. This function
