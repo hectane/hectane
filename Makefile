@@ -1,5 +1,5 @@
 COLORON = tput setaf 3
-COLOROFF = tput init
+COLOROFF = tput sgr0
 
 CWD = $(shell pwd)
 PKG = github.com/hectane/hectane

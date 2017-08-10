@@ -5,4 +5,4 @@ compression:
 custom:
   - files:
     - server/www
-    base: server
+    base: server/www
