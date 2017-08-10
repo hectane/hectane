@@ -4,5 +4,5 @@ compression:
   compress: true
 custom:
   - files:
-    - server/static
+    - server/www
     base: server

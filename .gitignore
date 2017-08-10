@@ -1,4 +1,7 @@
 /cache/
 /dist/
 /server/ab0x.go
+/server/www/
+/ui/build/
 /ui/node_modules/
+/.dep-*
