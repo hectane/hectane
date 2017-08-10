@@ -2,8 +2,11 @@ package main
 
 import (
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/hectane/hectane/db"
+	"github.com/hectane/hectane/server"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -48,6 +51,12 @@ func main() {
 			EnvVar: "DB_PASSWORD",
 			Usage:  "PostgreSQL database password",
 		},
+		cli.StringFlag{
+			Name:   "web-addr",
+			Value:  ":8000",
+			EnvVar: "WEB_ADDR",
+			Usage:  "address for the web interface",
+		},
 	}
 	app.Action = func(c *cli.Context) {
 
@@ -75,6 +84,21 @@ func main() {
 			log.Error(err)
 			return
 		}
+
+		// Create the web server
+		s, err := server.New(&server.Config{
+			Addr: c.String("web-addr"),
+		})
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		defer s.Close()
+
+		// Wait for SIGINT or SIGTERM
+		sigChan := make(chan os.Signal)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigChan
 	}
 	app.Run(os.Args)
 }
