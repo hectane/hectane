@@ -4,13 +4,11 @@
     "build": "react-scripts build"
   },
   "dependencies": {
+    "bootstrap": "^4.0.0-alpha.6",
+    "jquery": "^3.2.1",
     "react": "^15.6.1",
-    "react-scripts": "1.0.11"
-  },
-  "devDependencies": {
-    "babel-cli": "^6.24.1",
-    "babel-preset-es2015": "^6.24.1",
-    "babel-preset-react": "^6.24.1",
-    "webpack": "^3.5.2"
+    "react-dom": "^15.6.1",
+    "react-scripts": "1.0.11",
+    "tether": "^1.4.0"
   }
 }
