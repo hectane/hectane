@@ -1,8 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { BrowserRouter } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Route
+} from 'react-router-dom';
 
-import Sidebar from './Sidebar';
+import Login from './components/Login';
 
 global.jQuery = require('jquery');
 global.Tether = require('tether');
@@ -12,6 +15,10 @@ require('bootstrap/dist/css/bootstrap.css');
 
 ReactDOM.render((
   <BrowserRouter>
-    <Sidebar />
+    <div>
+      <Login />
+      <Route path="/" />
+      <Route path="/login" />
+    </div>
   </BrowserRouter>
 ), document.getElementById('root'));
