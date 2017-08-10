@@ -63,7 +63,8 @@ dist/fileb0x: | cache dist
 	    -w /usr/src/ui \
 	    nathanosman/betternode \
 	    npm run build
-	@cp -rT ui/build server/www
+	@rm -rf server/www
+	@cp -r ui/build server/www
 	@touch .dep-static
 
 .dep-node_modules: ui/package.json
