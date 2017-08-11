@@ -1,37 +1,70 @@
 import React from 'react';
+import {
+  Card, CardActions, CardTitle, CardText
+} from 'material-ui/Card';
+import RaisedButton from 'material-ui/RaisedButton';
+import TextField from 'material-ui/TextField';
 
 /**
  * Present a login dialog for authentication
  */
 export default class Login extends React.Component {
-  handleSubmit(event) {
-    event.preventDefault();
-    alert('form was submitted!');
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      username: '',
+      password: ''
+    };
+  }
+
+  handleUsernameChange = (event) => {
+    this.setState({
+      username: event.target.value
+    });
+  }
+
+  handlePasswordChange = (event) => {
+    this.setState({
+      password: event.target.value
+    });
+  }
+
+  handleTouchTap = (event) => {
+    alert(this.state.username);
   }
 
   render() {
     return (
-      <div className="container">
-        <div className="card">
-          <div className="card-block">
-            <h4 className="card-title">Login</h4>
-            <p className="card-text">
-              Please enter your username and password to login.
-            </p>
-            <form onSubmit={this.handleSubmit}>
-              <div className="form-group">
-                <label>Username</label>
-                <input type="text" className="form-control" />
-              </div>
-              <div className="form-group">
-                <label>Password</label>
-                <input type="password" className="form-control" />
-              </div>
-              <button type="submit" className="btn btn-primary">Login</button>
-            </form>
-          </div>
-        </div>
-      </div>
+      <Card
+        style={{margin: 'auto', maxWidth: 400}}
+      >
+        <CardTitle
+          title="Login"
+          subtitle="Enter your credentials to login."
+        />
+        <CardText>
+          <TextField
+            hintText="Username"
+            fullWidth={true}
+            onChange={this.handleUsernameChange}
+          />
+          <br />
+          <TextField
+            hintText="Password"
+            fullWidth={true}
+            type="password"
+            onChange={this.handlePasswordChange}
+          />
+        </CardText>
+        <CardActions>
+          <RaisedButton
+            label="Login"
+            primary={true}
+            onTouchTap={this.handleTouchTap}
+          />
+        </CardActions>
+      </Card>
     );
   }
 }
