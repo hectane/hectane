@@ -57,9 +57,9 @@ FROM Users ORDER BY Username
 	return rowsToUsers(r)
 }
 
-// FundUser attempts to find a user where the specified field matches the
+// FindUser attempts to find a user where the specified field matches the
 // specified value. Exactly one row must be returned.
-func FundUser(t *Token, field string, value interface{}) ([]*Account, error) {
+func FindUser(t *Token, field string, value interface{}) ([]*Account, error) {
 	r, err := FindUsers(t, field, value)
 	if err != nil {
 		return nil, err
