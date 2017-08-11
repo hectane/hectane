@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 	"github.com/sirupsen/logrus"
 )
 
@@ -12,6 +13,7 @@ import (
 // includes such things as managing users, viewing emails, etc.
 type Server struct {
 	listener net.Listener
+	sessions *sessions.CookieStore
 	log      *logrus.Entry
 	stopped  chan bool
 }
@@ -30,6 +32,7 @@ func New(cfg *Config) (*Server, error) {
 		s = &Server{
 			listener: l,
 			log:      logrus.WithField("context", "server"),
+			sessions: sessions.NewCookieStore([]byte(cfg.SecretKey)),
 			stopped:  make(chan bool),
 		}
 	)

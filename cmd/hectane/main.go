@@ -52,6 +52,11 @@ func main() {
 			Usage:  "PostgreSQL database password",
 		},
 		cli.StringFlag{
+			Name:   "secret-key",
+			EnvVar: "SECRET_KEY",
+			Usage:  "key used for auth cookies",
+		},
+		cli.StringFlag{
 			Name:   "web-addr",
 			Value:  ":8000",
 			EnvVar: "WEB_ADDR",
@@ -87,7 +92,8 @@ func main() {
 
 		// Create the web server
 		s, err := server.New(&server.Config{
-			Addr: c.String("web-addr"),
+			Addr:      c.String("web-addr"),
+			SecretKey: c.String("secret-key"),
 		})
 		if err != nil {
 			log.Error(err)
