@@ -11,10 +11,10 @@ import (
 // User represents an individual user within the system that can login, send,
 // and receive emails.
 type User struct {
-	ID       int
-	Username string
-	Password string
-	IsAdmin  bool
+	ID       int    `json:"id"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	IsAdmin  bool   `json:"is_admin"`
 }
 
 func migrateUsersTable(t *Token) error {
@@ -59,7 +59,7 @@ FROM Users ORDER BY Username
 
 // FindUser attempts to find a user where the specified field matches the
 // specified value. Exactly one row must be returned.
-func FindUser(t *Token, field string, value interface{}) ([]*Account, error) {
+func FindUser(t *Token, field string, value interface{}) (*User, error) {
 	r, err := FindUsers(t, field, value)
 	if err != nil {
 		return nil, err
@@ -67,12 +67,12 @@ func FindUser(t *Token, field string, value interface{}) ([]*Account, error) {
 	if len(r) != 1 {
 		return nil, ErrRowCount
 	}
-	return r, nil
+	return r[0], nil
 }
 
 // FindUsers attempts to retrieve all users where the specified field matches
 // the specified value.
-func FindUsers(t *Token, field string, value interface{}) ([]*Account, error) {
+func FindUsers(t *Token, field string, value interface{}) ([]*User, error) {
 	r, err := t.query(
 		fmt.Sprintf(
 			`
@@ -86,7 +86,7 @@ FROM Users WHERE %s = $1 ORDER BY Username
 	if err != nil {
 		return nil, err
 	}
-	return rowsToAccounts(r)
+	return rowsToUsers(r)
 }
 
 // Save persists changes to the user. If ID is set to zero, a new user is

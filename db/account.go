@@ -7,10 +7,10 @@ import (
 
 // Account represents an individual email account owned by a user.
 type Account struct {
-	ID       int
-	Name     string
-	UserID   int
-	DomainID int
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	UserID   int    `json:"user_id"`
+	DomainID int    `json:"domain_id"`
 }
 
 func migrateAccountsTable(t *Token) error {
@@ -56,7 +56,7 @@ FROM Users ORDER BY Name
 
 // FindAccount attempts to find an account where the specified field matches
 // the specified value. Exactly one row must be returned.
-func FindAccount(t *Token, field string, value interface{}) ([]*Account, error) {
+func FindAccount(t *Token, field string, value interface{}) (*Account, error) {
 	r, err := FindAccounts(t, field, value)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func FindAccount(t *Token, field string, value interface{}) ([]*Account, error) 
 	if len(r) != 1 {
 		return nil, ErrRowCount
 	}
-	return r, nil
+	return r[0], nil
 }
 
 // FindAccounts attempts to retrieve all accounts where the specified field

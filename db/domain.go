@@ -3,8 +3,8 @@ package db
 // Domain represents a FQDN used for routing incoming email and validating
 // outgoing email.
 type Domain struct {
-	ID   int
-	Name string
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 func migrateDomainsTable(t *Token) error {
