@@ -7,7 +7,8 @@ import {
 import injectTapEventPlugin from 'react-tap-event-plugin';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 
-import Login from './components/Login';
+
+import './index.css'
 
 // Needed for onTouchTap
 // http://stackoverflow.com/a/34015469/988941
