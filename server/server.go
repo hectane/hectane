@@ -36,6 +36,10 @@ func New(cfg *Config) (*Server, error) {
 			stopped:  make(chan bool),
 		}
 	)
+	router.HandleFunc(
+		"/api/auth/login",
+		s.post(s.json(s.login, loginParams{})),
+	)
 	router.PathPrefix("/").Handler(http.FileServer(HTTP))
 	go func() {
 		defer close(s.stopped)

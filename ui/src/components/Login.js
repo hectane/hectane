@@ -40,17 +40,14 @@ class Login extends React.Component {
       data: JSON.stringify({
         username: this.state.username,
         password: this.state.password
-      })
+      }),
+      contentType: 'application/json; charset=utf-8',
     })
     .then((d) => {
-      if ('user' in d) {
-        this.props.dispatch(setUser(d.user))
-        this.setState({redirect: true})
-      } else {
-        this.setState({error: d.error})
-      }
+      this.props.dispatch(setUser(d.user))
+      this.setState({redirect: true})
     })
-    .fail((j, s, e) => this.setState({error: e}))
+    .fail((j, s, e) => this.setState({error: s}))
   }
 
   render() {
