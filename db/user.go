@@ -13,7 +13,7 @@ import (
 type User struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
-	Password string `json:"password"`
+	Password string `json:"-"`
 	IsAdmin  bool   `json:"is_admin"`
 }
 
