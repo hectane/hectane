@@ -1,40 +1,64 @@
-import React from 'react';
-import {
-  Card, CardActions, CardTitle, CardText
-} from 'material-ui/Card';
-import RaisedButton from 'material-ui/RaisedButton';
-import TextField from 'material-ui/TextField';
+import $ from 'jquery'
+import { Card, CardActions, CardTitle, CardText } from 'material-ui/Card'
+import RaisedButton from 'material-ui/RaisedButton'
+import TextField from 'material-ui/TextField'
+import React from 'react'
+import { connect } from 'react-redux'
+import { Redirect } from 'react-router-dom'
+
+import { setUser } from '../actions/auth'
 
 /**
  * Present a login dialog for authentication
+ *
+ * Upon successful login, the current user is added to the store and the user
+ * is redirected to the home page.
  */
-export default class Login extends React.Component {
+class Login extends React.Component {
   constructor(props) {
-    super(props);
+    super(props)
 
     this.state = {
       username: '',
-      password: ''
-    };
+      password: '',
+      redirect: false,
+      error: ''
+    }
   }
 
-  handleUsernameChange = (event) => {
-    this.setState({
-      username: event.target.value
-    });
+  handleUsernameChange = (e) => {
+    this.setState({username: e.target.value})
   }
 
-  handlePasswordChange = (event) => {
-    this.setState({
-      password: event.target.value
-    });
+  handlePasswordChange = (e) => {
+    this.setState({password: e.target.value})
   }
 
-  handleTouchTap = (event) => {
-    alert(this.state.username);
+  handleLogin = () => {
+    $.post({
+      url: '/api/auth/login',
+      data: JSON.stringify({
+        username: this.state.username,
+        password: this.state.password
+      })
+    })
+    .then((d) => {
+      if ('user' in d) {
+        this.props.dispatch(setUser(d.user))
+        this.setState({redirect: true})
+      } else {
+        this.setState({error: d.error})
+      }
+    })
+    .fail((j, s, e) => this.setState({error: e}))
   }
 
   render() {
+    if (this.state.redirect) {
+      return (
+        <Redirect to="/" />
+      )
+    }
     return (
       <Card
         style={{margin: 'auto', maxWidth: 400}}
@@ -44,6 +68,7 @@ export default class Login extends React.Component {
           subtitle="Enter your credentials to login."
         />
         <CardText>
+          {this.state.error && <p className="error">Error: {this.state.error}</p>}
           <TextField
             hintText="Username"
             fullWidth={true}
@@ -61,10 +86,12 @@ export default class Login extends React.Component {
           <RaisedButton
             label="Login"
             primary={true}
-            onTouchTap={this.handleTouchTap}
+            onTouchTap={this.handleLogin}
           />
         </CardActions>
       </Card>
-    );
+    )
   }
 }
+
+export default connect()(Login)
