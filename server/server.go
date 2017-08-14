@@ -40,6 +40,10 @@ func New(cfg *Config) (*Server, error) {
 		"/api/auth/login",
 		s.post(s.json(s.login, loginParams{})),
 	)
+	router.HandleFunc(
+		"/api/auth/logout",
+		s.post(s.logout),
+	)
 	router.PathPrefix("/").Handler(http.FileServer(HTTP))
 	go func() {
 		defer close(s.stopped)
