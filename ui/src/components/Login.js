@@ -47,7 +47,7 @@ class Login extends React.Component {
       this.props.dispatch(setUser(d.user))
       this.setState({redirect: true})
     })
-    .fail((j, s, e) => this.setState({error: s}))
+    .fail((j, s, e) => this.setState({error: j.responseText}))
   }
 
   render() {

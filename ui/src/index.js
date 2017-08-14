@@ -2,10 +2,11 @@ import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider'
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { Provider } from 'react-redux'
-import { BrowserRouter, Route } from 'react-router-dom'
+import { BrowserRouter, Redirect, Route } from 'react-router-dom'
 import injectTapEventPlugin from 'react-tap-event-plugin'
 import { createStore } from 'redux'
 
+import Index from './components/Index'
 import Login from './components/Login'
 import rootReducer from './reducers'
 
@@ -22,9 +23,15 @@ ReactDOM.render((
     <MuiThemeProvider>
       <BrowserRouter>
         <div>
-          <Login />
-          <Route path="/" />
-          <Route path="/login" />
+          <Route
+            path="/"
+            render={() => (
+              store.getState().auth.user ?
+              <Index /> :
+              <Redirect to="/login" />
+            )}
+          />
+          <Route path="/login" component={Login} />
         </div>
       </BrowserRouter>
     </MuiThemeProvider>
