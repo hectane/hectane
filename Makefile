@@ -93,6 +93,6 @@ dist:
 
 clean:
 	@rm -f .dep-* server/ab0x.go
-	@rm -rf cache dist server/www ui/{dist,node_modules,root,tmp}
+	@rm -rf cache dist server/www ui/{bower_components,dist,node_modules,root,tmp}
 
 .PHONY: clean

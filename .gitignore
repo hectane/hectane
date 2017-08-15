@@ -2,6 +2,7 @@
 /dist/
 /server/ab0x.go
 /server/www/
+/ui/bower_components/
 /ui/dist/
 /ui/node_modules/
 /ui/root/
