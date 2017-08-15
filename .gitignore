@@ -2,6 +2,8 @@
 /dist/
 /server/ab0x.go
 /server/www/
-/ui/build/
+/ui/dist/
 /ui/node_modules/
+/ui/root/
+/ui/tmp/
 /.dep-*

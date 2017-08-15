@@ -9,7 +9,11 @@ UID = $(shell id -u)
 GID = $(shell id -g)
 
 SOURCES = $(shell find -type f -name '*.go' ! -path './cache/*')
-UIFILES = $(shell find ui/public ui/src) ui/package-lock.json
+UIFILES = $(shell find ui/app ui/config ui/public ui/tests ui/vendor) \
+	ui/.eslintrc.js \
+	ui/ember-cli-build.js \
+	ui/package-lock.json \
+	ui/testem.js
 
 all: dist/${CMD}
 
@@ -64,7 +68,7 @@ dist/fileb0x: | cache dist
 	    nathanosman/betternode \
 	    npm run build
 	@rm -rf server/www
-	@cp -r ui/build server/www
+	@cp -r ui/dist server/www
 	@touch .dep-static
 
 .dep-node_modules: ui/package.json
@@ -89,6 +93,6 @@ dist:
 
 clean:
 	@rm -f .dep-* server/ab0x.go
-	@rm -rf cache dist server/www ui/build ui/node_modules
+	@rm -rf cache dist server/www ui/{dist,node_modules,root,tmp}
 
 .PHONY: clean
