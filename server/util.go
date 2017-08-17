@@ -6,6 +6,10 @@ import (
 	"strconv"
 )
 
+const (
+	statusDatabaseError = "database error"
+)
+
 // writeJson writes JSON data to the client.
 func (s *Server) writeJson(w http.ResponseWriter, v interface{}) {
 	b, err := json.Marshal(v)

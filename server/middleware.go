@@ -39,7 +39,7 @@ func (s *Server) auth(h http.HandlerFunc) http.HandlerFunc {
 		var u *db.User
 		session, _ := s.sessions.Get(r, sessionName)
 		v, ok := session.Values[sessionUserID]
-		if ok {
+		if !ok {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
