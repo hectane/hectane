@@ -1,7 +1,7 @@
 <div class="ui middle aligned center aligned grid login">
   <div class="column">
     <form class="ui large form" {{action 'login' on='submit'}}>
-      <div class="ui padded segment">
+      <div class="ui padded segment {{if loading 'loading'}}">
         <h2 class="ui header">
           Login
         </h2>

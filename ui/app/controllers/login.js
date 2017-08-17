@@ -5,9 +5,11 @@ export default Ember.Controller.extend({
 
   actions: {
     login() {
+      this.set('loading', true);
       let { username, password } = this.getProperties('username', 'password');
       this.get('session').authenticate('authenticator:session', username, password)
-      .catch((message) => this.set('errorMessage', message));
+      .catch((message) => this.set('errorMessage', message))
+      .finally(() => this.set('loading', false));
     }
   }
 });

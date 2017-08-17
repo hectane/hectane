@@ -42,6 +42,9 @@ export default Base.extend({
     });
   },
 
+  /**
+   * Attempt to restore the session
+   */
   restore() {
     return Ember.RSVP.reject();
   }
