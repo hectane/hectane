@@ -9,15 +9,15 @@ export default Base.extend({
   /**
    * Send a POST request to the API with login credentials
    */
-  authenticate(args) {
+  authenticate(username, password) {
     return new Ember.RSVP.Promise(function(resolve, reject) {
       Ember.$.post({
         url: '/api/auth/login',
         contentType: 'application/json;charset=utf-8',
         dataType: 'json',
         data: JSON.stringify({
-          username: args.username,
-          password: args.password
+          username: username,
+          password: password
         })
       })
       .then(function(response) {
@@ -43,6 +43,6 @@ export default Base.extend({
   },
 
   restore() {
-    //...
+    return Ember.RSVP.reject();
   }
 });
