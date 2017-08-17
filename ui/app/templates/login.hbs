@@ -1,25 +1,28 @@
-<div class="ui middle aligned center aligned grid">
+<div class="ui middle aligned center aligned grid login">
   <div class="column">
-    <h2 class="ui teal header">
-      <div class="content">
-        Log-in to your account
-      </div>
-    </h2>
-    <form class="ui large form">
-      <div class="ui segment">
+    <form class="ui large form" {{action 'login' on='submit'}}>
+      <div class="ui padded segment">
+        <h2 class="ui header">
+          Login
+        </h2>
+        {{#if errorMessage}}
+          <div class="ui error message">
+            Error: {{errorMessage}}
+          </div>
+        {{/if}}
         <div class="field">
           <div class="ui left icon input">
             <i class="user icon"></i>
-            <input type="text" name="email" placeholder="E-mail address">
+            {{input placeholder='Username' value=username}}
           </div>
         </div>
         <div class="field">
           <div class="ui left icon input">
             <i class="lock icon"></i>
-            <input type="password" name="password" placeholder="Password">
+            {{input placeholder='Password' type='password' value=password}}
           </div>
         </div>
-        <div class="ui fluid large teal submit button">Login</div>
+        <button type="submit" class="ui fluid large primary button">Login</button>
       </div>
     </form>
   </div>
