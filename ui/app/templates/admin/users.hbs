@@ -1,0 +1,80 @@
+<table class="ui celled table">
+  <thead>
+    <tr>
+      <th>User</th>
+      <th>Admin</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each model as |user|}}
+      <tr>
+        <td>{{user.username}}</td>
+        <td class="collapsing center aligned">
+          <i class="{{if user.is_admin 'checkmark' 'remove' }} icon"></i>
+        </td>
+        <td class="collapsing">
+          <button class="ui negative mini button" {{action 'delete' user}}>
+            Delete
+          </button>
+        </td>
+      </tr>
+    {{/each}}
+  </tbody>
+  <tfoot>
+    <tr>
+      <th colspan="3">
+        <button class="ui primary mini button" {{action 'showNewUser'}}>
+          New
+        </button>
+      </th>
+    </tr>
+  </tfoot>
+</table>
+
+<div id="new-user-modal" class="ui mini modal">
+  <div class="header">
+    New User
+  </div>
+  <div class="content">
+    {{#if errorMessage}}
+      <div class="ui negative message">
+        Error: {{errorMessage}}
+      </div>
+    {{/if}}
+    <form class="ui form">
+      <div class="field">
+        <div class="ui fluid input">
+          {{input placeholder='Username' value=username disabled=loading}}
+        </div>
+      </div>
+      <div class="field">
+        <div class="ui fluid input">
+          {{input placeholder='Password' type='password' value=password disabled=loading}}
+        </div>
+      </div>
+      <div class="field">
+        <div class="ui toggle checkbox">
+          {{input type='checkbox' checked=isAdmin disabled=loading}}
+          <label>Admin</label>
+        </div>
+      </div>
+    </form>
+  </div>
+  <div class="actions">
+    <button
+      type="button"
+      class="ui cancel button"
+      disabled={{loading}}
+    >
+      Cancel
+    </button>
+    <button
+      type="button"
+      class="ui positive primary button {{if loading 'loading'}}"
+      disabled={{loading}}
+    >
+      Create
+    </button>
+  </div>
+</div>

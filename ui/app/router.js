@@ -12,6 +12,13 @@ Router.map(function() {
   this.route('index', {path: '/'}, function() {
     this.route('folder', {path: 'folder/:folder_id'});
   });
+  this.route('admin', function() {
+    this.route('users');
+  });
+});
+
+Router.reopen({
+  location: 'hash'
 });
 
 export default Router;
