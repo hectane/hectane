@@ -8,38 +8,23 @@ export default Ember.Controller.extend({
       user.destroyRecord();
     },
 
-    showNewUser() {
+    showNewDialog() {
       this.setProperties({
-        errorMessage: null,
         username: '',
         password: '',
-        isAdmin: false
+        isAdmin: false,
+        newVisible: true
       });
-      Ember.$('#new-user-modal')
-      .modal({
-        closable: false,
-        onApprove: () => {
-          let { username, password, isAdmin } = this.getProperties('username', 'password', 'isAdmin');
-          let record = this.get('store').createRecord('user', {
-            username: username,
-            password: password,
-            is_admin: isAdmin
-          });
-          this.set('loading', true);
-          record.save()
-          .then(function() {
-            Ember.$('#new-user-modal').modal('hide');
-          }, (message) => {
-            this.set('errorMessage', message);
-            record.deleteRecord();
-          })
-          .finally(() => {
-            this.set('loading', false);
-          });
-          return false;
-        }
-      })
-      .modal('show');
+    },
+
+    getNewPromise() {
+      let { username, password, isAdmin } = this.getProperties('username', 'password', 'isAdmin');
+      let record = this.get('store').createRecord('user', {
+        username: username,
+        password: password,
+        is_admin: isAdmin
+      });
+      return record.save();
     }
   }
 });

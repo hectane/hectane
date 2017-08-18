@@ -26,7 +26,7 @@
   <tfoot>
     <tr>
       <th colspan="3">
-        <button class="ui primary mini button" {{action 'showNewUser'}}>
+        <button class="ui primary mini button" {{action 'showNewDialog'}}>
           New
         </button>
       </th>
@@ -34,49 +34,28 @@
   </tfoot>
 </table>
 
-<div id="new-user-modal" class="ui mini modal">
-  <div class="header">
-    New User
-  </div>
-  <div class="content">
-    {{#if errorMessage}}
-      <div class="ui negative message">
-        Error: {{errorMessage}}
+{{#modal-dialog
+  title='New User'
+  visible=newVisible
+  loading=newLoading
+  getPromise=(action 'getNewPromise')
+}}
+  <form class="ui form">
+    <div class="field">
+      <div class="ui fluid input">
+        {{input placeholder='Username' value=username disabled=newLoading}}
       </div>
-    {{/if}}
-    <form class="ui form">
-      <div class="field">
-        <div class="ui fluid input">
-          {{input placeholder='Username' value=username disabled=loading}}
-        </div>
+    </div>
+    <div class="field">
+      <div class="ui fluid input">
+        {{input placeholder='Password' type='password' value=password disabled=newLoading}}
       </div>
-      <div class="field">
-        <div class="ui fluid input">
-          {{input placeholder='Password' type='password' value=password disabled=loading}}
-        </div>
+    </div>
+    <div class="field">
+      <div class="ui toggle checkbox">
+        {{input type='checkbox' checked=isAdmin disabled=newLoading}}
+        <label>Admin</label>
       </div>
-      <div class="field">
-        <div class="ui toggle checkbox">
-          {{input type='checkbox' checked=isAdmin disabled=loading}}
-          <label>Admin</label>
-        </div>
-      </div>
-    </form>
-  </div>
-  <div class="actions">
-    <button
-      type="button"
-      class="ui cancel button"
-      disabled={{loading}}
-    >
-      Cancel
-    </button>
-    <button
-      type="button"
-      class="ui positive primary button {{if loading 'loading'}}"
-      disabled={{loading}}
-    >
-      Create
-    </button>
-  </div>
-</div>
+    </div>
+  </form>
+{{/modal-dialog}}

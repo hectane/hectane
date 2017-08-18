@@ -1,0 +1,27 @@
+<div class="header">
+  {{title}}
+</div>
+<div class="content">
+  {{#if errorMessage}}
+    <div class="ui negative message">
+      Error: {{errorMessage}}
+    </div>
+  {{/if}}
+  {{yield }}
+</div>
+<div class="actions">
+  <button
+    type="button"
+    class="ui cancel button"
+    disabled={{loading}}
+  >
+    Cancel
+  </button>
+  <button
+    type="button"
+    class="ui positive primary button {{if loading 'loading'}}"
+    disabled={{loading}}
+  >
+    OK
+  </button>
+</div>
