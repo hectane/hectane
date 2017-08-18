@@ -53,6 +53,18 @@ func (s *Server) auth(h http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// admin ensures that the current user is an administrator.
+func (s *Server) admin(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		u := r.Context().Value(contextUser).(*db.User)
+		if !u.IsAdmin {
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+		h.ServeHTTP(w, r)
+	}
+}
+
 // json attempts to parse the request body into a struct of the provided type.
 func (s *Server) json(h http.HandlerFunc, v interface{}) http.HandlerFunc {
 	t := reflect.TypeOf(v)

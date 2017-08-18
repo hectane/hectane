@@ -37,6 +37,18 @@ func New(cfg *Config) (*Server, error) {
 		}
 	)
 	router.HandleFunc(
+		"/api/admin/users",
+		s.auth(s.admin(s.users)),
+	)
+	router.HandleFunc(
+		"/api/admin/users/new",
+		s.post(s.auth(s.admin(s.json(s.newUser, newUserParams{})))),
+	)
+	router.HandleFunc(
+		"/api/admin/users/{id:[0-9]+}/delete",
+		s.post(s.auth(s.admin(s.deleteUser))),
+	)
+	router.HandleFunc(
 		"/api/auth/login",
 		s.post(s.json(s.login, loginParams{})),
 	)
