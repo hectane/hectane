@@ -45,18 +45,16 @@ FROM Domains ORDER BY Name
 // created and its ID updated.
 func (d *Domain) Save(t *Token) error {
 	if d.ID == 0 {
-		var id int
 		err := t.queryRow(
 			`
 INSERT INTO Domains (Name)
 VALUES ($1)
             `,
 			d.Name,
-		).Scan(&id)
+		).Scan(&d.ID)
 		if err != nil {
 			return err
 		}
-		d.ID = id
 		return nil
 	} else {
 		_, err := t.exec(
