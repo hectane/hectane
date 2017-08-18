@@ -29,9 +29,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	session, _ := s.sessions.Get(r, sessionName)
 	defer session.Save(r, w)
 	session.Values[sessionUserID] = u.ID
-	s.writeJson(w, map[string]interface{}{
-		"user": u,
-	})
+	s.writeJson(w, u)
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {

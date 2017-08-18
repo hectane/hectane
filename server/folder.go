@@ -19,9 +19,7 @@ func (s *Server) folders(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, statusDatabaseError, http.StatusInternalServerError)
 		return
 	}
-	s.writeJson(w, map[string]interface{}{
-		"folders": f,
-	})
+	s.writeJson(w, f)
 }
 
 type newFolderParams struct {
@@ -45,7 +43,7 @@ func (s *Server) newFolder(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, statusDatabaseError, http.StatusInternalServerError)
 		return
 	}
-	s.writeJson(w, nil)
+	s.writeJson(w, f)
 }
 
 func (s *Server) deleteFolder(w http.ResponseWriter, r *http.Request) {
