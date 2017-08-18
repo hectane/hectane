@@ -14,6 +14,7 @@ Router.map(function() {
   });
   this.route('admin', function() {
     this.route('users');
+    this.route('log');
   });
 });
 
