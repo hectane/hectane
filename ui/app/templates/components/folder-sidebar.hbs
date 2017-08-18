@@ -1,7 +1,49 @@
 <div class="ui fluid vertical menu">
-  {{#each folders as |folder|}}
-    <a class="item">
-      {{folder.name}}
-    </a>
-  {{/each}}
+  <div class="item">
+    Folders
+    <div class="menu">
+      {{#each folders as |folder|}}
+        <a class="item">
+          {{folder.name}}
+        </a>
+      {{/each}}
+    </div>
+  </div>
+  <a class="item" {{action 'showNewFolder'}}>
+    <i class="plus icon"></i>
+    New Folder
+  </a>
+</div>
+
+<!-- New folder modal -->
+<div id="new-folder-modal" class="ui mini modal">
+  <div class="header">
+    New Folder
+  </div>
+  <div class="content">
+    {{#if errorMessage}}
+      <div class="ui negative message">
+        Error: {{errorMessage}}
+      </div>
+    {{/if}}
+    <div class="ui fluid input">
+      {{input placeholder='Name' value=newFolderName disabled=loading}}
+    </div>
+  </div>
+  <div class="actions">
+    <button
+      type="button"
+      class="ui cancel button"
+      disabled={{loading}}
+    >
+      Cancel
+    </button>
+    <button
+      type="button"
+      class="ui positive primary button {{if loading 'loading'}}"
+      disabled={{loading}}
+    >
+      Create
+    </button>
+  </div>
 </div>
