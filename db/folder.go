@@ -1,5 +1,9 @@
 package db
 
+import (
+	"database/sql"
+)
+
 const (
 	InboxFolder = "Inbox"
 	SentFolder  = "Sent"
@@ -26,6 +30,18 @@ CREATE TABLE IF NOT EXISTS Folders (
 	return err
 }
 
+func rowsToFolders(r *sql.Rows) ([]*Folder, error) {
+	folders := make([]*Folder, 0, 1)
+	for r.Next() {
+		f := &Folder{}
+		if err := r.Scan(&f.ID, &f.Name, &f.UserID); err != nil {
+			return nil, err
+		}
+		folders = append(folders, f)
+	}
+	return folders, nil
+}
+
 // Folders retrieves all folders for the specified user.
 func Folders(t *Token, userID int) ([]*Folder, error) {
 	r, err := t.query(
@@ -38,15 +54,31 @@ FROM Folders WHERE UserID = $1 ORDER BY Name
 	if err != nil {
 		return nil, err
 	}
-	folders := make([]*Folder, 0, 1)
-	for r.Next() {
-		f := &Folder{}
-		if err := r.Scan(&f.ID, &f.Name, &f.UserID); err != nil {
-			return nil, err
-		}
-		folders = append(folders, f)
+	return rowsToFolders(r)
+}
+
+// FindAccount attempts to find a folder for the specified user matching the
+// specified ID.
+func FindFolder(t *Token, id int, userID int) (*Folder, error) {
+	r, err := t.query(
+		`
+SELECT ID, Name, UserID
+FROM Folders WHERE ID = $1 AND UserID = $2
+		`,
+		id,
+		userID,
+	)
+	if err != nil {
+		return nil, err
 	}
-	return folders, nil
+	f, err := rowsToFolders(r)
+	if err != nil {
+		return nil, err
+	}
+	if len(f) != 1 {
+		return nil, ErrRowCount
+	}
+	return f[0], nil
 }
 
 // Save persists changes to the folder. If ID is set to zero, a new folder is

@@ -46,11 +46,15 @@ func New(cfg *Config) (*Server, error) {
 	)
 	router.HandleFunc(
 		"/api/folders",
-		s.post(s.auth(s.folders)),
+		s.auth(s.folders),
 	)
 	router.HandleFunc(
 		"/api/folders/new",
 		s.post(s.auth(s.json(s.newFolder, newFolderParams{}))),
+	)
+	router.HandleFunc(
+		"/api/folders/{id:[0-9]+}/delete",
+		s.post(s.auth(s.deleteFolder)),
 	)
 	router.PathPrefix("/").Handler(http.FileServer(HTTP))
 	go func() {

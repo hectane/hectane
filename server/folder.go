@@ -2,7 +2,9 @@ package server
 
 import (
 	"net/http"
+	"strconv"
 
+	"github.com/gorilla/mux"
 	"github.com/hectane/hectane/db"
 )
 
@@ -43,5 +45,26 @@ func (s *Server) newFolder(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, statusDatabaseError, http.StatusInternalServerError)
 		return
 	}
-	s.writeJson(w, f)
+	s.writeJson(w, nil)
+}
+
+func (s *Server) deleteFolder(w http.ResponseWriter, r *http.Request) {
+	u := r.Context().Value(contextUser).(*db.User)
+	id, _ := strconv.Atoi(mux.Vars(r)["id"])
+	err := db.Transaction(func(t *db.Token) error {
+		f, err := db.FindFolder(t, id, u.ID)
+		if err != nil {
+			return err
+		}
+		return f.Delete(t)
+	})
+	if err == db.ErrRowCount {
+		http.Error(w, statusObjectNotFound, http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, statusDatabaseError, http.StatusInternalServerError)
+		return
+	}
+	s.writeJson(w, nil)
 }

@@ -57,14 +57,14 @@ FROM Users ORDER BY Name
 // FindAccount attempts to find an account where the specified field matches
 // the specified value. Exactly one row must be returned.
 func FindAccount(t *Token, field string, value interface{}) (*Account, error) {
-	r, err := FindAccounts(t, field, value)
+	a, err := FindAccounts(t, field, value)
 	if err != nil {
 		return nil, err
 	}
-	if len(r) != 1 {
+	if len(a) != 1 {
 		return nil, ErrRowCount
 	}
-	return r[0], nil
+	return a[0], nil
 }
 
 // FindAccounts attempts to retrieve all accounts where the specified field

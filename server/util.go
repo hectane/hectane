@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	statusDatabaseError = "database error"
+	statusDatabaseError  = "database error"
+	statusObjectNotFound = "object not found"
 )
 
 // writeJson writes JSON data to the client.
