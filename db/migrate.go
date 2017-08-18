@@ -1,6 +1,7 @@
 package db
 
 var migrations = []func(t *Token) error{
+	migrateEntriesTable,
 	migrateUsersTable,
 	migrateDomainsTable,
 	migrateAccountsTable,
