@@ -3,9 +3,9 @@
     Folders
     <div class="menu">
       {{#each folders as |folder|}}
-        <a class="item">
+        {{#link-to 'index.folder' folder class='item'}}
           {{folder.name}}
-        </a>
+        {{/link-to}}
       {{/each}}
     </div>
   </div>
