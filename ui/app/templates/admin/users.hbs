@@ -8,17 +8,19 @@
   </thead>
   <tbody>
     {{#each model as |user|}}
-      <tr>
-        <td>{{user.username}}</td>
-        <td class="collapsing center aligned">
-          <i class="{{if user.is_admin 'checkmark' 'remove' }} icon"></i>
-        </td>
-        <td class="collapsing">
-          <button class="ui negative mini button" {{action 'delete' user}}>
-            Delete
-          </button>
-        </td>
-      </tr>
+      {{#unless user.isNew}}
+        <tr>
+          <td>{{user.username}}</td>
+          <td class="collapsing center aligned">
+            <i class="{{if user.is_admin 'checkmark' 'remove' }} icon"></i>
+          </td>
+          <td class="collapsing">
+            <button class="ui negative mini button" {{action 'delete' user}}>
+              Delete
+            </button>
+          </td>
+        </tr>
+      {{/unless}}
     {{/each}}
   </tbody>
   <tfoot>

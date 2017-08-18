@@ -31,6 +31,7 @@ export default Ember.Controller.extend({
             Ember.$('#new-user-modal').modal('hide');
           }, (message) => {
             this.set('errorMessage', message);
+            record.deleteRecord();
           })
           .finally(() => {
             this.set('loading', false);
