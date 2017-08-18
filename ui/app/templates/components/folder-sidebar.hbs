@@ -11,40 +11,23 @@
       {{/each}}
     </div>
   </div>
-  <a class="item" {{action 'showNewFolder'}}>
+  <a class="item" {{action 'showNewDialog'}}>
     <i class="plus icon"></i>
     New Folder
   </a>
 </div>
 
-<div id="new-folder-modal" class="ui mini modal">
-  <div class="header">
-    New Folder
-  </div>
-  <div class="content">
-    {{#if errorMessage}}
-      <div class="ui negative message">
-        Error: {{errorMessage}}
+{{#modal-dialog
+  title='New Folder'
+  visible=newVisible
+  loading=newLoading
+  getPromise=(action 'getNewPromise')
+}}
+  <div class="ui form">
+    <div class="field">
+      <div class="ui fluid input">
+        {{input placeholder='Name' value=newFolderName disabled=newLoading}}
       </div>
-    {{/if}}
-    <div class="ui fluid input">
-      {{input placeholder='Name' value=newFolderName disabled=loading}}
     </div>
   </div>
-  <div class="actions">
-    <button
-      type="button"
-      class="ui cancel button"
-      disabled={{loading}}
-    >
-      Cancel
-    </button>
-    <button
-      type="button"
-      class="ui positive primary button {{if loading 'loading'}}"
-      disabled={{loading}}
-    >
-      Create
-    </button>
-  </div>
-</div>
+{{/modal-dialog}}
