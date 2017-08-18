@@ -1,14 +1,4 @@
-<div class="ui secondary menu">
-  <div class="header item">
-    <img src="/img/logo.png">
-  </div>
-  <div class="right item">
-    <strong>{{user.username}}</strong>
-    <span>&nbsp; | &nbsp;</span>
-    <a href="#" {{action 'logout'}}>Logout</a>
-  </div>
-</div>
-<div class="ui divider"></div>
+{{global-header}}
 <div class="ui grid">
   <div class="four wide column">
     {{folder-sidebar folders=model}}

@@ -1,0 +1,19 @@
+<div class="ui text menu">
+  <div class="header item">
+    {{#link-to 'index'}}
+      <img src="/img/logo.png" style="height: 25px;">
+    {{/link-to}}
+  </div>
+  <div class="right item">
+    <strong>{{user.username}}</strong>
+    <span>&nbsp; | &nbsp;</span>
+    {{#if user.is_admin}}
+      {{#link-to 'admin'}}
+        Admin
+      {{/link-to}}
+      <span>&nbsp; | &nbsp;</span>
+    {{/if}}
+    <a href="#" {{action 'logout'}}>Logout</a>
+  </div>
+</div>
+<div class="ui divider"></div>
