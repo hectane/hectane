@@ -93,7 +93,7 @@ FROM Users WHERE %s = $1 ORDER BY Username
 // created and its ID updated.
 func (u *User) Save(t *Token) error {
 	if u.ID == 0 {
-		err := t.queryRow(
+		return t.queryRow(
 			`
 INSERT INTO Users (Username, Password, IsAdmin)
 VALUES ($1, $2, $3) RETURNING ID
@@ -102,10 +102,6 @@ VALUES ($1, $2, $3) RETURNING ID
 			u.Password,
 			u.IsAdmin,
 		).Scan(&u.ID)
-		if err != nil {
-			return err
-		}
-		return nil
 	} else {
 		_, err := t.exec(
 			`

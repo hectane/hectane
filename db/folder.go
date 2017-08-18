@@ -85,7 +85,7 @@ FROM Folders WHERE ID = $1 AND UserID = $2
 // created and its ID updated.
 func (f *Folder) Save(t *Token) error {
 	if f.ID == 0 {
-		err := t.queryRow(
+		return t.queryRow(
 			`
 INSERT INTO Folders (Name, UserID)
 VALUES ($1, $2) RETURNING ID
@@ -93,10 +93,6 @@ VALUES ($1, $2) RETURNING ID
 			f.Name,
 			f.UserID,
 		).Scan(&f.ID)
-		if err != nil {
-			return err
-		}
-		return nil
 	} else {
 		_, err := t.exec(
 			`

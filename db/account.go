@@ -90,7 +90,7 @@ FROM Accounts WHERE %s = $1 ORDER BY Name
 // created and its ID updated.
 func (a *Account) Save(t *Token) error {
 	if a.ID == 0 {
-		err := t.queryRow(
+		return t.queryRow(
 			`
 INSERT INTO Accounts (Name, UserID, DomainID)
 VALUES ($1, $2, $3) RETURNING ID
@@ -99,10 +99,6 @@ VALUES ($1, $2, $3) RETURNING ID
 			a.UserID,
 			a.DomainID,
 		).Scan(&a.ID)
-		if err != nil {
-			return err
-		}
-		return nil
 	} else {
 		_, err := t.exec(
 			`
