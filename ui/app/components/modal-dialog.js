@@ -16,18 +16,17 @@ export default Ember.Component.extend({
   init() {
     this._super(...arguments);
     this.addObserver('visible', () => {
-      if (this.get('visible')) {
-        this.set('errorMessage', null);
-        this.$().modal('show');
-      } else {
-        this.$().modal('hide');
-      }
+      this.$().modal(this.get('visible') ? 'show' : 'hide');
     });
   },
 
   didInsertElement() {
     this.$().modal({
       closable: false,
+      duration: 0,
+      onShow: () => {
+        this.set('errorMessage', null);
+      },
       onApprove: () => {
         this.set('loading', true);
         this.get('getPromise')()
@@ -39,6 +38,10 @@ export default Ember.Component.extend({
         .finally(() => {
           this.set('loading', false);
         });
+        return false;
+      },
+      onDeny: () => {
+        this.set('visible', false);
         return false;
       }
     });

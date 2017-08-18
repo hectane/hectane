@@ -15,7 +15,7 @@
             <i class="{{if user.is_admin 'checkmark' 'remove' }} icon"></i>
           </td>
           <td class="collapsing">
-            <button class="ui negative mini button" {{action 'delete' user}}>
+            <button class="ui negative mini button" {{action 'showDeleteDialog' user}}>
               Delete
             </button>
           </td>
@@ -35,12 +35,23 @@
 </table>
 
 {{#modal-dialog
+  title='Delete User'
+  visible=deleteVisible
+  loading=deleteLoading
+  getPromise=(action 'getDeletePromise')
+}}
+  <p>
+    Are you sure you wish to delete user {{currentUser.username}}?
+  </p>
+{{/modal-dialog}}
+
+{{#modal-dialog
   title='New User'
   visible=newVisible
   loading=newLoading
   getPromise=(action 'getNewPromise')
 }}
-  <form class="ui form">
+  <div class="ui form">
     <div class="field">
       <div class="ui fluid input">
         {{input placeholder='Username' value=username disabled=newLoading}}
@@ -57,5 +68,5 @@
         <label>Admin</label>
       </div>
     </div>
-  </form>
+  </div>
 {{/modal-dialog}}

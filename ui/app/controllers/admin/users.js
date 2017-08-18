@@ -4,8 +4,15 @@ export default Ember.Controller.extend({
   store: Ember.inject.service('store'),
 
   actions: {
-    delete(user) {
-      user.destroyRecord();
+    showDeleteDialog(user) {
+      this.setProperties({
+        currentUser: user,
+        deleteVisible: true
+      });
+    },
+
+    getDeletePromise() {
+      return this.get('currentUser').destroyRecord();
     },
 
     showNewDialog() {
