@@ -68,6 +68,10 @@ func New(cfg *Config) (*Server, error) {
 		"/api/folders/{id:[0-9]+}/delete",
 		s.post(s.auth(s.deleteFolder)),
 	)
+	router.HandleFunc(
+		"/api/folders/{id:[0-9]+}/messages",
+		s.auth(s.messages),
+	)
 	router.PathPrefix("/").Handler(http.FileServer(HTTP))
 	go func() {
 		defer close(s.stopped)
