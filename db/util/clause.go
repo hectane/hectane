@@ -20,7 +20,7 @@ type EqClause struct {
 }
 
 func (e *EqClause) String() string {
-	return fmt.Sprintf("%s = $", e.Field)
+	return fmt.Sprintf("%s = $", safeName(e.Field))
 }
 
 func (e *EqClause) Values() []interface{} {

@@ -16,17 +16,17 @@ func InsertItem(t *Token, v interface{}) error {
 		itemVal       = reflect.Indirect(reflect.ValueOf(v))
 		fieldNames    []string
 		fieldValues   []string
-		fnQueryVal    = reflect.ValueOf(t.queryRow)
+		fnQueryVal    = reflect.ValueOf(t.QueryRow)
 		fnQueryParams []reflect.Value
 	)
 	for i := 1; i < itemType.NumField(); i++ {
-		fieldNames = append(fieldNames, itemType.Field(i).Name)
+		fieldNames = append(fieldNames, safeName(itemType.Field(i).Name))
 		fieldValues = append(fieldValues, fmt.Sprintf("$%d", i))
 		fnQueryParams = append(fnQueryParams, itemVal.Field(i))
 	}
 	fnQueryParams = append([]reflect.Value{reflect.ValueOf(fmt.Sprintf(
 		"INSERT INTO %s (%s) VALUES (%s) RETURNING ID",
-		itemType.Name(),
+		safeName(itemType.Name()),
 		strings.Join(fieldNames, ", "),
 		strings.Join(fieldValues, ", "),
 	))}, fnQueryParams...)

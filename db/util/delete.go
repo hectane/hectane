@@ -9,11 +9,11 @@ import (
 // be a pointer and the first field must be an ID.
 func DeleteItem(t *Token, v interface{}) error {
 	var (
-		fnVal    = reflect.ValueOf(t.exec)
+		fnVal    = reflect.ValueOf(t.Exec)
 		fnParams = []reflect.Value{
 			reflect.ValueOf(fmt.Sprintf(
 				"DELETE FROM %s WHERE ID = $1",
-				reflect.TypeOf(v).Elem().Name(),
+				safeName(reflect.TypeOf(v).Elem().Name()),
 			)),
 			reflect.Indirect(reflect.ValueOf(v)).Field(0),
 		}

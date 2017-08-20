@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/hectane/hectane/db"
+	"github.com/hectane/hectane/db/util"
 )
 
 const (
@@ -13,12 +14,14 @@ const (
 )
 
 func (s *Server) users(w http.ResponseWriter, r *http.Request) {
-	u, err := db.Users(db.DefaultToken)
+	i, err := util.SelectItems(db.Token, db.User{}, util.SelectParams{
+		OrderBy: "Username",
+	})
 	if err != nil {
 		http.Error(w, statusDatabaseError, http.StatusInternalServerError)
 		return
 	}
-	s.writeJson(w, u)
+	s.writeJson(w, i)
 }
 
 type newUserParams struct {
@@ -41,7 +44,7 @@ func (s *Server) newUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, statusDatabaseError, http.StatusInternalServerError)
 		return
 	}
-	if err := u.Save(db.DefaultToken); err != nil {
+	if err := util.InsertItem(db.Token, u); err != nil {
 		http.Error(w, statusDatabaseError, http.StatusInternalServerError)
 		return
 	}
@@ -50,14 +53,19 @@ func (s *Server) newUser(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) deleteUser(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
-	err := db.Transaction(func(t *db.Token) error {
-		u, err := db.FindUser(t, "ID", id)
+	err := db.Token.Transaction(func(t *util.Token) error {
+		i, err := util.SelectItem(t, db.User{}, util.SelectParams{
+			Where: &util.EqClause{
+				Field: "ID",
+				Value: id,
+			},
+		})
 		if err != nil {
 			return err
 		}
-		return u.Delete(t)
+		return util.DeleteItem(t, i)
 	})
-	if err == db.ErrRowCount {
+	if err == util.ErrRowCount {
 		http.Error(w, statusObjectNotFound, http.StatusNotFound)
 		return
 	}

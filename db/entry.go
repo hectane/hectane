@@ -3,6 +3,7 @@ package db
 import (
 	"time"
 
+	"github.com/hectane/hectane/db/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,22 +16,22 @@ type Entry struct {
 	Message string    `json:"message"`
 }
 
-func migrateEntriesTable(t *Token) error {
-	_, err := t.exec(
+func migrateEntryTable(t *util.Token) error {
+	_, err := t.Exec(
 		`
-CREATE TABLE IF NOT EXISTS Entries (
-    ID      SERIAL PRIMARY KEY,
-    Context VARCHAR(40) NOT NULL,
-    Time    TIMESTAMPTZ NOT NULL,
-    Level   VARCHAR(40) NOT NULL,
-    Message TEXT
+CREATE TABLE IF NOT EXISTS Entry (
+	ID      SERIAL PRIMARY KEY,
+	Context VARCHAR(40) NOT NULL,
+	Time    TIMESTAMPTZ NOT NULL,
+	Level   VARCHAR(40) NOT NULL,
+	Message TEXT
 )
         `,
 	)
 	if err != nil {
 		return err
 	}
-	_, err = t.exec(
+	_, err = t.Exec(
 		`
 CREATE INDEX IF NOT EXISTS entries_context ON Entries (context)
         `,
@@ -38,7 +39,7 @@ CREATE INDEX IF NOT EXISTS entries_context ON Entries (context)
 	if err != nil {
 		return err
 	}
-	_, err = t.exec(
+	_, err = t.Exec(
 		`
 CREATE INDEX IF NOT EXISTS entries_level ON Entries (level)
         `,
@@ -73,28 +74,4 @@ func NewEntry(entry *logrus.Entry) *Entry {
 		Level:   level,
 		Message: entry.Message,
 	}
-}
-
-// ClearEntries removes all entries from the database.
-func ClearEntries(t *Token) error {
-	_, err := t.exec(
-		`
-TRUNCATE TABLE Entries
-        `,
-	)
-	return err
-}
-
-// Save persists the entry in the database.
-func (e *Entry) Save(t *Token) error {
-	return t.queryRow(
-		`
-INSERT INTO Entries (Context, Time, Level, Message)
-VALUES ($1, $2, $3, $4) RETURNING ID
-        `,
-		e.Context,
-		e.Time,
-		e.Level,
-		e.Message,
-	).Scan(&e.ID)
 }

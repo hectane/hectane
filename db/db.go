@@ -2,16 +2,16 @@ package db
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 
+	"github.com/hectane/hectane/db/util"
 	_ "github.com/lib/pq"
+	"github.com/sirupsen/logrus"
 )
 
 var (
-	db *sql.DB
-
-	ErrRowCount = errors.New("exactly one row must be returned")
+	Token *util.Token
+	log   = logrus.WithField("context", "db")
 )
 
 // Connect establishes a connection to the PostgreSQL database used for all SQL
@@ -32,6 +32,6 @@ func Connect(name, user, password, host string, port int) error {
 	if err != nil {
 		return err
 	}
-	db = c
+	Token = util.NewToken(c)
 	return nil
 }

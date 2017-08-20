@@ -11,21 +11,21 @@ type Token struct {
 	db *sql.DB
 }
 
-func (t *Token) query(query string, args ...interface{}) (*sql.Rows, error) {
+func (t *Token) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	if t.tx != nil {
 		return t.tx.Query(query, args...)
 	}
 	return t.db.Query(query, args...)
 }
 
-func (t *Token) queryRow(query string, args ...interface{}) *sql.Row {
+func (t *Token) QueryRow(query string, args ...interface{}) *sql.Row {
 	if t.tx != nil {
 		return t.tx.QueryRow(query, args...)
 	}
 	return t.db.QueryRow(query, args...)
 }
 
-func (t *Token) exec(query string, args ...interface{}) (sql.Result, error) {
+func (t *Token) Exec(query string, args ...interface{}) (sql.Result, error) {
 	if t.tx != nil {
 		return t.tx.Exec(query, args...)
 	}
@@ -49,9 +49,9 @@ func (t *Token) Transaction(f func(*Token) error) error {
 	}
 	tt := &Token{tx: tx}
 	if err := f(tt); err != nil {
-		t.tx.Rollback()
+		tx.Rollback()
 		return err
 	}
-	t.tx.Commit()
+	tx.Commit()
 	return nil
 }

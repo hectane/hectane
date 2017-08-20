@@ -2,7 +2,9 @@ package util
 
 import (
 	"database/sql"
+	"fmt"
 	"reflect"
+	"strings"
 )
 
 // rowsToItemSlice converts a row of items to a slice of the same type as v. It
@@ -29,4 +31,19 @@ func rowsToItemSlice(r *sql.Rows, v interface{}) (interface{}, error) {
 		sliceVal = reflect.Append(sliceVal, itemVal)
 	}
 	return sliceVal.Interface(), nil
+}
+
+// safeName ensures that the provided name is safe for use in an SQL statement.
+// This ensures that the name does not match a reserved keyword.
+func safeName(v string) string {
+	switch strings.ToLower(v) {
+	case "from":
+		fallthrough
+	case "to":
+		fallthrough
+	case "user":
+		return fmt.Sprintf("%s_", v)
+	default:
+		return v
+	}
 }

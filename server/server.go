@@ -37,6 +37,10 @@ func New(cfg *Config) (*Server, error) {
 		}
 	)
 	router.HandleFunc(
+		"/api/admin/log",
+		s.auth(s.admin(s.logFn)),
+	)
+	router.HandleFunc(
 		"/api/admin/users",
 		s.auth(s.admin(s.users)),
 	)

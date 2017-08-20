@@ -14,20 +14,20 @@ func UpdateItem(t *Token, v interface{}) error {
 		itemType         = reflect.TypeOf(v).Elem()
 		itemVal          = reflect.Indirect(reflect.ValueOf(v))
 		fieldAssignments []string
-		fnVal            = reflect.ValueOf(t.exec)
+		fnVal            = reflect.ValueOf(t.Exec)
 		fnParams         []reflect.Value
 	)
 	for i := 1; i < itemType.NumField(); i++ {
 		fieldAssignments = append(
 			fieldAssignments,
-			fmt.Sprintf("%s=$%d", itemType.Field(i).Name, i),
+			fmt.Sprintf("%s=$%d", safeName(itemType.Field(i).Name), i),
 		)
 		fnParams = append(fnParams, itemVal.Field(i))
 	}
 	fnParams = append(fnParams, itemVal.Field(0))
 	fnParams = append([]reflect.Value{reflect.ValueOf(fmt.Sprintf(
 		"UPDATE %s SET %s WHERE ID = $%d",
-		itemType.Name(),
+		safeName(itemType.Name()),
 		strings.Join(fieldAssignments, ", "),
 		itemType.NumField(),
 	))}, fnParams...)

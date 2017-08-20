@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	"github.com/hectane/hectane/db"
+	"github.com/hectane/hectane/db/util"
 )
 
 const (
@@ -36,19 +37,23 @@ func (s *Server) post(h http.HandlerFunc) http.HandlerFunc {
 // context.
 func (s *Server) auth(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var u *db.User
 		session, _ := s.sessions.Get(r, sessionName)
 		v, ok := session.Values[sessionUserID]
 		if !ok {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
-		u, err := db.FindUser(db.DefaultToken, "ID", v)
+		i, err := util.SelectItem(db.Token, db.User{}, util.SelectParams{
+			Where: &util.EqClause{
+				Field: "ID",
+				Value: v,
+			},
+		})
 		if err != nil {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
-		ctx := context.WithValue(r.Context(), contextUser, u)
+		ctx := context.WithValue(r.Context(), contextUser, i)
 		h.ServeHTTP(w, r.WithContext(ctx))
 	}
 }

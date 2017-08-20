@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/hectane/hectane/db"
+	"github.com/hectane/hectane/db/util"
 )
 
 const (
@@ -14,12 +15,18 @@ const (
 
 func (s *Server) folders(w http.ResponseWriter, r *http.Request) {
 	u := r.Context().Value(contextUser).(*db.User)
-	f, err := db.Folders(db.DefaultToken, u.ID)
+	i, err := util.SelectItems(db.Token, db.Folder{}, util.SelectParams{
+		Where: &util.EqClause{
+			Field: "UserID",
+			Value: u.ID,
+		},
+		OrderBy: "Name",
+	})
 	if err != nil {
 		http.Error(w, statusDatabaseError, http.StatusInternalServerError)
 		return
 	}
-	s.writeJson(w, f)
+	s.writeJson(w, i)
 }
 
 type newFolderParams struct {
@@ -39,7 +46,7 @@ func (s *Server) newFolder(w http.ResponseWriter, r *http.Request) {
 		Name:   p.Name,
 		UserID: u.ID,
 	}
-	if err := f.Save(db.DefaultToken); err != nil {
+	if err := util.InsertItem(db.Token, f); err != nil {
 		http.Error(w, statusDatabaseError, http.StatusInternalServerError)
 		return
 	}
@@ -49,14 +56,25 @@ func (s *Server) newFolder(w http.ResponseWriter, r *http.Request) {
 func (s *Server) deleteFolder(w http.ResponseWriter, r *http.Request) {
 	u := r.Context().Value(contextUser).(*db.User)
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
-	err := db.Transaction(func(t *db.Token) error {
-		f, err := db.FindFolder(t, id, u.ID)
+	err := db.Token.Transaction(func(t *util.Token) error {
+		i, err := util.SelectItem(t, db.Folder{}, util.SelectParams{
+			Where: &util.AndClause{
+				&util.EqClause{
+					Field: "ID",
+					Value: id,
+				},
+				&util.EqClause{
+					Field: "UserID",
+					Value: u.ID,
+				},
+			},
+		})
 		if err != nil {
 			return err
 		}
-		return f.Delete(t)
+		return util.DeleteItem(t, i)
 	})
-	if err == db.ErrRowCount {
+	if err == util.ErrRowCount {
 		http.Error(w, statusObjectNotFound, http.StatusNotFound)
 		return
 	}
