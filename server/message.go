@@ -7,19 +7,19 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/hectane/hectane/db"
 	"github.com/hectane/hectane/db/models"
-	"github.com/hectane/hectane/db/util"
+	"github.com/hectane/hectane/db/sql"
 )
 
 func (s *Server) messages(w http.ResponseWriter, r *http.Request) {
 	u := r.Context().Value(contextUser).(*models.User)
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
-	i, err := util.SelectItems(db.Token, models.Message{}, util.SelectParams{
-		Where: &util.AndClause{
-			&util.EqClause{
+	i, err := sql.SelectItems(db.Token, models.Message{}, sql.SelectParams{
+		Where: &sql.AndClause{
+			&sql.EqClause{
 				Field: "UserID",
 				Value: u.ID,
 			},
-			&util.EqClause{
+			&sql.EqClause{
 				Field: "FolderID",
 				Value: id,
 			},

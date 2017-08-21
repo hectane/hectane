@@ -8,7 +8,7 @@ import (
 
 	"github.com/hectane/hectane/db"
 	"github.com/hectane/hectane/db/models"
-	"github.com/hectane/hectane/db/util"
+	"github.com/hectane/hectane/db/sql"
 	"github.com/hectane/hectane/server"
 	"github.com/howeyc/gopass"
 	"github.com/sirupsen/logrus"
@@ -111,7 +111,7 @@ func main() {
 				}
 
 				// Store the user in the database
-				if err := util.InsertItem(db.Token, u); err != nil {
+				if err := sql.InsertItem(db.Token, u); err != nil {
 					return err
 				}
 

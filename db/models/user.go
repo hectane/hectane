@@ -3,7 +3,7 @@ package models
 import (
 	"encoding/base64"
 
-	"github.com/hectane/hectane/db/util"
+	"github.com/hectane/hectane/db/sql"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -18,7 +18,7 @@ type User struct {
 	IsAdmin  bool   `json:"is_admin"`
 }
 
-func MigrateUsers(t *util.Token) error {
+func MigrateUsers(t *sql.Token) error {
 	_, err := t.Exec(
 		`
 CREATE TABLE IF NOT EXISTS User_ (

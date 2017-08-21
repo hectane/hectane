@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/hectane/hectane/db/util"
+	"github.com/hectane/hectane/db/sql"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,7 +18,7 @@ type Entry struct {
 	Message string    `json:"message"`
 }
 
-func MigrateEntries(t *util.Token) error {
+func MigrateEntries(t *sql.Token) error {
 	_, err := t.Exec(
 		`
 CREATE TABLE IF NOT EXISTS Entry (

@@ -4,13 +4,13 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/hectane/hectane/db/util"
+	dbsql "github.com/hectane/hectane/db/sql"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 )
 
 var (
-	Token *util.Token
+	Token *dbsql.Token
 	log   = logrus.WithField("context", "db")
 )
 
@@ -32,6 +32,6 @@ func Connect(name, user, password, host string, port int) error {
 	if err != nil {
 		return err
 	}
-	Token = util.NewToken(c)
+	Token = dbsql.NewToken(c)
 	return nil
 }

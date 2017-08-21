@@ -2,14 +2,14 @@ package db
 
 import (
 	"github.com/hectane/hectane/db/models"
-	"github.com/hectane/hectane/db/util"
+	"github.com/hectane/hectane/db/sql"
 )
 
 // Model contains metadata necessary for interacting with data in a specific
 // database table.
 type Model struct {
 	Instance interface{}
-	Migrate  func(t *util.Token) error
+	Migrate  func(t *sql.Token) error
 }
 
 var modelRegistry = map[string]Model{

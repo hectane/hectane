@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/hectane/hectane/db/util"
+	"github.com/hectane/hectane/db/sql"
 )
 
 const (
@@ -18,7 +18,7 @@ type Folder struct {
 	UserID int    `json:"user_id"`
 }
 
-func MigrateFolders(t *util.Token) error {
+func MigrateFolders(t *sql.Token) error {
 	_, err := t.Exec(
 		`
 CREATE TABLE IF NOT EXISTS Folder (

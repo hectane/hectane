@@ -8,7 +8,7 @@ import (
 
 	"github.com/hectane/hectane/db"
 	"github.com/hectane/hectane/db/models"
-	"github.com/hectane/hectane/db/util"
+	"github.com/hectane/hectane/db/sql"
 )
 
 const (
@@ -44,8 +44,8 @@ func (s *Server) auth(h http.HandlerFunc) http.HandlerFunc {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
-		i, err := util.SelectItem(db.Token, models.User{}, util.SelectParams{
-			Where: &util.EqClause{
+		i, err := sql.SelectItem(db.Token, models.User{}, sql.SelectParams{
+			Where: &sql.EqClause{
 				Field: "ID",
 				Value: v,
 			},

@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/hectane/hectane/db/util"
+	"github.com/hectane/hectane/db/sql"
 )
 
 const Accounts = "accounts"
@@ -14,7 +14,7 @@ type Account struct {
 	DomainID int    `json:"domain_id"`
 }
 
-func MigrateAccounts(t *util.Token) error {
+func MigrateAccounts(t *sql.Token) error {
 	_, err := t.Exec(
 		`
 CREATE TABLE IF NOT EXISTS Account (

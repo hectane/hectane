@@ -2,7 +2,7 @@ package db
 
 import (
 	"github.com/hectane/hectane/db/models"
-	"github.com/hectane/hectane/db/util"
+	"github.com/hectane/hectane/db/sql"
 )
 
 var migrations = []string{
@@ -17,7 +17,7 @@ var migrations = []string{
 // Migrate attempts to perform all pending database migrations. This function
 // should be idempotent.
 func Migrate() error {
-	return Token.Transaction(func(t *util.Token) error {
+	return Token.Transaction(func(t *sql.Token) error {
 		for _, m := range migrations {
 			log.Debugf("migrating %s...", m)
 			if err := modelRegistry[m].Migrate(t); err != nil {
