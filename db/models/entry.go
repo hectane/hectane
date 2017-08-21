@@ -1,4 +1,4 @@
-package db
+package models
 
 import (
 	"time"
@@ -6,6 +6,8 @@ import (
 	"github.com/hectane/hectane/db/util"
 	"github.com/sirupsen/logrus"
 )
+
+const Entries = "entries"
 
 // Entry represents a logfile entry.
 type Entry struct {
@@ -16,7 +18,7 @@ type Entry struct {
 	Message string    `json:"message"`
 }
 
-func migrateEntryTable(t *util.Token) error {
+func MigrateEntries(t *util.Token) error {
 	_, err := t.Exec(
 		`
 CREATE TABLE IF NOT EXISTS Entry (
@@ -26,7 +28,7 @@ CREATE TABLE IF NOT EXISTS Entry (
 	Level   VARCHAR(40) NOT NULL,
 	Message TEXT
 )
-        `,
+		`,
 	)
 	if err != nil {
 		return err
@@ -34,7 +36,7 @@ CREATE TABLE IF NOT EXISTS Entry (
 	_, err = t.Exec(
 		`
 CREATE INDEX IF NOT EXISTS entries_context ON Entries (context)
-        `,
+		`,
 	)
 	if err != nil {
 		return err
@@ -42,7 +44,7 @@ CREATE INDEX IF NOT EXISTS entries_context ON Entries (context)
 	_, err = t.Exec(
 		`
 CREATE INDEX IF NOT EXISTS entries_level ON Entries (level)
-        `,
+		`,
 	)
 	return err
 }

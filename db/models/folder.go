@@ -1,10 +1,12 @@
-package db
+package models
 
 import (
 	"github.com/hectane/hectane/db/util"
 )
 
 const (
+	Folders = "folders"
+
 	InboxFolder = "Inbox"
 	SentFolder  = "Sent"
 )
@@ -16,7 +18,7 @@ type Folder struct {
 	UserID int    `json:"user_id"`
 }
 
-func migrateFolderTable(t *util.Token) error {
+func MigrateFolders(t *util.Token) error {
 	_, err := t.Exec(
 		`
 CREATE TABLE IF NOT EXISTS Folder (

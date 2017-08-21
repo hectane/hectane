@@ -1,4 +1,4 @@
-package db
+package models
 
 import (
 	"encoding/base64"
@@ -6,6 +6,8 @@ import (
 	"github.com/hectane/hectane/db/util"
 	"golang.org/x/crypto/bcrypt"
 )
+
+const Users = "users"
 
 // User represents an individual user within the system that can login, send,
 // and receive emails.
@@ -16,7 +18,7 @@ type User struct {
 	IsAdmin  bool   `json:"is_admin"`
 }
 
-func migrateUserTable(t *util.Token) error {
+func MigrateUsers(t *util.Token) error {
 	_, err := t.Exec(
 		`
 CREATE TABLE IF NOT EXISTS User_ (
@@ -25,7 +27,7 @@ CREATE TABLE IF NOT EXISTS User_ (
 	Password VARCHAR(80) NOT NULL,
 	IsAdmin  BOOLEAN
 )
-        `,
+		`,
 	)
 	return err
 }

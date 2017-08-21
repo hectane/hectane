@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/hectane/hectane/db"
+	"github.com/hectane/hectane/db/models"
 	"github.com/hectane/hectane/db/util"
 )
 
@@ -18,7 +19,7 @@ type loginParams struct {
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	p := r.Context().Value(contextParams).(*loginParams)
-	i, err := util.SelectItem(db.Token, db.User{}, util.SelectParams{
+	i, err := util.SelectItem(db.Token, models.User{}, util.SelectParams{
 		Where: &util.EqClause{
 			Field: "Username",
 			Value: p.Username,
@@ -28,7 +29,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, statusInvalidCredentials, http.StatusForbidden)
 		return
 	}
-	u := i.(*db.User)
+	u := i.(*models.User)
 	if err := u.Authenticate(p.Password); err != nil {
 		http.Error(w, statusInvalidCredentials, http.StatusForbidden)
 		return

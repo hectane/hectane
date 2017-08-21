@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	"github.com/hectane/hectane/db"
+	"github.com/hectane/hectane/db/models"
 	"github.com/hectane/hectane/db/util"
 )
 
@@ -43,7 +44,7 @@ func (s *Server) auth(h http.HandlerFunc) http.HandlerFunc {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
-		i, err := util.SelectItem(db.Token, db.User{}, util.SelectParams{
+		i, err := util.SelectItem(db.Token, models.User{}, util.SelectParams{
 			Where: &util.EqClause{
 				Field: "ID",
 				Value: v,
@@ -61,7 +62,7 @@ func (s *Server) auth(h http.HandlerFunc) http.HandlerFunc {
 // admin ensures that the current user is an administrator.
 func (s *Server) admin(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		u := r.Context().Value(contextUser).(*db.User)
+		u := r.Context().Value(contextUser).(*models.User)
 		if !u.IsAdmin {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return

@@ -1,16 +1,17 @@
 package db
 
 import (
+	"github.com/hectane/hectane/db/models"
 	"github.com/hectane/hectane/db/util"
 )
 
 var migrations = []string{
-	EntryModel,
-	UserModel,
-	DomainModel,
-	AccountModel,
-	FolderModel,
-	MessageModel,
+	models.Entries,
+	models.Users,
+	models.Domains,
+	models.Accounts,
+	models.Folders,
+	models.Messages,
 }
 
 // Migrate attempts to perform all pending database migrations. This function
@@ -18,10 +19,7 @@ var migrations = []string{
 func Migrate() error {
 	return Token.Transaction(func(t *util.Token) error {
 		for _, m := range migrations {
-			log.Debugf(
-				"migrating \"%s\" model...",
-				m,
-			)
+			log.Debugf("migrating %s...", m)
 			if err := modelRegistry[m].Migrate(t); err != nil {
 				return err
 			}

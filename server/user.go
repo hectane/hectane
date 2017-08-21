@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/hectane/hectane/db"
+	"github.com/hectane/hectane/db/models"
 	"github.com/hectane/hectane/db/util"
 )
 
@@ -14,7 +15,7 @@ const (
 )
 
 func (s *Server) users(w http.ResponseWriter, r *http.Request) {
-	i, err := util.SelectItems(db.Token, db.User{}, util.SelectParams{
+	i, err := util.SelectItems(db.Token, models.User{}, util.SelectParams{
 		OrderBy: "Username",
 	})
 	if err != nil {
@@ -36,7 +37,7 @@ func (s *Server) newUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, statusInvalidUsername, http.StatusBadRequest)
 		return
 	}
-	u := &db.User{
+	u := &models.User{
 		Username: p.Username,
 		IsAdmin:  p.IsAdmin,
 	}
@@ -54,7 +55,7 @@ func (s *Server) newUser(w http.ResponseWriter, r *http.Request) {
 func (s *Server) deleteUser(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
 	err := db.Token.Transaction(func(t *util.Token) error {
-		i, err := util.SelectItem(t, db.User{}, util.SelectParams{
+		i, err := util.SelectItem(t, models.User{}, util.SelectParams{
 			Where: &util.EqClause{
 				Field: "ID",
 				Value: id,

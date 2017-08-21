@@ -1,16 +1,8 @@
 package db
 
 import (
+	"github.com/hectane/hectane/db/models"
 	"github.com/hectane/hectane/db/util"
-)
-
-const (
-	EntryModel   = "entry"
-	UserModel    = "user"
-	DomainModel  = "domain"
-	AccountModel = "account"
-	FolderModel  = "folder"
-	MessageModel = "message"
 )
 
 // Model contains metadata necessary for interacting with data in a specific
@@ -21,28 +13,28 @@ type Model struct {
 }
 
 var modelRegistry = map[string]Model{
-	EntryModel: Model{
-		Instance: Entry{},
-		Migrate:  migrateEntryTable,
+	models.Entries: Model{
+		Instance: models.Entry{},
+		Migrate:  models.MigrateEntries,
 	},
-	UserModel: Model{
-		Instance: User{},
-		Migrate:  migrateUserTable,
+	models.Users: Model{
+		Instance: models.User{},
+		Migrate:  models.MigrateUsers,
 	},
-	DomainModel: Model{
-		Instance: Domain{},
-		Migrate:  migrateDomainTable,
+	models.Domains: Model{
+		Instance: models.Domain{},
+		Migrate:  models.MigrateDomains,
 	},
-	AccountModel: Model{
-		Instance: Account{},
-		Migrate:  migrateAccountTable,
+	models.Accounts: Model{
+		Instance: models.Account{},
+		Migrate:  models.MigrateAccounts,
 	},
-	FolderModel: Model{
-		Instance: Folder{},
-		Migrate:  migrateFolderTable,
+	models.Folders: Model{
+		Instance: models.Folder{},
+		Migrate:  models.MigrateFolders,
 	},
-	MessageModel: Model{
-		Instance: Message{},
-		Migrate:  migrateMessageTable,
+	models.Messages: Model{
+		Instance: models.Message{},
+		Migrate:  models.MigrateMessages,
 	},
 }

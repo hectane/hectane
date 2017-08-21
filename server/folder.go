@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/hectane/hectane/db"
+	"github.com/hectane/hectane/db/models"
 	"github.com/hectane/hectane/db/util"
 )
 
@@ -14,8 +15,8 @@ const (
 )
 
 func (s *Server) folders(w http.ResponseWriter, r *http.Request) {
-	u := r.Context().Value(contextUser).(*db.User)
-	i, err := util.SelectItems(db.Token, db.Folder{}, util.SelectParams{
+	u := r.Context().Value(contextUser).(*models.User)
+	i, err := util.SelectItems(db.Token, models.Folder{}, util.SelectParams{
 		Where: &util.EqClause{
 			Field: "UserID",
 			Value: u.ID,
@@ -35,14 +36,14 @@ type newFolderParams struct {
 
 func (s *Server) newFolder(w http.ResponseWriter, r *http.Request) {
 	var (
-		u = r.Context().Value(contextUser).(*db.User)
+		u = r.Context().Value(contextUser).(*models.User)
 		p = r.Context().Value(contextParams).(*newFolderParams)
 	)
 	if len(p.Name) == 0 || len(p.Name) > 40 {
 		http.Error(w, statusInvalidFolderName, http.StatusBadRequest)
 		return
 	}
-	f := &db.Folder{
+	f := &models.Folder{
 		Name:   p.Name,
 		UserID: u.ID,
 	}
@@ -54,10 +55,10 @@ func (s *Server) newFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) deleteFolder(w http.ResponseWriter, r *http.Request) {
-	u := r.Context().Value(contextUser).(*db.User)
+	u := r.Context().Value(contextUser).(*models.User)
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
 	err := db.Token.Transaction(func(t *util.Token) error {
-		i, err := util.SelectItem(t, db.Folder{}, util.SelectParams{
+		i, err := util.SelectItem(t, models.Folder{}, util.SelectParams{
 			Where: &util.AndClause{
 				&util.EqClause{
 					Field: "ID",

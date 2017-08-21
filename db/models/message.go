@@ -1,10 +1,12 @@
-package db
+package models
 
 import (
 	"time"
 
 	"github.com/hectane/hectane/db/util"
 )
+
+const Messages = "messages"
 
 // Message represents a single email message.
 type Message struct {
@@ -19,7 +21,7 @@ type Message struct {
 	FolderID       int       `json:"folder_id"`
 }
 
-func migrateMessageTable(t *util.Token) error {
+func MigrateMessages(t *util.Token) error {
 	_, err := t.Exec(
 		`
 CREATE TABLE IF NOT EXISTS Message (

@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/hectane/hectane/db"
+	"github.com/hectane/hectane/db/models"
 	"github.com/hectane/hectane/db/util"
 	"github.com/hectane/hectane/server"
 	"github.com/howeyc/gopass"
@@ -101,7 +102,7 @@ func main() {
 				}
 
 				// Generate a new user with the data
-				u := &db.User{
+				u := &models.User{
 					Username: username,
 					IsAdmin:  true,
 				}
