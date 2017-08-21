@@ -21,7 +21,7 @@ type Message struct {
 	FolderID       int       `json:"folder_id"`
 }
 
-func MigrateMessages(t *sql.Token) error {
+func migrateMessages(t *sql.Token) error {
 	_, err := t.Exec(
 		`
 CREATE TABLE IF NOT EXISTS Message (

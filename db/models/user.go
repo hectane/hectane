@@ -18,7 +18,7 @@ type User struct {
 	IsAdmin  bool   `json:"is_admin"`
 }
 
-func MigrateUsers(t *sql.Token) error {
+func migrateUsers(t *sql.Token) error {
 	_, err := t.Exec(
 		`
 CREATE TABLE IF NOT EXISTS User_ (

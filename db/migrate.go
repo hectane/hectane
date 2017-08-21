@@ -18,9 +18,13 @@ var migrations = []string{
 // should be idempotent.
 func Migrate() error {
 	return Token.Transaction(func(t *sql.Token) error {
-		for _, m := range migrations {
+		for _, n := range migrations {
+			m, err := models.Get(n)
+			if err != nil {
+				return err
+			}
 			log.Debugf("migrating %s...", m)
-			if err := modelRegistry[m].Migrate(t); err != nil {
+			if err := m.Migrate(t); err != nil {
 				return err
 			}
 		}

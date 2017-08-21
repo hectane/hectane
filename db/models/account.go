@@ -14,7 +14,7 @@ type Account struct {
 	DomainID int    `json:"domain_id"`
 }
 
-func MigrateAccounts(t *sql.Token) error {
+func migrateAccounts(t *sql.Token) error {
 	_, err := t.Exec(
 		`
 CREATE TABLE IF NOT EXISTS Account (

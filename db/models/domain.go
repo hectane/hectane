@@ -13,7 +13,7 @@ type Domain struct {
 	Name string `json:"name"`
 }
 
-func MigrateDomains(t *sql.Token) error {
+func migrateDomains(t *sql.Token) error {
 	_, err := t.Exec(
 		`
 CREATE TABLE IF NOT EXISTS Domain (

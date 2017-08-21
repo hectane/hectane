@@ -18,7 +18,7 @@ type Entry struct {
 	Message string    `json:"message"`
 }
 
-func MigrateEntries(t *sql.Token) error {
+func migrateEntries(t *sql.Token) error {
 	_, err := t.Exec(
 		`
 CREATE TABLE IF NOT EXISTS Entry (

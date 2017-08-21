@@ -18,7 +18,7 @@ type Folder struct {
 	UserID int    `json:"user_id"`
 }
 
-func MigrateFolders(t *sql.Token) error {
+func migrateFolders(t *sql.Token) error {
 	_, err := t.Exec(
 		`
 CREATE TABLE IF NOT EXISTS Folder (
