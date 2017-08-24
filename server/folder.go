@@ -8,6 +8,7 @@ import (
 	"github.com/hectane/hectane/db"
 	"github.com/hectane/hectane/db/models"
 	"github.com/hectane/hectane/db/sql"
+	"github.com/hectane/hectane/server/jsonapi"
 )
 
 const (
@@ -16,7 +17,7 @@ const (
 
 func (s *Server) folders(w http.ResponseWriter, r *http.Request) {
 	u := r.Context().Value(contextUser).(*models.User)
-	i, err := sql.SelectItems(db.Token, models.Folder{}, sql.SelectParams{
+	i, err := jsonapi.Get(models.Folders, r.URL.Query(), sql.SelectParams{
 		Where: &sql.ComparisonClause{
 			Field:    "UserID",
 			Operator: sql.OpEq,
@@ -25,10 +26,10 @@ func (s *Server) folders(w http.ResponseWriter, r *http.Request) {
 		OrderBy: "Name",
 	})
 	if err != nil {
-		http.Error(w, statusDatabaseError, http.StatusInternalServerError)
+		jsonapi.WriteError(w, statusDatabaseError)
 		return
 	}
-	s.writeJson(w, i)
+	jsonapi.WriteData(w, models.Folders, i)
 }
 
 type newFolderParams struct {
