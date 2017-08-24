@@ -17,9 +17,10 @@ const (
 func (s *Server) folders(w http.ResponseWriter, r *http.Request) {
 	u := r.Context().Value(contextUser).(*models.User)
 	i, err := sql.SelectItems(db.Token, models.Folder{}, sql.SelectParams{
-		Where: &sql.EqClause{
-			Field: "UserID",
-			Value: u.ID,
+		Where: &sql.ComparisonClause{
+			Field:    "UserID",
+			Operator: sql.OpEq,
+			Value:    u.ID,
 		},
 		OrderBy: "Name",
 	})
@@ -60,13 +61,15 @@ func (s *Server) deleteFolder(w http.ResponseWriter, r *http.Request) {
 	err := db.Token.Transaction(func(t *sql.Token) error {
 		i, err := sql.SelectItem(t, models.Folder{}, sql.SelectParams{
 			Where: &sql.AndClause{
-				&sql.EqClause{
-					Field: "ID",
-					Value: id,
+				&sql.ComparisonClause{
+					Field:    "ID",
+					Operator: sql.OpEq,
+					Value:    id,
 				},
-				&sql.EqClause{
-					Field: "UserID",
-					Value: u.ID,
+				&sql.ComparisonClause{
+					Field:    "UserID",
+					Operator: sql.OpEq,
+					Value:    u.ID,
 				},
 			},
 		})

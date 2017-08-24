@@ -23,7 +23,7 @@ func Migrate() error {
 			if err != nil {
 				return err
 			}
-			log.Debugf("migrating %s...", m)
+			log.Debugf("migrating %s...", n)
 			if err := m.Migrate(t); err != nil {
 				return err
 			}

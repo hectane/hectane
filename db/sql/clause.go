@@ -5,6 +5,10 @@ import (
 	"strings"
 )
 
+const (
+	OpEq = "="
+)
+
 // Clause represents selection criteria for the SQL SELECT statement. When
 // generating the statement, the String() method is used to build the WHERE
 // clause and the Values() method returns any parameters required.
@@ -13,18 +17,19 @@ type Clause interface {
 	Values() []interface{}
 }
 
-// EqClause provides an extremely simple equality comparison.
-type EqClause struct {
-	Field string
-	Value interface{}
+// ComparisonClause provides a comparison.
+type ComparisonClause struct {
+	Field    string
+	Operator string
+	Value    interface{}
 }
 
-func (e *EqClause) String() string {
-	return fmt.Sprintf("%s = $", safeName(e.Field))
+func (c *ComparisonClause) String() string {
+	return fmt.Sprintf("%s %s $", safeName(c.Field), c.Operator)
 }
 
-func (e *EqClause) Values() []interface{} {
-	return []interface{}{e.Value}
+func (c *ComparisonClause) Values() []interface{} {
+	return []interface{}{c.Value}
 }
 
 // AndClause combines two or more clauses with the AND operator.

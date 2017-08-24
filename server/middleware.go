@@ -45,9 +45,10 @@ func (s *Server) auth(h http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		i, err := sql.SelectItem(db.Token, models.User{}, sql.SelectParams{
-			Where: &sql.EqClause{
-				Field: "ID",
-				Value: v,
+			Where: &sql.ComparisonClause{
+				Field:    "ID",
+				Operator: sql.OpEq,
+				Value:    v,
 			},
 		})
 		if err != nil {

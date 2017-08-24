@@ -56,9 +56,10 @@ func (s *Server) deleteUser(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
 	err := db.Token.Transaction(func(t *sql.Token) error {
 		i, err := sql.SelectItem(t, models.User{}, sql.SelectParams{
-			Where: &sql.EqClause{
-				Field: "ID",
-				Value: id,
+			Where: &sql.ComparisonClause{
+				Field:    "ID",
+				Operator: sql.OpEq,
+				Value:    id,
 			},
 		})
 		if err != nil {

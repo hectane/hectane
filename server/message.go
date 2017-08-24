@@ -15,13 +15,15 @@ func (s *Server) messages(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
 	i, err := sql.SelectItems(db.Token, models.Message{}, sql.SelectParams{
 		Where: &sql.AndClause{
-			&sql.EqClause{
-				Field: "UserID",
-				Value: u.ID,
+			&sql.ComparisonClause{
+				Field:    "UserID",
+				Operator: sql.OpEq,
+				Value:    u.ID,
 			},
-			&sql.EqClause{
-				Field: "FolderID",
-				Value: id,
+			&sql.ComparisonClause{
+				Field:    "FolderID",
+				Operator: sql.OpEq,
+				Value:    id,
 			},
 		},
 		OrderBy:   "Time",

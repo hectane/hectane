@@ -20,9 +20,10 @@ type loginParams struct {
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	p := r.Context().Value(contextParams).(*loginParams)
 	i, err := sql.SelectItem(db.Token, models.User{}, sql.SelectParams{
-		Where: &sql.EqClause{
-			Field: "Username",
-			Value: p.Username,
+		Where: &sql.ComparisonClause{
+			Field:    "Username",
+			Operator: sql.OpEq,
+			Value:    p.Username,
 		},
 	})
 	if err != nil {
