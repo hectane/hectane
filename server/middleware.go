@@ -7,8 +7,6 @@ import (
 	"reflect"
 
 	"github.com/hectane/hectane/db"
-	"github.com/hectane/hectane/db/models"
-	"github.com/hectane/hectane/db/sql"
 )
 
 const (
@@ -44,18 +42,12 @@ func (s *Server) auth(h http.HandlerFunc) http.HandlerFunc {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
-		i, err := sql.SelectItem(db.Token, models.User{}, sql.SelectParams{
-			Where: &sql.ComparisonClause{
-				Field:    "ID",
-				Operator: sql.OpEq,
-				Value:    v,
-			},
-		})
-		if err != nil {
+		u := &db.User{}
+		if err := db.C.First(u, v).Error; err != nil {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
-		ctx := context.WithValue(r.Context(), contextUser, i)
+		ctx := context.WithValue(r.Context(), contextUser, u)
 		h.ServeHTTP(w, r.WithContext(ctx))
 	}
 }
@@ -63,7 +55,7 @@ func (s *Server) auth(h http.HandlerFunc) http.HandlerFunc {
 // admin ensures that the current user is an administrator.
 func (s *Server) admin(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		u := r.Context().Value(contextUser).(*models.User)
+		u := r.Context().Value(contextUser).(*db.User)
 		if !u.IsAdmin {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return

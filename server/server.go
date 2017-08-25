@@ -37,44 +37,12 @@ func New(cfg *Config) (*Server, error) {
 		}
 	)
 	router.HandleFunc(
-		"/api/admin/log",
-		s.auth(s.admin(s.logFn)),
-	)
-	router.HandleFunc(
-		"/api/admin/users",
-		s.auth(s.admin(s.users)),
-	)
-	router.HandleFunc(
-		"/api/admin/users/new",
-		s.post(s.auth(s.admin(s.json(s.newUser, newUserParams{})))),
-	)
-	router.HandleFunc(
-		"/api/admin/users/{id:[0-9]+}/delete",
-		s.post(s.auth(s.admin(s.deleteUser))),
-	)
-	router.HandleFunc(
 		"/api/auth/login",
 		s.post(s.json(s.login, loginParams{})),
 	)
 	router.HandleFunc(
 		"/api/auth/logout",
 		s.post(s.auth(s.logout)),
-	)
-	router.HandleFunc(
-		"/api/folders",
-		s.auth(s.folders),
-	)
-	router.HandleFunc(
-		"/api/folders/new",
-		s.post(s.auth(s.json(s.newFolder, newFolderParams{}))),
-	)
-	router.HandleFunc(
-		"/api/folders/{id:[0-9]+}/delete",
-		s.post(s.auth(s.deleteFolder)),
-	)
-	router.HandleFunc(
-		"/api/folders/{id:[0-9]+}/messages",
-		s.auth(s.messages),
 	)
 	router.PathPrefix("/").Handler(http.FileServer(HTTP))
 	go func() {

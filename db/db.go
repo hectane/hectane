@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	db  *gorm.DB
+	C   *gorm.DB
 	log = logrus.WithField("context", "db")
 )
 
@@ -29,14 +29,14 @@ func Connect(driver, name, user, password, host string, port int) error {
 	if err != nil {
 		return err
 	}
-	db = d
+	C = d
 	return nil
 }
 
 // Migrate performs all database migrations.
 func Migrate() error {
 	log.Info("performing migrations...")
-	err := db.AutoMigrate(
+	err := C.AutoMigrate(
 		&User{},
 		&Domain{},
 		&Account{},

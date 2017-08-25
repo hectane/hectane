@@ -4,8 +4,6 @@ import (
 	"net/http"
 
 	"github.com/hectane/hectane/db"
-	"github.com/hectane/hectane/db/models"
-	"github.com/hectane/hectane/db/sql"
 )
 
 const (
@@ -18,19 +16,14 @@ type loginParams struct {
 }
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
-	p := r.Context().Value(contextParams).(*loginParams)
-	i, err := sql.SelectItem(db.Token, models.User{}, sql.SelectParams{
-		Where: &sql.ComparisonClause{
-			Field:    "Username",
-			Operator: sql.OpEq,
-			Value:    p.Username,
-		},
-	})
-	if err != nil {
+	var (
+		p = r.Context().Value(contextParams).(*loginParams)
+		u = &db.User{}
+	)
+	if err := db.C.Where("username = ?", p.Username).First(&u).Error; err != nil {
 		http.Error(w, statusInvalidCredentials, http.StatusForbidden)
 		return
 	}
-	u := i.(*models.User)
 	if err := u.Authenticate(p.Password); err != nil {
 		http.Error(w, statusInvalidCredentials, http.StatusForbidden)
 		return

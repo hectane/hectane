@@ -7,8 +7,6 @@ import (
 	"syscall"
 
 	"github.com/hectane/hectane/db"
-	"github.com/hectane/hectane/db/models"
-	"github.com/hectane/hectane/db/sql"
 	"github.com/hectane/hectane/server"
 	"github.com/howeyc/gopass"
 	"github.com/sirupsen/logrus"
@@ -17,6 +15,7 @@ import (
 
 func initDB(c *cli.Context) error {
 	if err := db.Connect(
+		c.GlobalString("db-driver"),
 		c.GlobalString("db-name"),
 		c.GlobalString("db-user"),
 		c.GlobalString("db-password"),
@@ -40,6 +39,12 @@ func main() {
 			Name:   "debug",
 			EnvVar: "DEBUG",
 			Usage:  "enable debug logging",
+		},
+		cli.StringFlag{
+			Name:   "db-driver",
+			Value:  "postgres",
+			EnvVar: "DB_DRIVER",
+			Usage:  "database driver",
 		},
 		cli.StringFlag{
 			Name:   "db-host",
@@ -102,7 +107,7 @@ func main() {
 				}
 
 				// Generate a new user with the data
-				u := &models.User{
+				u := &db.User{
 					Username: username,
 					IsAdmin:  true,
 				}
@@ -111,7 +116,7 @@ func main() {
 				}
 
 				// Store the user in the database
-				if err := sql.InsertItem(db.Token, u); err != nil {
+				if err := db.C.Create(u).Error; err != nil {
 					return err
 				}
 
