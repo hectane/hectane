@@ -1,25 +1,22 @@
 package db
 
 import (
-	"database/sql"
 	"fmt"
 
-	dbsql "github.com/hectane/hectane/db/sql"
-	_ "github.com/lib/pq"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/sirupsen/logrus"
 )
 
 var (
-	Token *dbsql.Token
-	log   = logrus.WithField("context", "db")
+	db  *gorm.DB
+	log = logrus.WithField("context", "db")
 )
 
-// Connect establishes a connection to the PostgreSQL database used for all SQL
-// queries. This function should be called before using any other types or
-// functions in the package.
-func Connect(name, user, password, host string, port int) error {
-	c, err := sql.Open(
-		"postgres",
+// Connect establishes a connection to the database.
+func Connect(driver, name, user, password, host string, port int) error {
+	d, err := gorm.Open(
+		driver,
 		fmt.Sprintf(
 			"dbname=%s user=%s password=%s host=%s port=%d",
 			name,
@@ -32,6 +29,24 @@ func Connect(name, user, password, host string, port int) error {
 	if err != nil {
 		return err
 	}
-	Token = dbsql.NewToken(c)
+	db = d
+	return nil
+}
+
+// Migrate performs all database migrations.
+func Migrate() error {
+	log.Info("performing migrations...")
+	err := db.AutoMigrate(
+		&User{},
+		&Domain{},
+		&Account{},
+		&Folder{},
+		&Message{},
+		&Contact{},
+	).Error
+	if err != nil {
+		return err
+	}
+	// TODO: unique indexes
 	return nil
 }

@@ -1,35 +1,19 @@
-package models
+package db
 
 import (
 	"encoding/base64"
 
-	"github.com/hectane/hectane/db/sql"
+	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
 )
-
-const Users = "users"
 
 // User represents an individual user within the system that can login, send,
 // and receive emails.
 type User struct {
-	ID       int    `json:"id"`
-	Username string `json:"username"`
-	Password string `json:"-"`
-	IsAdmin  bool   `json:"is_admin"`
-}
-
-func migrateUsers(t *sql.Token) error {
-	_, err := t.Exec(
-		`
-CREATE TABLE IF NOT EXISTS User_ (
-	ID       SERIAL PRIMARY KEY,
-	Username VARCHAR(40) NOT NULL UNIQUE,
-	Password VARCHAR(80) NOT NULL,
-	IsAdmin  BOOLEAN
-)
-		`,
-	)
-	return err
+	gorm.Model
+	Username string `gorm:"type:varchar(40);not null;unique_index"`
+	Password string `gorm:"type:varchar(80);not null"`
+	IsAdmin  bool
 }
 
 // Authenticate hashes the provided password and compares it to the value

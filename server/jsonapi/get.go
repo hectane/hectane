@@ -12,7 +12,7 @@ import (
 
 func jsonToField(v interface{}, jsonName string) string {
 	itemType := reflect.TypeOf(v)
-	for i := 1; i < itemType.NumField(); i++ {
+	for i := 0; i < itemType.NumField(); i++ {
 		var (
 			field = itemType.Field(i)
 			tag   = field.Tag.Get("json")
