@@ -9,16 +9,30 @@ import (
 	"github.com/manyminds/api2go"
 )
 
+const (
+	actionCreate = iota
+	actionDelete
+	actionFindAll
+	actionFindOne
+	actionUpdate
+)
+
 // Resource implements the interfaces necessary to use a database model with
 // the api2go package. Hooks can be used to apply filtering to the methods.
 type Resource struct {
 	Type    interface{}
+	AllHook func(int, api2go.Request) error
 	SetHook func(interface{}, api2go.Request)
 	GetHook func(*gorm.DB, api2go.Request) *gorm.DB
 }
 
 // Create attempts to save a new model instance to the database.
 func (r *Resource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
+	if r.AllHook != nil {
+		if err := r.AllHook(actionCreate, req); err != nil {
+			return nil, err
+		}
+	}
 	if r.SetHook != nil {
 		r.SetHook(obj, req)
 	}
@@ -33,6 +47,11 @@ func (r *Resource) Create(obj interface{}, req api2go.Request) (api2go.Responder
 
 // Delete attempts to delete the specified model instance from the database.
 func (r *Resource) Delete(id string, req api2go.Request) (api2go.Responder, error) {
+	if r.AllHook != nil {
+		if err := r.AllHook(actionDelete, req); err != nil {
+			return nil, err
+		}
+	}
 	c := db.C
 	if r.GetHook != nil {
 		c = r.GetHook(c, req)
@@ -47,7 +66,12 @@ func (r *Resource) Delete(id string, req api2go.Request) (api2go.Responder, erro
 
 // FindAll attempts to retrieve all instances of a model from the database.
 func (r *Resource) FindAll(req api2go.Request) (api2go.Responder, error) {
-	c := db.C
+	if r.AllHook != nil {
+		if err := r.AllHook(actionFindAll, req); err != nil {
+			return nil, err
+		}
+	}
+	c := r.apply(req)
 	if r.GetHook != nil {
 		c = r.GetHook(c, req)
 	}
@@ -67,7 +91,12 @@ func (r *Resource) FindAll(req api2go.Request) (api2go.Responder, error) {
 
 // FindOne attempts to retrieve a single model instance from the database.
 func (r *Resource) FindOne(ID string, req api2go.Request) (api2go.Responder, error) {
-	c := db.C
+	if r.AllHook != nil {
+		if err := r.AllHook(actionFindOne, req); err != nil {
+			return nil, err
+		}
+	}
+	c := r.apply(req)
 	if r.GetHook != nil {
 		c = r.GetHook(c, req)
 	}
@@ -86,6 +115,11 @@ func (r *Resource) FindOne(ID string, req api2go.Request) (api2go.Responder, err
 
 // Update attempts to update a model instance in the database.
 func (r *Resource) Update(obj interface{}, req api2go.Request) (api2go.Responder, error) {
+	if r.AllHook != nil {
+		if err := r.AllHook(actionUpdate, req); err != nil {
+			return nil, err
+		}
+	}
 	c := db.C
 	if r.GetHook != nil {
 		c = r.GetHook(c, req)
