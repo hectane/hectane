@@ -41,6 +41,8 @@ func New(cfg *Config) (*Server, error) {
 		}
 	)
 	api.AddResource(&db.Folder{}, resources.FolderResource)
+	api.AddResource(&db.Message{}, resources.MessageResource)
+	api.AddResource(&db.User{}, resources.UserResource)
 	router.HandleFunc("/api/login", s.login)
 	router.HandleFunc("/api/logout", s.logout)
 	router.PathPrefix("/api/").Handler(s.auth)
