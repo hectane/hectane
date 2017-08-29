@@ -4,7 +4,7 @@
     <div class="menu">
       {{#each folders as |folder|}}
         {{#unless folder.isNew}}
-          {{#link-to 'index.folder' folder class='item'}}
+          {{#link-to 'index.folder' folder.id class='item'}}
             {{folder.name}}
           {{/link-to}}
         {{/unless}}
