@@ -5,14 +5,14 @@ import ajax from '../util/ajax';
 
 export default Base.extend({
   authenticate(username, password) {
-    return ajax('/api/auth/login', {
+    return ajax('/api/login', {
       username: username,
       password: password
     });
   },
 
   invalidate() {
-    return ajax('/api/auth/logout', {});
+    return ajax('/api/logout', {});
   },
 
   restore() {
