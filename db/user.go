@@ -2,18 +2,29 @@ package db
 
 import (
 	"encoding/base64"
+	"strconv"
 
-	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // User represents an individual user within the system that can login, send,
 // and receive emails.
 type User struct {
-	gorm.Model
-	Username string `gorm:"type:varchar(40);not null;unique_index"`
-	Password string `gorm:"type:varchar(80);not null"`
-	IsAdmin  bool
+	ID       int64  `json:"-"`
+	Username string `json:"username" gorm:"type:varchar(40);not null;unique_index"`
+	Password string `json:"password" gorm:"type:varchar(80);not null"`
+	IsAdmin  bool   `json:"is_admin"`
+}
+
+// GetID retrieves the ID of the user.
+func (u *User) GetID() string {
+	return strconv.FormatInt(u.ID, 10)
+}
+
+// SetID sets the ID for the user.
+func (u *User) SetID(id string) error {
+	u.ID, _ = strconv.ParseInt(id, 10, 64)
+	return nil
 }
 
 // Authenticate hashes the provided password and compares it to the value
