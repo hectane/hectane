@@ -12,12 +12,12 @@ type Message struct {
 	From           string    `json:"from" gorm:"type:varchar(200)"`
 	To             string    `json:"to" gorm:"type:varchar(200)"`
 	Subject        string    `json:"subject" gorm:"type:varchar(200)"`
-	IsUnread       bool      `json:"is_unread"`
-	HasAttachments bool      `json:"has_attachments"`
-	User           *User     `gorm:"ForeignKey:UserID"`
-	UserID         int64
-	Folder         *Folder `gorm:"ForeignKey:FolderID"`
-	FolderID       int64
+	IsUnread       bool      `json:"is-unread"`
+	HasAttachments bool      `json:"has-attachments"`
+	User           *User     `json:"-" gorm:"ForeignKey:UserID"`
+	UserID         int64     `json:"-"`
+	Folder         *Folder   `json:"-" gorm:"ForeignKey:FolderID"`
+	FolderID       int64     `json:"-"`
 }
 
 // GetID retrieves the ID of the message.

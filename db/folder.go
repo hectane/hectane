@@ -8,8 +8,8 @@ import (
 type Folder struct {
 	ID     int64  `json:"-"`
 	Name   string `json:"name" gorm:"type:varchar(40);not null"`
-	User   *User  `gorm:"ForeignKey:UserID"`
-	UserID int64
+	User   *User  `json:"-" gorm:"ForeignKey:UserID"`
+	UserID int64  `json:"-"`
 }
 
 // GetID retrieves the ID of the folder.
