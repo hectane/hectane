@@ -5,7 +5,10 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
+	"github.com/hectane/hectane/db"
+	"github.com/hectane/hectane/server/auth"
+	"github.com/hectane/hectane/server/resources"
+	"github.com/manyminds/api2go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,7 +16,7 @@ import (
 // includes such things as managing users, viewing emails, etc.
 type Server struct {
 	listener net.Listener
-	sessions *sessions.CookieStore
+	auth     *auth.Auth
 	log      *logrus.Entry
 	stopped  chan bool
 }
@@ -29,21 +32,18 @@ func New(cfg *Config) (*Server, error) {
 		server = http.Server{
 			Handler: router,
 		}
-		s = &Server{
+		api = api2go.NewAPI("api")
+		s   = &Server{
 			listener: l,
+			auth:     auth.New(api.Handler(), cfg.SecretKey),
 			log:      logrus.WithField("context", "server"),
-			sessions: sessions.NewCookieStore([]byte(cfg.SecretKey)),
 			stopped:  make(chan bool),
 		}
 	)
-	router.HandleFunc(
-		"/api/auth/login",
-		s.post(s.json(s.login, loginParams{})),
-	)
-	router.HandleFunc(
-		"/api/auth/logout",
-		s.post(s.auth(s.logout)),
-	)
+	api.AddResource(&db.Folder{}, resources.FolderResource)
+	router.HandleFunc("/api/login", s.login)
+	router.HandleFunc("/api/logout", s.logout)
+	router.PathPrefix("/api/").Handler(s.auth)
 	router.PathPrefix("/").Handler(http.FileServer(HTTP))
 	go func() {
 		defer close(s.stopped)

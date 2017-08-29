@@ -1,14 +1,22 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
-
-	"github.com/hectane/hectane/db"
+	"strconv"
 )
 
-const (
-	statusInvalidCredentials = "invalid username or password"
-)
+func writeJson(w http.ResponseWriter, v interface{}) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Length", strconv.Itoa(len(b)))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(b)
+}
 
 type loginParams struct {
 	Username string `json:"username"`
@@ -16,27 +24,23 @@ type loginParams struct {
 }
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
-	var (
-		p = r.Context().Value(contextParams).(*loginParams)
-		u = &db.User{}
-	)
-	if err := db.C.Where("username = ?", p.Username).First(&u).Error; err != nil {
-		http.Error(w, statusInvalidCredentials, http.StatusForbidden)
+	if r.Method != http.MethodPost {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
-	if err := u.Authenticate(p.Password); err != nil {
-		http.Error(w, statusInvalidCredentials, http.StatusForbidden)
+	p := &loginParams{}
+	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
-	session, _ := s.sessions.Get(r, sessionName)
-	session.Values[sessionUserID] = u.ID
-	session.Save(r, w)
-	s.writeJson(w, u)
+	if err := s.auth.Login(w, r, p.Username, p.Password); err != nil {
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return
+	}
+	writeJson(w, nil)
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
-	session, _ := s.sessions.Get(r, sessionName)
-	defer session.Save(r, w)
-	session.Values[sessionUserID] = ""
-	s.writeJson(w, nil)
+	s.auth.Logout(w, r)
+	writeJson(w, nil)
 }
