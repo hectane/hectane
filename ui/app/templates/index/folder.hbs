@@ -1,28 +1,13 @@
 <div class="ui segment">
   <div class="ui relaxed divided list">
-    <div class="item">
-      <div class="right floated content">
-        10 minutes ago
+    {{#each model as |message|}}
+      <div class="item">
+        <i class="large mail middle aligned icon"></i>
+        <div class="content">
+          <a class="header">{{message.subject}}</a>
+          <div class="description">{{message.from}}</div>
+        </div>
       </div>
-      <i class="large mail middle aligned icon"></i>
-      <div class="content">
-        <a class="header">David Smith</a>
-        <div class="description">Notes from Meeting</div>
-      </div>
-    </div>
-    <div class="item">
-      <i class="large mail middle aligned icon"></i>
-      <div class="content">
-        <a class="header">Super Office Corp.</a>
-        <div class="description">Congratulations, you have won!!!</div>
-      </div>
-    </div>
-    <div class="item">
-      <i class="large mail middle aligned icon"></i>
-      <div class="content">
-        <a class="header">George Smith</a>
-        <div class="description">Upcoming Vacation Days</div>
-      </div>
-    </div>
+    {{/each}}
   </div>
 </div>
