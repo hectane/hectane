@@ -7,7 +7,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/hectane/hectane/db"
 	"github.com/hectane/hectane/server/auth"
-	"github.com/hectane/hectane/server/resources"
 	"github.com/manyminds/api2go"
 	"github.com/sirupsen/logrus"
 )
@@ -40,10 +39,10 @@ func New(cfg *Config) (*Server, error) {
 			stopped:  make(chan bool),
 		}
 	)
-	api.AddResource(&db.Domain{}, resources.DomainResource)
-	api.AddResource(&db.Folder{}, resources.FolderResource)
-	api.AddResource(&db.Message{}, resources.MessageResource)
-	api.AddResource(&db.User{}, resources.UserResource)
+	api.AddResource(&db.Domain{}, domainResource)
+	api.AddResource(&db.Folder{}, folderResource)
+	api.AddResource(&db.Message{}, messageResource)
+	api.AddResource(&db.User{}, userResource)
 	router.HandleFunc("/api/login", s.login)
 	router.HandleFunc("/api/logout", s.logout)
 	router.PathPrefix("/api/").Handler(s.auth)
