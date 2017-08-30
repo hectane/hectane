@@ -12,7 +12,7 @@
         <tr>
           <td>{{user.username}}</td>
           <td class="collapsing center aligned">
-            <i class="{{if user.is_admin 'checkmark' 'remove' }} icon"></i>
+            <i class="{{if user.isAdmin 'checkmark' 'remove' }} icon"></i>
           </td>
           <td class="collapsing">
             <button class="ui negative mini button" {{action 'showDeleteDialog' user}}>

@@ -29,7 +29,7 @@ export default Ember.Controller.extend({
       let record = this.get('store').createRecord('user', {
         username: username,
         password: password,
-        is_admin: isAdmin
+        isAdmin: isAdmin
       });
       return record.save();
     }

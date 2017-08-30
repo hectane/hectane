@@ -5,6 +5,6 @@ export default DS.Model.extend({
   from: DS.attr('string'),
   to: DS.attr('string'),
   subject: DS.attr('string'),
-  is_unread: DS.attr('boolean'),
-  has_attachments: DS.attr('boolean')
+  isUnread: DS.attr('boolean'),
+  hasAttachments: DS.attr('boolean')
 });

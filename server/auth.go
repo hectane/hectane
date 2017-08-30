@@ -33,11 +33,12 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
-	if err := s.auth.Login(w, r, p.Username, p.Password); err != nil {
+	u, err := s.auth.Login(w, r, p.Username, p.Password)
+	if err != nil {
 		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		return
 	}
-	writeJson(w, nil)
+	writeJson(w, u)
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
