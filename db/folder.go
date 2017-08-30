@@ -4,6 +4,11 @@ import (
 	"strconv"
 )
 
+const (
+	FolderInbox = "Inbox"
+	FolderSent  = "Sent"
+)
+
 // Folder provides a means to organize email messages.
 type Folder struct {
 	ID     int64  `json:"-"`

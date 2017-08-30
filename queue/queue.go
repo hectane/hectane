@@ -4,13 +4,19 @@ import (
 	"time"
 
 	"github.com/hectane/go-smtpsrv"
+	"github.com/hectane/hectane/storage"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	Block = "in"
 )
 
 // Queue manages an incoming mail queue, handling mail delivery as messages are
 // received.
 type Queue struct {
 	server    *smtpsrv.Server
+	storage   *storage.Storage
 	log       *logrus.Entry
 	stoppedCh chan bool
 }
@@ -36,6 +42,7 @@ func New(cfg *Config) (*Queue, error) {
 	}
 	q := &Queue{
 		server:    s,
+		storage:   cfg.Storage,
 		log:       logrus.WithField("context", "queue"),
 		stoppedCh: make(chan bool),
 	}
