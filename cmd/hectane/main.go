@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/hectane/hectane/db"
+	"github.com/hectane/hectane/imap"
 	"github.com/hectane/hectane/receiver"
 	"github.com/hectane/hectane/server"
 	"github.com/hectane/hectane/storage"
@@ -136,9 +137,15 @@ func main() {
 			Usage: "run the application",
 			Flags: []cli.Flag{
 				cli.StringFlag{
+					Name:   "imap-addr",
+					Value:  ":imap",
+					EnvVar: "IMAP_ADDR",
+					Usage:  "address for IMAP connections",
+				},
+				cli.StringFlag{
 					Name:   "receiver-addr",
 					Value:  ":smtp",
-					EnvVar: "QUEUE_ADDR",
+					EnvVar: "RECEIVER_ADDR",
 					Usage:  "address for incoming SMTP connections",
 				},
 				cli.StringFlag{
@@ -155,6 +162,11 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 
+				// Initialize the database
+				if err := initDB(c); err != nil {
+					return err
+				}
+
 				// Initialize the storage backend
 				st := storage.New(&storage.Config{
 					Directory: c.String("storage-directory"),
@@ -170,10 +182,14 @@ func main() {
 				}
 				defer r.Close()
 
-				// Initialize the database
-				if err := initDB(c); err != nil {
+				// Create the IMAP server
+				i, err := imap.New(&imap.Config{
+					Addr: c.String("imap-addr"),
+				})
+				if err != nil {
 					return err
 				}
+				defer i.Close()
 
 				// Create the web server
 				s, err := server.New(&server.Config{
