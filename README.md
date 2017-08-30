@@ -2,6 +2,14 @@
 
 > **Note:** this version of Hectane is still in development and _should not_ be used in production.
 
+### Features
+
+Hectane is designed to do it all. The list of planned features includes:
+
+- Webmail client with simple and modern UI
+- Send and receive emails via SMTP
+- Full access to account via IMAP
+
 ### Building
 
 To build Hectane, you must have the following tools installed:
