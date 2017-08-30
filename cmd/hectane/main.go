@@ -79,12 +79,6 @@ func main() {
 			Usage:  "PostgreSQL database password",
 		},
 		cli.StringFlag{
-			Name:   "queue-addr",
-			Value:  ":smtp",
-			EnvVar: "QUEUE_ADDR",
-			Usage:  "address for incoming SMTP connections",
-		},
-		cli.StringFlag{
 			Name:   "storage-directory",
 			Value:  ".",
 			EnvVar: "STORAGE_DIRECTORY",
@@ -141,6 +135,12 @@ func main() {
 			Name:  "run",
 			Usage: "run the application",
 			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:   "queue-addr",
+					Value:  ":smtp",
+					EnvVar: "QUEUE_ADDR",
+					Usage:  "address for incoming SMTP connections",
+				},
 				cli.StringFlag{
 					Name:   "secret-key",
 					EnvVar: "SECRET_KEY",
