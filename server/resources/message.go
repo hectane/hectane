@@ -9,6 +9,7 @@ import (
 // MessageResource enables messages to be read, updated, and deleted.
 var MessageResource = &Resource{
 	Type:    &db.Message{},
+	Fields:  []string{"folder_id"},
 	AllHook: preventCreate,
 	SetHook: func(obj interface{}, req api2go.Request) {
 		u := req.PlainRequest.Context().Value(contextUser).(*db.User)

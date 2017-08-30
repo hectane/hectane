@@ -18,9 +18,11 @@ const (
 )
 
 // Resource implements the interfaces necessary to use a database model with
-// the api2go package. Hooks can be used to apply filtering to the methods.
+// the api2go package. Fields determines which fields can be used for
+// filtering. Hooks can be used to apply filtering to the methods.
 type Resource struct {
 	Type    interface{}
+	Fields  []string
 	AllHook func(int, api2go.Request) error
 	SetHook func(interface{}, api2go.Request)
 	GetHook func(*gorm.DB, api2go.Request) *gorm.DB
@@ -71,7 +73,10 @@ func (r *Resource) FindAll(req api2go.Request) (api2go.Responder, error) {
 			return nil, err
 		}
 	}
-	c := r.apply(req)
+	c, err := r.apply(req)
+	if err != nil {
+		return nil, err
+	}
 	if r.GetHook != nil {
 		c = r.GetHook(c, req)
 	}
@@ -96,7 +101,10 @@ func (r *Resource) FindOne(ID string, req api2go.Request) (api2go.Responder, err
 			return nil, err
 		}
 	}
-	c := r.apply(req)
+	c, err := r.apply(req)
+	if err != nil {
+		return nil, err
+	}
 	if r.GetHook != nil {
 		c = r.GetHook(c, req)
 	}
