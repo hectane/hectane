@@ -12,8 +12,8 @@ import (
 type User struct {
 	ID       int64  `json:"-"`
 	Username string `json:"username" gorm:"type:varchar(40);not null;unique_index"`
-	Password string `json:"password" gorm:"type:varchar(80);not null"`
-	IsAdmin  bool   `json:"is_admin"`
+	Password string `json:"-" gorm:"type:varchar(80);not null"`
+	IsAdmin  bool   `json:"is-admin"`
 }
 
 // GetID retrieves the ID of the user.
