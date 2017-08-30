@@ -1,4 +1,4 @@
-package queue
+package receiver
 
 import (
 	"net/mail"

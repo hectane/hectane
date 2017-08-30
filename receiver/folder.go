@@ -1,4 +1,4 @@
-package queue
+package receiver
 
 import (
 	"github.com/hectane/hectane/db"

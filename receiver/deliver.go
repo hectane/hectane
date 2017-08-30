@@ -1,4 +1,4 @@
-package queue
+package receiver
 
 import (
 	"github.com/hectane/go-smtpsrv"
@@ -6,7 +6,7 @@ import (
 )
 
 // deliver receives a message, finds the correct account for it, and stores it.
-func (q *Queue) deliver(msg *smtpsrv.Message) {
+func (r *Receiver) deliver(msg *smtpsrv.Message) {
 	for _, addr := range msg.To {
 		var (
 			c   = db.C.Begin()
@@ -26,7 +26,7 @@ func (q *Queue) deliver(msg *smtpsrv.Message) {
 				if err := c.Create(m).Error; err != nil {
 					return err
 				}
-				w, err := q.storage.CreateWriter(Block, m.ID)
+				w, err := r.storage.CreateWriter(Block, m.ID)
 				if err != nil {
 					return err
 				}
@@ -35,10 +35,10 @@ func (q *Queue) deliver(msg *smtpsrv.Message) {
 					return err
 				}
 				return nil
-			}
+			}()
 		)
 		if err != nil {
-			q.log.Error(err)
+			r.log.Error(err.Error())
 			c.Rollback()
 			continue
 		}

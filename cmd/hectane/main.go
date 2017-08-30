@@ -7,7 +7,7 @@ import (
 	"syscall"
 
 	"github.com/hectane/hectane/db"
-	"github.com/hectane/hectane/queue"
+	"github.com/hectane/hectane/receiver"
 	"github.com/hectane/hectane/server"
 	"github.com/hectane/hectane/storage"
 	"github.com/howeyc/gopass"
@@ -136,7 +136,7 @@ func main() {
 			Usage: "run the application",
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:   "queue-addr",
+					Name:   "receiver-addr",
 					Value:  ":smtp",
 					EnvVar: "QUEUE_ADDR",
 					Usage:  "address for incoming SMTP connections",
@@ -160,15 +160,15 @@ func main() {
 					Directory: c.String("storage-directory"),
 				})
 
-				// Create the incoming mail queue
-				q, err := queue.New(&queue.Config{
-					Addr:    c.String("queue-addr"),
+				// Create the incoming mail receiver
+				r, err := receiver.New(&receiver.Config{
+					Addr:    c.String("receiver-addr"),
 					Storage: st,
 				})
 				if err != nil {
 					return err
 				}
-				defer q.Close()
+				defer r.Close()
 
 				// Initialize the database
 				if err := initDB(c); err != nil {
