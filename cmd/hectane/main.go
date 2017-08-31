@@ -81,7 +81,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:   "storage-directory",
-			Value:  ".",
+			Value:  "data",
 			EnvVar: "STORAGE_DIRECTORY",
 			Usage:  "directory for storing email content",
 		},
@@ -169,7 +169,7 @@ func main() {
 
 				// Initialize the storage backend
 				st := storage.New(&storage.Config{
-					Directory: c.String("storage-directory"),
+					Directory: c.GlobalString("storage-directory"),
 				})
 
 				// Create the incoming mail receiver
@@ -184,7 +184,8 @@ func main() {
 
 				// Create the IMAP server
 				i, err := imap.New(&imap.Config{
-					Addr: c.String("imap-addr"),
+					Addr:    c.String("imap-addr"),
+					Storage: st,
 				})
 				if err != nil {
 					return err

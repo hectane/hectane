@@ -8,10 +8,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	Block = "in"
-)
-
 // Receiver manages an incoming mail queue, handling mail delivery as messages
 // are received.
 type Receiver struct {

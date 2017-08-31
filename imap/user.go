@@ -7,6 +7,7 @@ import (
 
 // user maintains user information for an IMAP session.
 type user struct {
+	imap *IMAP
 	user *db.User
 }
 
@@ -23,7 +24,10 @@ func (u *user) ListMailboxes(subscribed bool) ([]backend.Mailbox, error) {
 	}
 	m := make([]backend.Mailbox, len(folders))
 	for i, f := range folders {
-		m[i] = &mailbox{folder: f}
+		m[i] = &mailbox{
+			imap:   u.imap,
+			folder: f,
+		}
 	}
 	return m, nil
 }
@@ -34,7 +38,10 @@ func (u *user) GetMailbox(name string) (backend.Mailbox, error) {
 	if err := db.C.Where("user_id = ?", u.user.ID).First(f, "name = ?", name).Error; err != nil {
 		return nil, backend.ErrNoSuchMailbox
 	}
-	return &mailbox{folder: f}, nil
+	return &mailbox{
+		imap:   u.imap,
+		folder: f,
+	}, nil
 }
 
 // CreateMailbox creates a new folder.
@@ -51,17 +58,20 @@ func (u *user) DeleteMailbox(name string) error {
 	return db.C.
 		Where("user_id = ?", u.user.ID).
 		Where("name = ?", name).
-		Delete(&db.Folder{}).Error
+		Delete(&db.Folder{}).
+		Error
 }
 
 // RenameMailbox attempts to change the name of a mailbox.
 func (u *user) RenameMailbox(existingName, newName string) error {
-	return db.C.Model(&db.Folder{}).
+	return db.C.
+		Model(&db.Folder{}).
 		Where("user_id = ?", u.user.ID).
 		Where("name = ?", existingName).
 		Updates(map[string]interface{}{
 			"name": newName,
-		}).Error
+		}).
+		Error
 }
 
 // Logout doesn't do anything.

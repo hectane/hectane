@@ -26,7 +26,7 @@ func (r *Receiver) deliver(msg *smtpsrv.Message) {
 				if err := c.Create(m).Error; err != nil {
 					return err
 				}
-				w, err := r.storage.CreateWriter(Block, m.ID)
+				w, err := r.storage.CreateWriter(m.ID)
 				if err != nil {
 					return err
 				}

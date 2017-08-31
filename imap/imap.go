@@ -2,12 +2,14 @@ package imap
 
 import (
 	"github.com/emersion/go-imap/server"
+	"github.com/hectane/hectane/storage"
 	"github.com/sirupsen/logrus"
 )
 
 // IMAP allows clients to connect using IMAP and access their mailboxes.
 type IMAP struct {
 	server    *server.Server
+	storage   *storage.Storage
 	log       *logrus.Entry
 	stoppedCh chan bool
 }
@@ -15,15 +17,14 @@ type IMAP struct {
 // New creates a new IMAP server.
 func New(cfg *Config) (*IMAP, error) {
 	var (
-		s = server.New(&dbBackend{
-			storage: cfg.Storage,
-		})
 		i = &IMAP{
-			server:    s,
+			storage:   cfg.Storage,
 			log:       logrus.WithField("context", "imap"),
 			stoppedCh: make(chan bool),
 		}
+		s = server.New(&dbBackend{i})
 	)
+	i.server = s
 	s.Addr = cfg.Addr
 	s.AllowInsecureAuth = true
 	go func() {

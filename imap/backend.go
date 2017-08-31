@@ -3,12 +3,11 @@ package imap
 import (
 	"github.com/emersion/go-imap/backend"
 	"github.com/hectane/hectane/db"
-	"github.com/hectane/hectane/storage"
 )
 
 // dbBackend authenticates users by using the database.
 type dbBackend struct {
-	storage *storage.Storage
+	imap *IMAP
 }
 
 // Login determines if a user is authorized for access. If so, a user instance
@@ -21,5 +20,8 @@ func (d *dbBackend) Login(username, password string) (backend.User, error) {
 	if err := u.Authenticate(password); err != nil {
 		return nil, backend.ErrInvalidCredentials
 	}
-	return &user{user: u}, nil
+	return &user{
+		imap: d.imap,
+		user: u,
+	}, nil
 }
