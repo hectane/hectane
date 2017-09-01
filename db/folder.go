@@ -2,6 +2,7 @@ package db
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 )
@@ -20,17 +21,18 @@ type Folder struct {
 }
 
 // GetFolder attempts to retrieve a folder by name. If created is set to true,
-// the folder will be created before being returned.
+// the folder will be created before being returned. The names "INBOX" and
+// "SENT" will be normalized.
 func GetFolder(c *gorm.DB, userID int64, name string, create bool) (*Folder, error) {
+	if strings.ToLower(name) == strings.ToLower(FolderInbox) {
+		name = FolderInbox
+	}
 	var (
 		f = &Folder{
+			Name:   name,
 			UserID: userID,
 		}
-		err = c.
-			Where(f).
-			Where("name LIKE ?", name).
-			First(f).
-			Error
+		err = c.Where(f).First(f).Error
 	)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
