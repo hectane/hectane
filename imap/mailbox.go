@@ -2,10 +2,13 @@ package imap
 
 import (
 	"errors"
+	"io"
 	"time"
 
 	"github.com/emersion/go-imap"
+	"github.com/emersion/go-imap/backend/backendutil"
 	"github.com/hectane/hectane/db"
+	"github.com/jinzhu/gorm"
 )
 
 var ErrUnimplemented = errors.New("not yet implemented")
@@ -25,7 +28,7 @@ func (m *mailbox) count(unseen bool) (uint32, error) {
 			Count(&count)
 	)
 	if unseen {
-		c = c.Where("is_unread = ?", true)
+		c = c.Where("is_seen = ?", false)
 	}
 	if err := c.Error; err != nil {
 		return 0, err
@@ -52,7 +55,7 @@ func (m *mailbox) Info() (*imap.MailboxInfo, error) {
 func (m *mailbox) Status(items []string) (*imap.MailboxStatus, error) {
 	s := imap.NewMailboxStatus(m.folder.Name, items)
 	s.Flags = []string{}
-	s.PermanentFlags = []string{}
+	s.PermanentFlags = []string{"\\*"}
 	for _, item := range items {
 		switch item {
 		case imap.MailboxMessages:
@@ -66,7 +69,9 @@ func (m *mailbox) Status(items []string) (*imap.MailboxStatus, error) {
 		case imap.MailboxRecent:
 			s.Recent = 0
 		case imap.MailboxUidNext:
+			s.UidNext = 1
 		case imap.MailboxUidValidity:
+			s.UidValidity = 1
 		}
 	}
 	return s, nil

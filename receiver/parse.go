@@ -14,13 +14,11 @@ func parse(m *smtpsrv.Message, addr string, userID, folderID int64) (*db.Message
 	// TODO: do parsing here
 
 	return &db.Message{
-		Time:           time.Now(),
-		From:           m.From,
-		To:             addr,
-		Subject:        "[Untitled]",
-		IsUnread:       true,
-		HasAttachments: false,
-		UserID:         userID,
-		FolderID:       folderID,
+		Time:     time.Now(),
+		From:     m.From,
+		To:       addr,
+		Subject:  "[Untitled]",
+		UserID:   userID,
+		FolderID: folderID,
 	}, nil
 }

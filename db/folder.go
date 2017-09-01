@@ -2,6 +2,8 @@ package db
 
 import (
 	"strconv"
+
+	"github.com/jinzhu/gorm"
 )
 
 const (
@@ -15,6 +17,45 @@ type Folder struct {
 	Name   string `json:"name" gorm:"type:varchar(40);not null"`
 	User   *User  `json:"-" gorm:"ForeignKey:UserID"`
 	UserID int64  `json:"-"`
+}
+
+// GetFolder attempts to retrieve a folder by name. If created is set to true,
+// the folder will be created before being returned.
+func GetFolder(c *gorm.DB, userID int64, name string, create bool) (*Folder, error) {
+	var (
+		f = &Folder{
+			UserID: userID,
+		}
+		err = c.
+			Where(f).
+			Where("name LIKE ?", name).
+			First(f).
+			Error
+	)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	if create {
+		f.Name = name
+		err = c.Save(f).Error
+	}
+	if err != nil {
+		return nil, err
+	}
+	return f, nil
+}
+
+// GetFolderTransaction wraps GetFolder in a transaction.
+func GetFolderTransaction(userID int64, name string, create bool) (*Folder, error) {
+	var f *Folder
+	if err := Transaction(C, func(c *gorm.DB) error {
+		var err error
+		f, err = GetFolder(c, userID, name, create)
+		return err
+	}); err != nil {
+		return nil, err
+	}
+	return f, nil
 }
 
 // GetID retrieves the ID of the folder.

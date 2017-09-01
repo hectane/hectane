@@ -1,8 +1,11 @@
 package imap
 
 import (
+	"strings"
+
 	"github.com/emersion/go-imap/backend"
 	"github.com/hectane/hectane/db"
+	"github.com/jinzhu/gorm"
 )
 
 // user maintains user information for an IMAP session.
@@ -34,9 +37,13 @@ func (u *user) ListMailboxes(subscribed bool) ([]backend.Mailbox, error) {
 
 // GetMailbox retrieves a mailbox by name.
 func (u *user) GetMailbox(name string) (backend.Mailbox, error) {
-	f := &db.Folder{}
-	if err := db.C.Where("user_id = ?", u.user.ID).First(f, "name = ?", name).Error; err != nil {
-		return nil, backend.ErrNoSuchMailbox
+	create := strings.ToLower(name) == strings.ToLower(db.FolderInbox)
+	f, err := db.GetFolderTransaction(u.user.ID, name, create)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, backend.ErrNoSuchMailbox
+		}
+		return nil, err
 	}
 	return &mailbox{
 		imap:   u.imap,

@@ -50,3 +50,15 @@ func Migrate() error {
 	// TODO: unique indexes
 	return nil
 }
+
+// Transaction begins a new transaction which will either rollback or commit
+// based on the return value of the callback.
+func Transaction(c *gorm.DB, fn func(*gorm.DB) error) error {
+	c = c.Begin()
+	if err := fn(c); err != nil {
+		c.Rollback()
+		return err
+	}
+	c.Commit()
+	return nil
+}

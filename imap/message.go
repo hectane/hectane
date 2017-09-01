@@ -31,11 +31,7 @@ func (m *mailbox) message(msg *db.Message, seqNum uint32, items []string) (*imap
 				return nil, err
 			}
 		case imap.FlagsMsgAttr:
-			if msg.IsUnread {
-				n.Flags = []string{imap.MailboxUnseen}
-			} else {
-				n.Flags = []string{}
-			}
+			n.Flags = msg.GetFlags()
 		case imap.InternalDateMsgAttr:
 			n.InternalDate = msg.Time
 		case imap.SizeMsgAttr:
