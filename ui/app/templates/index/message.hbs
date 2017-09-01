@@ -1,0 +1,31 @@
+<div class="ui segments">
+  <div class="ui compact secondary segment">
+    <table class="ui very basic compact table">
+      <tbody>
+        <tr>
+          <td class="collapsing">
+            <strong>Subject:</strong>
+          </td>
+          <td>{{model.subject}}</td>
+        </tr>
+        <tr>
+          <td>
+            <strong>From:</strong>
+          </td>
+          <td>{{model.from}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="ui segment">
+    Message body would go here.
+  </div>
+  <div class="ui secondary segment">
+    <button class="ui primary mini button" {{action 'reply'}}>
+      Reply
+    </button>
+    <button class="ui red mini button" {{action 'delete'}}>
+      Delete
+    </button>
+  </div>
+</div>

@@ -45,7 +45,7 @@ var (
 		},
 		GetHook: func(c *gorm.DB, req api2go.Request) *gorm.DB {
 			u := req.PlainRequest.Context().Value(auth.User).(*db.User)
-			return c.Where("user_id = ?", u.ID)
+			return c.Where("user_id = ?", u.ID).Order("name")
 		},
 	}
 	messageResource = &resource.Resource{

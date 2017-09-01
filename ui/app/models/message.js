@@ -5,6 +5,11 @@ export default DS.Model.extend({
   from: DS.attr('string'),
   to: DS.attr('string'),
   subject: DS.attr('string'),
-  isUnread: DS.attr('boolean'),
+  isSeen: DS.attr('boolean'),
+  isAnswered: DS.attr('boolean'),
+  isFlagged: DS.attr('boolean'),
+  isDeleted: DS.attr('boolean'),
+  isDraft: DS.attr('boolean'),
+  isRecent: DS.attr('boolean'),
   hasAttachments: DS.attr('boolean')
 });

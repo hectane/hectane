@@ -58,9 +58,7 @@ func (m *mailbox) Status(items []string) (*imap.MailboxStatus, error) {
 	s.PermanentFlags = []string{"\\*"}
 	for _, item := range items {
 		switch item {
-		case imap.MailboxMessages:
-			fallthrough
-		case imap.MailboxUnseen:
+		case imap.MailboxMessages, imap.MailboxUnseen:
 			c, err := m.count(item == imap.MailboxUnseen)
 			if err != nil {
 				return nil, err
@@ -77,8 +75,7 @@ func (m *mailbox) Status(items []string) (*imap.MailboxStatus, error) {
 	return s, nil
 }
 
-// TODO
-
+// SetSubscribed is unimplemented.
 func (m *mailbox) SetSubscribed(subscribed bool) error {
 	return ErrUnimplemented
 }

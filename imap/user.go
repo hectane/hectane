@@ -19,6 +19,8 @@ func (u *user) Username() string {
 	return u.user.Username
 }
 
+// TODO: always return Inbox and Sent?
+
 // ListMailboxes lists all of the user's folders.
 func (u *user) ListMailboxes(subscribed bool) ([]backend.Mailbox, error) {
 	folders := []*db.Folder{}
