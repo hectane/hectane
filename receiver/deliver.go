@@ -18,7 +18,7 @@ func (r *Receiver) deliver(msg *smtpsrv.Message) {
 			if err != nil {
 				return err
 			}
-			m, err := parse(msg, addr, a.UserID, f.ID)
+			m, err := parse(msg, a.UserID, f.ID)
 			if err != nil {
 				return err
 			}
