@@ -111,15 +111,41 @@ func (m *mailbox) CreateMessage(flags []string, date time.Time, body imap.Litera
 	return ErrUnimplemented
 }
 
-// UpdateMessagesFlags is unimplemented.
-func (m *mailbox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet, operation imap.FlagsOp, flags []string) error {
-	return ErrUnimplemented
+// UpdateMessagesFlags updates the flags for the message.
+func (m *mailbox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet, op imap.FlagsOp, flags []string) error {
+	return m.walk(uid, seqset, func(seqNum uint32, msg *db.Message) error {
+		msg.SetFlags(backendutil.UpdateFlags(msg.GetFlags(), op, flags))
+		return db.C.Save(msg).Error
+	})
 }
 
-// CopyMessages is unimplemented.
+// CopyMessages copies the specified messages to a new folder.
 func (m *mailbox) CopyMessages(uid bool, seqset *imap.SeqSet, dest string) error {
-	//...
-	return ErrUnimplemented
+	return db.Transaction(db.C, func(c *gorm.DB) error {
+		f, err := db.GetFolder(c, m.folder.UserID, dest, false)
+		if err != nil {
+			return err
+		}
+		return m.walk(uid, seqset, func(seqNum uint32, msg *db.Message) error {
+			r, err := m.imap.storage.CreateReader(msg.ID)
+			if err != nil {
+				return err
+			}
+			defer r.Close()
+			msg.ID = 0
+			msg.FolderID = f.ID
+			if err := c.Save(msg).Error; err != nil {
+				return err
+			}
+			w, err := m.imap.storage.CreateWriter(msg.ID)
+			if err != nil {
+				return err
+			}
+			defer w.Close()
+			_, err = io.Copy(w, r)
+			return err
+		})
+	})
 }
 
 // Expunge is unimplemented.
