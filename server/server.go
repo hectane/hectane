@@ -39,6 +39,7 @@ func New(cfg *Config) (*Server, error) {
 			stopped:  make(chan bool),
 		}
 	)
+	api.AddResource(&db.Account{}, accountResource)
 	api.AddResource(&db.Domain{}, domainResource)
 	api.AddResource(&db.Folder{}, folderResource)
 	api.AddResource(&db.Message{}, messageResource)

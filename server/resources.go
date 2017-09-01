@@ -33,6 +33,11 @@ func preventCreate(action int, req api2go.Request) error {
 }
 
 var (
+	accountResource = &resource.Resource{
+		Type:    &db.Account{},
+		Fields:  []string{"user_id"},
+		AllHook: requireAdmin,
+	}
 	domainResource = &resource.Resource{
 		Type:    &db.Domain{},
 		AllHook: requireAdmin,
