@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"strconv"
 
 	"golang.org/x/crypto/bcrypt"
@@ -10,10 +11,39 @@ import (
 // User represents an individual user within the system that can login, send,
 // and receive emails.
 type User struct {
-	ID       int64  `json:"-"`
-	Username string `json:"username" gorm:"type:varchar(40);not null;unique_index"`
-	Password string `json:"-" gorm:"type:varchar(80);not null"`
-	IsAdmin  bool   `json:"is-admin"`
+	ID       int64
+	Username string `gorm:"type:varchar(40);not null;unique_index"`
+	Password string `gorm:"type:varchar(80);not null"`
+	IsAdmin  bool
+}
+
+// MarshalJSON writes the content of the struct to JSON data.
+func (u *User) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Username string `json:"username"`
+		IsAdmin  bool   `json:"is-admin"`
+	}{
+		Username: u.Username,
+		IsAdmin:  u.IsAdmin,
+	})
+}
+
+// UnmarshalJSON reads JSON data into the struct.
+func (u *User) UnmarshalJSON(data []byte) error {
+	d := &struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		IsAdmin  bool   `json:"is-admin"`
+	}{}
+	if err := json.Unmarshal(data, d); err != nil {
+		return err
+	}
+	u.Username = d.Username
+	u.IsAdmin = d.IsAdmin
+	if len(d.Password) != 0 {
+		return u.SetPassword(d.Password)
+	}
+	return nil
 }
 
 // GetID retrieves the ID of the user.
