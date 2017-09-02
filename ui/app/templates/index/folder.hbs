@@ -1,13 +1,11 @@
-<div class="ui segment">
-  <div class="ui relaxed divided list">
-    {{#each model as |message|}}
-      {{#link-to 'index.message' message.id class='item'}}
-        <i class="large mail middle aligned icon"></i>
-        <div class="content">
-          <div class="header">{{message.subject}}</div>
-          <div class="description">{{message.from}}</div>
-        </div>
-      {{/link-to}}
-    {{/each}}
-  </div>
+<div class="ui relaxed divided list">
+  {{#each model as |message|}}
+    {{#link-to 'index.message' message.id class='item'}}
+      <i class="large mail middle aligned icon"></i>
+      <div class="content">
+        <div class="header">{{message.subject}}</div>
+        <div class="description">{{message.from}}</div>
+      </div>
+    {{/link-to}}
+  {{/each}}
 </div>

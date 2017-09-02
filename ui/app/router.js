@@ -10,13 +10,15 @@ Router.map(function() {
   this.route('login');
 
   this.route('index', {path: '/'}, function() {
+    this.route('admin', function() {
+      this.route('users', function() {
+        this.route('accounts', {path: ':user_id/accounts'});
+      });
+      this.route('log');
+      this.route('domains');
+    });
     this.route('folder', {path: 'folder/:folder_id'});
     this.route('message', {path: 'message/:message_id'});
-  });
-  this.route('admin', function() {
-    this.route('users');
-    this.route('log');
-    this.route('domains');
   });
 });
 

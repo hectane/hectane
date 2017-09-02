@@ -8,6 +8,24 @@ body > .ember-view,
   height: 100%;
 }
 
+body > .ember-view {
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex-grow: 1;
+}
+
 .login .column {
   max-width: 400px;
+}
+
+.outlet {
+  height: 100%;
+  overflow: auto;
+}
+
+.ui.text.menu {
+  margin-bottom: 0;
 }

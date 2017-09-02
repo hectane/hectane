@@ -1,0 +1,44 @@
+<div class="ui relaxed divided list">
+  {{#each model as |domain|}}
+    <div class="item">
+      <div class="right floated content">
+        <button class="ui negative mini button" {{action 'showDeleteDialog' domain}}>
+          Delete
+        </button>
+      </div>
+      <div class="content">
+        <div class="header">{{domain.name}}</div>
+      </div>
+    </div>
+  {{/each}}
+</div>
+<div class="ui divider"></div>
+<button class="ui primary mini button" {{action 'showNewDialog'}}>
+  New
+</button>
+
+{{#modal-dialog
+  title='Delete Domain'
+  visible=deleteVisible
+  loading=deleteLoading
+  getPromise=(action 'getDeletePromise')
+}}
+  <p>
+    Are you sure you wish to delete the domain {{currentDomain.name}}?
+  </p>
+{{/modal-dialog}}
+
+{{#modal-dialog
+  title='New Domain'
+  visible=newVisible
+  loading=newLoading
+  getPromise=(action 'getNewPromise')
+}}
+  <div class="ui form">
+    <div class="field">
+      <div class="ui fluid input">
+        {{input placeholder='Name' value=name disabled=newLoading}}
+      </div>
+    </div>
+  </div>
+{{/modal-dialog}}

@@ -2,7 +2,7 @@
   <div class="item">
     Folders
     <div class="menu">
-      {{#each folders as |folder|}}
+      {{#each model as |folder|}}
         {{#unless folder.isNew}}
           {{#link-to 'index.folder' folder.id class='item'}}
             {{folder.name}}

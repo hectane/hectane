@@ -1,10 +1,34 @@
-{{global-header}}
-<div class="ui grid">
-  <div class="four wide column">
-    {{folder-sidebar folders=model}}
+<div class="ui text menu">
+  <div class="header item">
+    {{#link-to 'index'}}
+      <img src="/img/logo.png" style="height: 25px;">
+    {{/link-to}}
   </div>
-  <div class="twelve wide column">
-    {{outlet}}
+  <div class="right item">
+    <strong>{{user.username}}</strong>
+    <span>&nbsp; | &nbsp;</span>
+    {{#if user.is-admin}}
+      {{#link-to 'index.admin'}}
+        Admin
+      {{/link-to}}
+      <span>&nbsp; | &nbsp;</span>
+    {{/if}}
+    <a href="#" {{action 'logout'}}>Logout</a>
   </div>
 </div>
 <div class="ui divider"></div>
+<div class="ui grid content">
+  <div class="four wide column">
+    {{outlet 'sidebar'}}
+  </div>
+  <div class="twelve wide column">
+    <div class="ui segment outlet">
+      {{outlet}}
+      <div id="loader" class="ui inverted dimmer">
+        <div class="ui loader"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="ui divider"></div>
+<p>Copyright 2017 &mdash; Nathan Osman</p>
