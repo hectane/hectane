@@ -43,6 +43,7 @@ func Migrate() error {
 		&Folder{},
 		&Message{},
 		&Contact{},
+		&QueueItem{},
 	).Error
 	if err != nil {
 		return err

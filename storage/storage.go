@@ -7,6 +7,11 @@ import (
 	"strconv"
 )
 
+const (
+	BlockMailbox = "mailbox"
+	BlockQueue   = "queue"
+)
+
 // Storage brokers access to the on-disk storage for email message bodies.
 type Storage struct {
 	directory string
@@ -19,26 +24,26 @@ func New(cfg *Config) *Storage {
 	}
 }
 
-func (s *Storage) filename(id int64) string {
+func (s *Storage) filename(block string, id int64) string {
 	return path.Join(s.directory, strconv.FormatInt(id, 10))
 }
 
 // CreateReader attempts to open a reader for the item with the specified ID.
-func (s *Storage) CreateReader(id int64) (io.ReadCloser, error) {
-	return os.Open(s.filename(id))
+func (s *Storage) CreateReader(block string, id int64) (io.ReadCloser, error) {
+	return os.Open(s.filename(block, id))
 }
 
 // CreateWriter attempts to open a write for the item with the specified ID.
-func (s *Storage) CreateWriter(id int64) (io.WriteCloser, error) {
-	if err := os.MkdirAll(s.directory, 0700); err != nil {
+func (s *Storage) CreateWriter(block string, id int64) (io.WriteCloser, error) {
+	if err := os.MkdirAll(path.Join(s.directory, block), 0700); err != nil {
 		return nil, err
 	}
-	return os.Create(s.filename(id))
+	return os.Create(s.filename(block, id))
 }
 
 // GetSize attempts to retrieve the size of the item.
-func (s *Storage) GetSize(id int64) (int64, error) {
-	i, err := os.Stat(s.filename(id))
+func (s *Storage) GetSize(block string, id int64) (int64, error) {
+	i, err := os.Stat(s.filename(block, id))
 	if err != nil {
 		return 0, err
 	}

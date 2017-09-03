@@ -3,6 +3,7 @@ package receiver
 import (
 	"github.com/hectane/go-smtpsrv"
 	"github.com/hectane/hectane/db"
+	"github.com/hectane/hectane/storage"
 	"github.com/jinzhu/gorm"
 )
 
@@ -25,7 +26,7 @@ func (r *Receiver) deliver(msg *smtpsrv.Message) {
 			if err := c.Create(m).Error; err != nil {
 				return err
 			}
-			w, err := r.storage.CreateWriter(m.ID)
+			w, err := r.storage.CreateWriter(storage.BlockMailbox, m.ID)
 			if err != nil {
 				return err
 			}

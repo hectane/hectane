@@ -5,12 +5,13 @@ import (
 	"github.com/emersion/go-imap/backend/backendutil"
 	"github.com/emersion/go-message"
 	"github.com/hectane/hectane/db"
+	"github.com/hectane/hectane/storage"
 )
 
 // message converts a message from the database to its IMAP equivalent for
 // sending down the wire.
 func (m *mailbox) message(msg *db.Message, seqNum uint32, items []string) (*imap.Message, error) {
-	r, err := m.imap.storage.CreateReader(msg.ID)
+	r, err := m.imap.storage.CreateReader(storage.BlockMailbox, msg.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +36,7 @@ func (m *mailbox) message(msg *db.Message, seqNum uint32, items []string) (*imap
 		case imap.InternalDateMsgAttr:
 			n.InternalDate = msg.Time
 		case imap.SizeMsgAttr:
-			s, err := m.imap.storage.GetSize(msg.ID)
+			s, err := m.imap.storage.GetSize(storage.BlockMailbox, msg.ID)
 			if err != nil {
 				return nil, err
 			}

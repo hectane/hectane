@@ -8,6 +8,7 @@ import (
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/backend/backendutil"
 	"github.com/hectane/hectane/db"
+	"github.com/hectane/hectane/storage"
 	"github.com/jinzhu/gorm"
 )
 
@@ -124,7 +125,7 @@ func (m *mailbox) CopyMessages(uid bool, seqset *imap.SeqSet, dest string) error
 			return err
 		}
 		return m.walk(uid, seqset, func(seqNum uint32, msg *db.Message) error {
-			r, err := m.imap.storage.CreateReader(msg.ID)
+			r, err := m.imap.storage.CreateReader(storage.BlockMailbox, msg.ID)
 			if err != nil {
 				return err
 			}
@@ -134,7 +135,7 @@ func (m *mailbox) CopyMessages(uid bool, seqset *imap.SeqSet, dest string) error
 			if err := c.Save(msg).Error; err != nil {
 				return err
 			}
-			w, err := m.imap.storage.CreateWriter(msg.ID)
+			w, err := m.imap.storage.CreateWriter(storage.BlockMailbox, msg.ID)
 			if err != nil {
 				return err
 			}
