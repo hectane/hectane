@@ -16,7 +16,14 @@ import (
 	"github.com/urfave/cli"
 )
 
-func initDB(c *cli.Context) error {
+func globalInit(c *cli.Context) error {
+
+	// Enable debug logging if parameter set
+	if c.GlobalBool("debug") {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+
+	// Initialize the database
 	if err := db.Connect(
 		c.GlobalString("db-driver"),
 		c.GlobalString("db-name"),
@@ -27,9 +34,12 @@ func initDB(c *cli.Context) error {
 	); err != nil {
 		return err
 	}
+
+	// Migrate the database
 	if err := db.Migrate(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -86,20 +96,13 @@ func main() {
 			Usage:  "directory for storing email content",
 		},
 	}
-	app.Before = func(c *cli.Context) error {
-		if c.Bool("debug") {
-			logrus.SetLevel(logrus.DebugLevel)
-		}
-		return nil
-	}
 	app.Commands = []cli.Command{
 		{
 			Name:  "createadmin",
 			Usage: "create an administrator user",
 			Action: func(c *cli.Context) error {
 
-				// Initialize the database
-				if err := initDB(c); err != nil {
+				if err := globalInit(c); err != nil {
 					return err
 				}
 
@@ -162,8 +165,7 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 
-				// Initialize the database
-				if err := initDB(c); err != nil {
+				if err := globalInit(c); err != nil {
 					return err
 				}
 
