@@ -25,6 +25,17 @@ type Host struct {
 	Attempts    int
 }
 
+// GetHost retrieves the host by name, creating it if it does not exist.
+func GetHost(host string) (*Host, error) {
+	h := &Host{
+		Name: host,
+	}
+	if err := C.FirstOrCreate(h, h).Error; err != nil {
+		return nil, err
+	}
+	return h, nil
+}
+
 // GetAvailableHost attempts to retrieve an available host, locking and
 // returning it. Both return values are nil if no valid hosts are present. Use
 // a defer statement with the Finished method to ensure the host is properly
