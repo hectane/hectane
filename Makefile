@@ -82,7 +82,7 @@ dist/fileb0x: | cache dist
 	    -v ${CWD}/ui:/usr/src/ui \
 	    -w /usr/src/ui \
 	    nathanosman/betternode \
-	    npm install
+	    sh -c 'npm install && node_modules/.bin/bower install'
 	@touch .dep-node_modules
 
 cache:
