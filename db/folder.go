@@ -21,8 +21,8 @@ type Folder struct {
 }
 
 // GetFolder attempts to retrieve a folder by name. If created is set to true,
-// the folder will be created before being returned. The names "INBOX" and
-// "SENT" will be normalized.
+// the folder will be created before being returned. The name "INBOX" will be
+// normalized.
 func GetFolder(c *gorm.DB, userID int64, name string, create bool) (*Folder, error) {
 	if strings.ToLower(name) == strings.ToLower(FolderInbox) {
 		name = FolderInbox

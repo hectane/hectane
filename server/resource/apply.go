@@ -11,11 +11,12 @@ import (
 
 var ErrInvalidParameter = errors.New("invalid parameter")
 
-// apply applies the query parameters to an SQL query. In order to ensure that
-// the user cannot override fields, this method must be run before any other
-// hooks so that they can override any fields.
+// apply applies the query parameters to an SQL query.
 func (r *Resource) apply(req api2go.Request) (*gorm.DB, error) {
 	c := db.C
+	for _, p := range r.Preloads {
+		c = c.Preload(p)
+	}
 loop:
 	for k, v := range req.QueryParams {
 		for _, f := range r.Fields {
