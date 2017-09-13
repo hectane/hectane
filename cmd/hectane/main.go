@@ -9,6 +9,7 @@ import (
 	"github.com/hectane/hectane/db"
 	"github.com/hectane/hectane/imap"
 	"github.com/hectane/hectane/receiver"
+	"github.com/hectane/hectane/sender"
 	"github.com/hectane/hectane/server"
 	"github.com/hectane/hectane/storage"
 	"github.com/howeyc/gopass"
@@ -173,6 +174,12 @@ func main() {
 				st := storage.New(&storage.Config{
 					Directory: c.GlobalString("storage-directory"),
 				})
+
+				// Create the sender
+				sn := sender.New(&sender.Config{
+					Storage: st,
+				})
+				defer sn.Close()
 
 				// Create the incoming mail receiver
 				r, err := receiver.New(&receiver.Config{
