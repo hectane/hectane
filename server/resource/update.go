@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/hectane/hectane/db"
+	"github.com/jinzhu/gorm"
 	"github.com/manyminds/api2go"
 )
 
@@ -21,7 +22,15 @@ func (r *Resource) Update(obj interface{}, req api2go.Request) (api2go.Responder
 	if r.SetHook != nil {
 		r.SetHook(obj, req)
 	}
-	if err := c.Model(r.Type).Updates(obj).Error; err != nil {
+	if err := db.Transaction(c, func(c *gorm.DB) error {
+		if err := c.Model(r.Type).Updates(obj).Error; err != nil {
+			return err
+		}
+		for _, p := range r.Preloads {
+			c = c.Preload(p)
+		}
+		return c.First(obj).Error
+	}); err != nil {
 		return nil, err
 	}
 	return &api2go.Response{

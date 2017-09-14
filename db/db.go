@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/jinzhu/gorm"
@@ -9,7 +10,9 @@ import (
 )
 
 var (
-	C   *gorm.DB
+	C                      *gorm.DB
+	ErrInvalidRelationship = errors.New("invalid relationship")
+
 	log = logrus.WithField("context", "db")
 )
 

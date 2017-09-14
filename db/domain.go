@@ -11,12 +11,14 @@ type Domain struct {
 	Name string `json:"name" gorm:"not null;unique_index"`
 }
 
-// GetID retrieves the ID of the domain.
+func (d *Domain) GetName() string {
+	return "domains"
+}
+
 func (d *Domain) GetID() string {
 	return strconv.FormatInt(d.ID, 10)
 }
 
-// SetID sets the ID for the domain.
 func (d *Domain) SetID(id string) error {
 	d.ID, _ = strconv.ParseInt(id, 10, 64)
 	return nil
