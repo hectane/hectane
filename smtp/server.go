@@ -1,7 +1,7 @@
 package smtp
 
 import (
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/hectane/go-smtpsrv"
 	"github.com/hectane/hectane/email"
 	"github.com/hectane/hectane/queue"

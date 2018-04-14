@@ -1,7 +1,7 @@
 package queue
 
 import (
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/hectane/go-nonblockingchan"
 
 	"crypto/tls"

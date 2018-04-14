@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/hectane/go-asyncserver"
 	"github.com/hectane/hectane/queue"
 
