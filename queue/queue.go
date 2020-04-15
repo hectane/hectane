@@ -36,8 +36,9 @@ func (q *Queue) deliverMessage(m *Message) {
 func (q *Queue) stats(c chan *QueueStatus, startTime time.Time) {
 	go func() {
 		s := &QueueStatus{
-			Uptime: int(time.Now().Sub(startTime) / time.Second),
-			Hosts:  map[string]*HostStatus{},
+			Uptime: int(time.Since(startTime) / time.Second),
+			//Uptime: int(time.Now().Sub(startTime) / time.Second),
+			Hosts: map[string]*HostStatus{},
 		}
 		for n, h := range q.hosts {
 			s.Hosts[n] = h.Status()

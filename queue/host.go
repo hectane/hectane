@@ -222,11 +222,15 @@ deliver:
 		}
 		if e, ok := err.(*textproto.Error); ok {
 			if e.Code >= 400 && e.Code <= 499 {
-				c.Close()
+				if closeError := c.Close(); closeError != nil {
+					h.log.WithError(err).Error("close error")
+				}
 				c = nil
 				goto wait
 			}
-			c.Reset()
+			if rstErr := c.Reset(); rstErr != nil {
+				h.log.WithError(err).Error("reset error")
+			}
 		}
 		h.log.Error(err.Error())
 		goto cleanup
@@ -245,6 +249,7 @@ wait:
 	// We differ a tiny bit from the RFC spec here but this should work well
 	// enough - the goal is to retry lots of times early on and space out the
 	// remaining attempts as time goes on. (Roughly 48 hours total.)
+	tries++
 	switch {
 	case tries < 8:
 		duration *= 2
@@ -258,7 +263,6 @@ wait:
 	case <-time.After(duration):
 		goto receive
 	}
-	tries++
 shutdown:
 	h.log.Debug("shutting down")
 	if c != nil {
@@ -275,9 +279,7 @@ func NewHost(host string, s *Storage, c *Config) *Host {
 		host:       host,
 		newMessage: nbc.New(),
 		stop:       make(chan bool),
-	}
-	if c.ProcessFunc != nil {
-		h.process = c.ProcessFunc
+		process:    c.ProcessFunc,
 	}
 	go h.run()
 	return h

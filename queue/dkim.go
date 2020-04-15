@@ -44,6 +44,9 @@ func dkimFor(from string, config *Config) (*dkim.DKIM, error) {
 	}
 	// dkim.StdSignableHeaders = []string{"From", "To", "Subject", "From"}
 	dkimInstance, err = dkim.New(conf, []byte(dkimConfig.PrivateKey))
+	if err != nil {
+		return nil, err
+	}
 
 	dkimInstances[domain] = dkimInstance
 	return dkimInstance, nil

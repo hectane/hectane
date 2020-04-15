@@ -1,9 +1,9 @@
 package api
 
 import (
-	"github.com/sirupsen/logrus"
 	"github.com/hectane/go-asyncserver"
 	"github.com/hectane/hectane/queue"
+	"github.com/sirupsen/logrus"
 
 	"crypto/tls"
 	"encoding/json"
@@ -49,8 +49,11 @@ func (a *API) method(methods []string, handler func(r *http.Request) interface{}
 				w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				if r.Method != head {
-					w.Write(data)
+				if r.Method != http.MethodHead {
+					_, err := w.Write(data)
+					if err != nil {
+						http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+					}
 				}
 			} else {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

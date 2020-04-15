@@ -7,6 +7,8 @@ github.com/hectane/go-acl v0.0.0-20190604041725-da78bae5fc95 h1:S4qyfL2sEm5Budr4
 github.com/hectane/go-acl v0.0.0-20190604041725-da78bae5fc95/go.mod h1:QiyDdbZLaJ/mZP4Zwc9g2QsfaEA4o7XvvgZegSci5/E=
 github.com/hectane/go-asyncserver v0.1.0 h1:miQMVjLchB0fklo4nKoUp3votMOCSJhddVlPSmyiieM=
 github.com/hectane/go-asyncserver v0.1.0/go.mod h1:waBaOSU0nKsRCHYMISp/+MSakn6C5HyDSF3y0NUknu0=
+github.com/hectane/go-attest v0.1.2 h1:HzAy7PhILWGy3Vr6WsTFG4k+8csZ7rYsgB9zO3HD+RE=
+github.com/hectane/go-attest v0.1.2/go.mod h1:gxESRl/EHIwBfuD9xidptRiaabPkeyoDYGkIkQoOlm4=
 github.com/hectane/go-nonblockingchan v0.1.0 h1:w5dFzLYim23KoK64xqfA0iSMNMA8ruLXvGkyXlZBDFY=
 github.com/hectane/go-nonblockingchan v0.1.0/go.mod h1:Ztuu6NIB+3zEHbsCEXcynf5a4B49/PofiBiQUGDGbRw=
 github.com/hectane/go-smtpsrv v0.0.0-20161026181416-2bd6a60e2610 h1:O7VZ3opIi+3pw/4RAxrn2cozx2DsRNikQKmkxxO8nvM=
