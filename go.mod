@@ -1,4 +1,4 @@
-module github.com/lcd1232/hectane
+module github.com/hectane/hectane
 
 go 1.14
 
@@ -9,7 +9,6 @@ require (
 	github.com/hectane/go-attest v0.1.2
 	github.com/hectane/go-nonblockingchan v0.1.0
 	github.com/hectane/go-smtpsrv v0.0.0-20161026181416-2bd6a60e2610
-	github.com/hectane/hectane v0.3.2
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/kennygrant/sanitize v1.2.4
 	github.com/pborman/uuid v1.2.0
