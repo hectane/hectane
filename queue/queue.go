@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Queue status information.
+// QueueStatus status information.
 type QueueStatus struct {
 	Uptime int                    `json:"uptime"`
 	Hosts  map[string]*HostStatus `json:"hosts"`

@@ -24,6 +24,8 @@ type HostStatus struct {
 	Length int  `json:"length"`
 }
 
+type ProcessFunc func(m *Message) error
+
 // Persistent connection to an SMTP host.
 type Host struct {
 	m            sync.Mutex
@@ -34,6 +36,7 @@ type Host struct {
 	newMessage   *nbc.NonBlockingChan
 	lastActivity time.Time
 	stop         chan bool
+	process      ProcessFunc
 }
 
 // Receive the next message in the queue. The host queue is considered
@@ -184,9 +187,16 @@ receive:
 		}
 		h.log.Info("message received in queue")
 	}
+	if h.process != nil {
+		err := h.process(m)
+		if err != nil {
+			h.log.Error(err)
+			goto wait
+		}
+	}
 	hostname, err = h.parseHostname(m.From)
 	if err != nil {
-		h.log.Error(err.Error())
+		h.log.Error(err)
 		goto cleanup
 	}
 deliver:
@@ -256,7 +266,7 @@ shutdown:
 	}
 }
 
-// Create a new host connection.
+// NewHost creates a new host connection.
 func NewHost(host string, s *Storage, c *Config) *Host {
 	h := &Host{
 		config:     c,
@@ -265,6 +275,9 @@ func NewHost(host string, s *Storage, c *Config) *Host {
 		host:       host,
 		newMessage: nbc.New(),
 		stop:       make(chan bool),
+	}
+	if c.ProcessFunc != nil {
+		h.process = c.ProcessFunc
 	}
 	go h.run()
 	return h
