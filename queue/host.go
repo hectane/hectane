@@ -24,7 +24,7 @@ type HostStatus struct {
 	Length int  `json:"length"`
 }
 
-type ProcessFunc func(m *Message) error
+type ProcessFunc func(m *Message, s *Storage) error
 
 // Persistent connection to an SMTP host.
 type Host struct {
@@ -188,7 +188,7 @@ receive:
 		h.log.Info("message received in queue")
 	}
 	if h.process != nil {
-		err := h.process(m)
+		err := h.process(m, h.storage)
 		if err != nil {
 			h.log.Error(err)
 			goto wait
