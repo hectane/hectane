@@ -26,6 +26,7 @@ type Email struct {
 	Text        string       `json:"text"`
 	Html        string       `json:"html"`
 	Attachments []Attachment `json:"attachments"`
+	SourceCode  string       `json:"source_code"`
 }
 
 // Write the headers for the email to the specified writer.
@@ -135,6 +136,27 @@ func (e *Email) Messages(s *queue.Storage) ([]*queue.Message, error) {
 		}
 	}
 	if err := mpWriter.Close(); err != nil {
+		return nil, err
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+	return e.newMessages(s, from.Address, body)
+}
+
+// Convert the email into an array of messages grouped by host suitable for
+// delivery to the mail queue.
+func (e *Email) RawMessages(s *queue.Storage) ([]*queue.Message, error) {
+	from, err := mail.ParseAddress(mime.QEncoding.Encode("utf-8", e.From))
+	if err != nil {
+		return nil, err
+	}
+	w, body, err := s.NewBody()
+	if err != nil {
+		return nil, err
+	}
+	defer w.Close()
+	if _, err := w.Write([]byte(e.SourceCode)); err != nil {
 		return nil, err
 	}
 	if err := w.Close(); err != nil {
