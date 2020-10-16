@@ -192,6 +192,8 @@ receive:
 		if err != nil {
 			h.log.Error(err)
 			goto wait
+		} else {
+			goto cleanup
 		}
 	}
 	hostname, err = h.parseHostname(m.From)
