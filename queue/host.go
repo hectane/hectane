@@ -1,12 +1,14 @@
 package queue
 
 import (
+	"context"
+
 	"github.com/hectane/go-nonblockingchan"
 	"github.com/sirupsen/logrus"
 
 	"crypto/tls"
-	"errors"
 	"fmt"
+	"github.com/hectane/hectane/internal/smtputil"
 	"io"
 	"net"
 	"net/mail"
@@ -35,8 +37,13 @@ type Host struct {
 	host         string
 	newMessage   *nbc.NonBlockingChan
 	lastActivity time.Time
-	stop         chan bool
+	ctx          context.Context
+	stopFunc     context.CancelFunc
+	wg           *sync.WaitGroup
 	process      ProcessFunc
+
+	mailServerFinder MailServerFinder
+	smtpConnecter    smtputil.Connecter
 }
 
 // Receive the next message in the queue. The host queue is considered
@@ -52,13 +59,11 @@ func (h *Host) receiveMessage() *Message {
 		h.lastActivity = time.Time{}
 		h.m.Unlock()
 	}()
-	for {
-		select {
-		case i := <-h.newMessage.Recv:
-			return i.(*Message)
-		case <-h.stop:
-			return nil
-		}
+	select {
+	case m := <-h.newMessage.Recv:
+		return m.(*Message)
+	case <-h.ctx.Done():
+		return nil
 	}
 }
 
@@ -86,8 +91,8 @@ func (h *Host) tryMailServer(server, hostname string) (*smtp.Client, error) {
 	}()
 	select {
 	case <-done:
-	case <-h.stop:
-		return nil, nil
+	case <-h.ctx.Done():
+		return nil, h.ctx.Err()
 	}
 	if err != nil {
 		return nil, err
@@ -124,20 +129,38 @@ func (h *Host) findMailServers(host string) []string {
 }
 
 // Attempt to connect to one of the mail servers.
-func (h *Host) connectToMailServer(hostname string) (*smtp.Client, error) {
-	for _, s := range h.findMailServers(h.host) {
-		c, err := h.tryMailServer(s, hostname)
+func (h *Host) connectToMailServer(hostname string) (smtputil.Client, error) {
+	mxServers, err := h.mailServerFinder.FindServers(hostname)
+	if err != nil {
+		return nil, err
+	}
+	for _, mxServer := range mxServers {
+		c, err := h.smtpConnecter.SMTPConnect(mxServer)
 		if err != nil {
-			h.log.Debugf("unable to connect to %s", s)
+			h.log.WithError(err).Debugf("unable to connect to %s", mxServer)
 			continue
+		}
+
+		if err := c.Hello(h.config.Hostname); err != nil {
+			return nil, err
+		}
+
+		if ok, _ := c.Extension("STARTTLS"); ok {
+			config := &tls.Config{ServerName: mxServer}
+			if h.config.DisableSSLVerification {
+				config.InsecureSkipVerify = true
+			}
+			if err := c.StartTLS(config); err != nil {
+				return nil, err
+			}
 		}
 		return c, nil
 	}
-	return nil, errors.New("unable to connect to a mail server")
+	return nil, fmt.Errorf("unable to reach any mail server for %s", hostname)
 }
 
 // Attempt to send the specified message to the specified client.
-func (h *Host) deliverToMailServer(c *smtp.Client, m *Message) error {
+func (h *Host) deliverToMailServer(c smtputil.Client, m *Message) error {
 	r, err := h.storage.GetMessageBody(m)
 	if err != nil {
 		return err
@@ -170,20 +193,28 @@ func (h *Host) deliverToMailServer(c *smtp.Client, m *Message) error {
 // algorithm for message delivery, the body of the method is broken up into a
 // sequence of labeled sections.
 func (h *Host) run() {
-	defer close(h.stop)
 	var (
 		m        *Message
 		hostname string
-		c        *smtp.Client
+		c        smtputil.Client
 		err      error
 		tries    int
 		duration = time.Minute
 	)
+
+	defer func() {
+		h.log.Debug("shutting down")
+		if c != nil {
+			c.Close()
+		}
+		h.wg.Done()
+	}()
+
 receive:
 	if m == nil {
 		m = h.receiveMessage()
 		if m == nil {
-			goto shutdown
+			return
 		}
 		h.log.Info("message received in queue")
 	}
@@ -201,6 +232,7 @@ receive:
 		h.log.Error(err)
 		goto cleanup
 	}
+
 deliver:
 	if c == nil {
 		h.log.Debug("connecting to mail server")
@@ -210,7 +242,7 @@ deliver:
 				h.log.Error(err)
 				goto wait
 			} else {
-				goto shutdown
+				return
 			}
 		}
 		h.log.Debug("connection established")
@@ -261,29 +293,46 @@ wait:
 		goto cleanup
 	}
 	select {
-	case <-h.stop:
+	case <-h.ctx.Done():
 	case <-time.After(duration):
 		goto receive
 	}
-shutdown:
-	h.log.Debug("shutting down")
-	if c != nil {
-		c.Close()
+}
+
+func (h *Host) defaultProcessor(m *Message, s *Storage) error {
+	hostname, err := h.parseHostname(m.From)
+	if err != nil {
+		return err
 	}
+
+	c, err := h.connectToMailServer(hostname)
+	if err != nil {
+		return err
+	}
+
+	_ = c
+
+	return nil
 }
 
 // NewHost creates a new host connection.
 func NewHost(host string, s *Storage, c *Config) *Host {
+	ctx, cancel := context.WithCancel(context.Background())
 	h := &Host{
 		config:     c,
 		storage:    s,
 		log:        logrus.WithField("context", host),
 		host:       host,
 		newMessage: nbc.New(),
-		stop:       make(chan bool),
+		ctx:        ctx,
+		stopFunc:   cancel,
+		wg:         &sync.WaitGroup{},
 		process:    c.ProcessFunc,
 	}
+
+	h.wg.Add(1)
 	go h.run()
+
 	return h
 }
 
@@ -312,6 +361,6 @@ func (h *Host) Status() *HostStatus {
 
 // Close the connection to the host.
 func (h *Host) Stop() {
-	h.stop <- true
-	<-h.stop
+	h.stopFunc()
+	h.wg.Wait()
 }

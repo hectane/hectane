@@ -13,6 +13,7 @@ func TestSave(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(d)
+
 	var (
 		c = Config{}
 		f = filepath.Join(d, "config.json")
