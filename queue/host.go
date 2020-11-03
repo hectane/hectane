@@ -300,7 +300,7 @@ wait:
 }
 
 func (h *Host) defaultProcessor(m *Message, s *Storage) error {
-	hostname, err := h.parseHostname(m.From)
+	hostname, err := h.parseHostname(m.To[0])
 	if err != nil {
 		return err
 	}
@@ -310,7 +310,9 @@ func (h *Host) defaultProcessor(m *Message, s *Storage) error {
 		return err
 	}
 
-	_ = c
+	if err := h.deliverToMailServer(c, m); err != nil {
+		return err
+	}
 
 	return nil
 }

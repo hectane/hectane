@@ -30,6 +30,23 @@ func newStorage(t *testing.T) (storage *Storage, deleter func()) {
 	}
 }
 
+func saveMessage(t *testing.T, messageBody string, storage *Storage, from string, to []string) *Message {
+	r := strings.NewReader(messageBody)
+	w, body, err := storage.NewBody()
+	require.NoError(t, err)
+	_, err = io.Copy(w, r)
+	require.NoError(t, err)
+	require.NoError(t, w.Close())
+
+	m := &Message{
+		From: from,
+		To:   to,
+	}
+
+	require.NoError(t, storage.SaveMessage(m, body))
+	return m
+}
+
 func TestHost_receiveMessage(t *testing.T) {
 	store, deleter := newStorage(t)
 	defer deleter()
@@ -121,6 +138,8 @@ func TestHost_parseHostname(t *testing.T) {
 func TestDefaultProcessor(t *testing.T) {
 	r, w := io.Pipe()
 
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	mailServerFinderMock := new(queuemocks.MailServerFinder)
 	mailServerFinderMock.On("FindServers", "example.com").Return([]string{"mx1.example.com", "mx2.example.com"}, nil)
 	clientMock := new(smtpmocks.Client)
@@ -135,15 +154,23 @@ func TestDefaultProcessor(t *testing.T) {
 	clientMock.On("Rcpt", "to1@example.com").Return(nil)
 	clientMock.On("Data").Run(func(args mock.Arguments) {
 		go func() {
+			defer wg.Done()
 			buf := bytes.Buffer{}
 			_, err := io.Copy(&buf, r)
 			require.NoError(t, err)
+			assert.Equal(t, "some body1", buf.String())
 		}()
 	}).Return(w, nil)
 	smtpConnecterMock := new(smtpmocks.Connecter)
 	smtpConnecterMock.On("SMTPConnect", "mx1.example.com").Return(clientMock, nil)
 
+	storage, deleter := newStorage(t)
+	defer deleter()
+
+	message := saveMessage(t, "some body1", storage, "from@example.org", []string{"to1@example.com"})
+
 	h := Host{
+		storage:          storage,
 		mailServerFinder: mailServerFinderMock,
 		smtpConnecter:    smtpConnecterMock,
 		config: &Config{
@@ -152,12 +179,7 @@ func TestDefaultProcessor(t *testing.T) {
 		},
 	}
 
-	message := Message{
-		From: "name@example.com",
-	}
-	storage := Storage{}
-
-	err := h.defaultProcessor(&message, &storage)
+	err := h.defaultProcessor(message, storage)
 	require.NoError(t, err)
 
 	smtpConnecterMock.AssertExpectations(t)
@@ -217,19 +239,7 @@ func TestDeliverToMailServer(t *testing.T) {
 	storage, deleter := newStorage(t)
 	defer deleter()
 
-	r := strings.NewReader("some body")
-	w, body, err := storage.NewBody()
-	require.NoError(t, err)
-	_, err = io.Copy(w, r)
-	require.NoError(t, err)
-	require.NoError(t, w.Close())
-
-	m := &Message{
-		From: "from@example.org",
-		To:   []string{"to@example.com"},
-	}
-
-	require.NoError(t, storage.SaveMessage(m, body))
+	m := saveMessage(t, "some body", storage, "from@example.org", []string{"to@example.com"})
 
 	h := Host{
 		storage: storage,
