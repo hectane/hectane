@@ -39,7 +39,7 @@ func (c *connector) SMTPConnect(hostname string) (smtputil.Client, error) {
 		addr := fmt.Sprintf("%s:25", hostname)
 		deadline, ok := c.ctx.Deadline()
 		if ok {
-			conn, err = net.DialTimeout("tcp", addr, deadline.Sub(time.Now()))
+			conn, err = net.DialTimeout("tcp", addr, time.Until(deadline))
 			if err != nil {
 				errCh <- err
 				return
