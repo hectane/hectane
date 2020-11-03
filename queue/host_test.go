@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"errors"
 	"io"
 	"io/ioutil"
+	"net/textproto"
 	"os"
 	"strings"
 	"sync"
@@ -189,6 +191,46 @@ func TestDefaultProcessor(t *testing.T) {
 	mailServerFinderMock.AssertExpectations(t)
 }
 
+func TestDefaultProcessorTemporaryError(t *testing.T) {
+	temporaryError := textproto.Error{
+		Msg:  "Service is unavailable",
+		Code: 421,
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	mailServerFinderMock := new(queuemocks.MailServerFinder)
+	mailServerFinderMock.On("FindServers", "example.com").Return([]string{"mx1.example.com", "mx2.example.com"}, nil)
+	clientMock := new(smtpmocks.Client)
+	clientMock.On("Hello", "forwarder1.example.org").Return(&temporaryError)
+	smtpConnecterMock := new(smtpmocks.Connecter)
+	smtpConnecterMock.On("SMTPConnect", "mx1.example.com").Return(clientMock, nil)
+
+	storage, deleter := newStorage(t)
+	defer deleter()
+
+	message := saveMessage(t, "some body1", storage, "from@example.org", []string{"to1@example.com"})
+
+	h := Host{
+		storage:          storage,
+		mailServerFinder: mailServerFinderMock,
+		smtpConnecter:    smtpConnecterMock,
+		config: &Config{
+			Hostname: "forwarder1.example.org",
+		},
+	}
+
+	err := h.defaultProcessor(message, storage)
+	require.Error(t, err)
+	var e *SMTPError
+	require.True(t, errors.As(err, &e))
+	assert.True(t, e.IsTemporary())
+
+	smtpConnecterMock.AssertExpectations(t)
+	clientMock.AssertExpectations(t)
+	mailServerFinderMock.AssertExpectations(t)
+}
+
 func TestConnectToMailServer(t *testing.T) {
 	mailServerFinderMock := new(queuemocks.MailServerFinder)
 	mailServerFinderMock.On("FindServers", "example.com").Return([]string{"mx1.example.com", "mx2.example.com"}, nil)
@@ -328,6 +370,74 @@ func TestRun(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "success send",
+			beforeTest: func(t *testing.T) (*Host, func()) {
+				r, w := io.Pipe()
+
+				wg := sync.WaitGroup{}
+				wg.Add(1)
+				mailServerFinderMock := new(queuemocks.MailServerFinder)
+				mailServerFinderMock.On("FindServers", "example.com").Return([]string{"mx1.example.com", "mx2.example.com"}, nil)
+				clientMock := new(smtpmocks.Client)
+				clientMock.On("Hello", "forwarder1.example.org").Return(nil)
+				clientMock.On("Extension", "STARTTLS").Return(true, "")
+				clientMock.On("StartTLS", mock.MatchedBy(func(conf *tls.Config) bool {
+					assert.Equal(t, "mx1.example.com", conf.ServerName)
+					assert.Equal(t, true, conf.InsecureSkipVerify)
+					return true
+				})).Return(nil)
+				clientMock.On("Mail", "from@example.org").Return(nil)
+				clientMock.On("Rcpt", "to@example.com").Return(nil)
+				clientMock.On("Data").Run(func(args mock.Arguments) {
+					go func() {
+						defer wg.Done()
+						buf := bytes.Buffer{}
+						_, err := io.Copy(&buf, r)
+						require.NoError(t, err)
+						assert.Equal(t, "some body1", buf.String())
+					}()
+				}).Return(w, nil)
+				smtpConnecterMock := new(smtpmocks.Connecter)
+				smtpConnecterMock.On("SMTPConnect", "mx1.example.com").Return(clientMock, nil)
+
+				ctx, cancel := context.WithCancel(context.Background())
+
+				storage, deleter := newStorage(t)
+				hostWg := sync.WaitGroup{}
+				hostWg.Add(1)
+				h := Host{
+					ctx:              ctx,
+					log:              logrus.NewEntry(logrus.StandardLogger()),
+					storage:          storage,
+					wg:               &hostWg,
+					newMessage:       nbc.New(),
+					mailServerFinder: mailServerFinderMock,
+					smtpConnecter:    smtpConnecterMock,
+					config: &Config{
+						Hostname:               "forwarder1.example.org",
+						DisableSSLVerification: true,
+					},
+				}
+				h.process = h.defaultProcessor
+
+				message := saveMessage(t, "some body1", h.storage, "from@example.org", []string{"to@example.com"})
+
+				h.newMessage.Send <- message
+
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					cancel()
+				}()
+
+				return &h, func() {
+					deleter()
+					smtpConnecterMock.AssertExpectations(t)
+					clientMock.AssertExpectations(t)
+					mailServerFinderMock.AssertExpectations(t)
+				}
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -338,4 +448,24 @@ func TestRun(t *testing.T) {
 			h.run()
 		})
 	}
+}
+
+func TestSMTPError_IsTemporary(t *testing.T) {
+	err := textproto.Error{
+		Code: 421,
+		Msg:  "The service is unavailable, try again later",
+	}
+	e := SMTPError{Err: &err}
+	assert.False(t, e.IsPermanent())
+	assert.True(t, e.IsTemporary())
+}
+
+func TestSMTPError_IsPermanent(t *testing.T) {
+	err := textproto.Error{
+		Code: 501,
+		Msg:  "Syntax error",
+	}
+	e := SMTPError{Err: &err}
+	assert.True(t, e.IsPermanent())
+	assert.False(t, e.IsTemporary())
 }

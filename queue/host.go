@@ -2,13 +2,9 @@ package queue
 
 import (
 	"context"
-
-	"github.com/hectane/go-nonblockingchan"
-	"github.com/sirupsen/logrus"
-
 	"crypto/tls"
+	"errors"
 	"fmt"
-	"github.com/hectane/hectane/internal/smtputil"
 	"io"
 	"net"
 	"net/mail"
@@ -18,7 +14,42 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/hectane/go-nonblockingchan"
+	"github.com/sirupsen/logrus"
+
+	"github.com/hectane/hectane/internal/smtputil"
 )
+
+type SMTPError struct {
+	Err error
+}
+
+func (e *SMTPError) Error() string {
+	return e.Err.Error()
+}
+
+func (e *SMTPError) Unwrap() error {
+	return e.Err
+}
+
+func (e *SMTPError) IsPermanent() bool {
+	var err *textproto.Error
+	if errors.As(e.Err, &err) {
+		return 500 <= err.Code && err.Code <= 599
+	}
+
+	return false
+}
+
+func (e *SMTPError) IsTemporary() bool {
+	var err *textproto.Error
+	if errors.As(e.Err, &err) {
+		return 400 <= err.Code && err.Code <= 499
+	}
+
+	return false
+}
 
 // Host status information.
 type HostStatus struct {
@@ -224,11 +255,6 @@ receive:
 	} else {
 		goto cleanup
 	}
-	hostname, err = h.parseHostname(m.From)
-	if err != nil {
-		h.log.Error(err)
-		goto cleanup
-	}
 
 deliver:
 	if c == nil {
@@ -304,10 +330,18 @@ func (h *Host) defaultProcessor(m *Message, s *Storage) error {
 
 	c, err := h.connectToMailServer(hostname)
 	if err != nil {
+		var protoError *textproto.Error
+		if errors.As(err, &protoError) {
+			return &SMTPError{Err: err}
+		}
 		return err
 	}
 
 	if err := h.deliverToMailServer(c, m); err != nil {
+		var protoError *textproto.Error
+		if errors.As(err, &protoError) {
+			return &SMTPError{Err: err}
+		}
 		return err
 	}
 
