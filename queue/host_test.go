@@ -193,7 +193,22 @@ func TestConnectToMailServer(t *testing.T) {
 }
 
 func TestDeliverToMailServer(t *testing.T) {
+	rPipe, wPipe := io.Pipe()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	clientMock := new(smtpmocks.Client)
+	clientMock.On("Mail", "from@example.org").Return(nil)
+	clientMock.On("Rcpt", "to@example.com").Return(nil)
+	clientMock.On("Data").Run(func(args mock.Arguments) {
+		go func() {
+			defer wg.Done()
+			buf := bytes.Buffer{}
+			_, err := io.Copy(&buf, rPipe)
+			require.NoError(t, err)
+			assert.Equal(t, "some body", buf.String())
+		}()
+	}).Return(wPipe, nil)
 
 	storage, deleter := newStorage(t)
 	defer deleter()
@@ -205,13 +220,21 @@ func TestDeliverToMailServer(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, w.Close())
 
-	m := &Message{}
+	m := &Message{
+		From: "from@example.org",
+		To:   []string{"to@example.com"},
+	}
 
 	require.NoError(t, storage.SaveMessage(m, body))
 
-	h := Host{}
+	h := Host{
+		storage: storage,
+		config:  &Config{},
+	}
 
 	require.NoError(t, h.deliverToMailServer(clientMock, m))
 
 	clientMock.AssertExpectations(t)
+
+	wg.Wait()
 }
