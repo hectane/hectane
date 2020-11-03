@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	nbc "github.com/hectane/go-nonblockingchan"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -251,4 +253,89 @@ func TestDeliverToMailServer(t *testing.T) {
 	clientMock.AssertExpectations(t)
 
 	wg.Wait()
+}
+
+func TestRun(t *testing.T) {
+	testCases := []struct {
+		name       string
+		beforeTest func(t *testing.T) (host *Host, postFunc func())
+	}{
+		{
+			name: "success send",
+			beforeTest: func(t *testing.T) (*Host, func()) {
+				r, w := io.Pipe()
+
+				wg := sync.WaitGroup{}
+				wg.Add(1)
+				mailServerFinderMock := new(queuemocks.MailServerFinder)
+				mailServerFinderMock.On("FindServers", "example.com").Return([]string{"mx1.example.com", "mx2.example.com"}, nil)
+				clientMock := new(smtpmocks.Client)
+				clientMock.On("Hello", "forwarder1.example.org").Return(nil)
+				clientMock.On("Extension", "STARTTLS").Return(true, "")
+				clientMock.On("StartTLS", mock.MatchedBy(func(conf *tls.Config) bool {
+					assert.Equal(t, "mx1.example.com", conf.ServerName)
+					assert.Equal(t, true, conf.InsecureSkipVerify)
+					return true
+				})).Return(nil)
+				clientMock.On("Mail", "from@example.org").Return(nil)
+				clientMock.On("Rcpt", "to@example.com").Return(nil)
+				clientMock.On("Data").Run(func(args mock.Arguments) {
+					go func() {
+						defer wg.Done()
+						buf := bytes.Buffer{}
+						_, err := io.Copy(&buf, r)
+						require.NoError(t, err)
+						assert.Equal(t, "some body1", buf.String())
+					}()
+				}).Return(w, nil)
+				smtpConnecterMock := new(smtpmocks.Connecter)
+				smtpConnecterMock.On("SMTPConnect", "mx1.example.com").Return(clientMock, nil)
+
+				ctx, cancel := context.WithCancel(context.Background())
+
+				storage, deleter := newStorage(t)
+				hostWg := sync.WaitGroup{}
+				hostWg.Add(1)
+				h := Host{
+					ctx:              ctx,
+					log:              logrus.NewEntry(logrus.StandardLogger()),
+					storage:          storage,
+					wg:               &hostWg,
+					newMessage:       nbc.New(),
+					mailServerFinder: mailServerFinderMock,
+					smtpConnecter:    smtpConnecterMock,
+					config: &Config{
+						Hostname:               "forwarder1.example.org",
+						DisableSSLVerification: true,
+					},
+				}
+				h.process = h.defaultProcessor
+
+				message := saveMessage(t, "some body1", h.storage, "from@example.org", []string{"to@example.com"})
+
+				h.newMessage.Send <- message
+
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					cancel()
+				}()
+
+				return &h, func() {
+					deleter()
+					smtpConnecterMock.AssertExpectations(t)
+					clientMock.AssertExpectations(t)
+					mailServerFinderMock.AssertExpectations(t)
+				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.NotNil(t, tc.beforeTest, "beforeTest must be implemented")
+			h, postFunc := tc.beforeTest(t)
+			defer postFunc()
+			h.run()
+		})
+	}
 }

@@ -218,14 +218,11 @@ receive:
 		}
 		h.log.Info("message received in queue")
 	}
-	if h.process != nil {
-		err := h.process(m, h.storage)
-		if err != nil {
-			h.log.Error(err)
-			goto wait
-		} else {
-			goto cleanup
-		}
+	if err := h.process(m, h.storage); err != nil {
+		h.log.WithError(err).Error("failed to process message")
+		goto wait
+	} else {
+		goto cleanup
 	}
 	hostname, err = h.parseHostname(m.From)
 	if err != nil {
@@ -330,6 +327,9 @@ func NewHost(host string, s *Storage, c *Config) *Host {
 		stopFunc:   cancel,
 		wg:         &sync.WaitGroup{},
 		process:    c.ProcessFunc,
+	}
+	if h.process == nil {
+		h.process = h.defaultProcessor
 	}
 
 	h.wg.Add(1)
