@@ -119,22 +119,21 @@ func TestHost_parseHostname(t *testing.T) {
 }
 
 func TestDefaultProcessor(t *testing.T) {
-	t.Skip("skip for now")
 	r, w := io.Pipe()
 
 	mailServerFinderMock := new(queuemocks.MailServerFinder)
 	mailServerFinderMock.On("FindServers", "example.com").Return([]string{"mx1.example.com", "mx2.example.com"}, nil)
-	smtpClientMock := new(smtpmocks.Client)
-	smtpClientMock.On("Hello", "forwarder1.example.org").Return(nil)
-	smtpClientMock.On("Extension", "STARTTLS").Return(true, "")
-	smtpClientMock.On("StartTLS", mock.MatchedBy(func(conf *tls.Config) bool {
+	clientMock := new(smtpmocks.Client)
+	clientMock.On("Hello", "forwarder1.example.org").Return(nil)
+	clientMock.On("Extension", "STARTTLS").Return(true, "")
+	clientMock.On("StartTLS", mock.MatchedBy(func(conf *tls.Config) bool {
 		assert.Equal(t, "mx1.example.com", conf.ServerName)
 		assert.Equal(t, true, conf.InsecureSkipVerify)
 		return true
 	})).Return(nil)
-	smtpClientMock.On("Mail", "from@example.org").Return(nil)
-	smtpClientMock.On("Rcpt", "to1@example.com").Return(nil)
-	smtpClientMock.On("Data").Run(func(args mock.Arguments) {
+	clientMock.On("Mail", "from@example.org").Return(nil)
+	clientMock.On("Rcpt", "to1@example.com").Return(nil)
+	clientMock.On("Data").Run(func(args mock.Arguments) {
 		go func() {
 			buf := bytes.Buffer{}
 			_, err := io.Copy(&buf, r)
@@ -142,10 +141,15 @@ func TestDefaultProcessor(t *testing.T) {
 		}()
 	}).Return(w, nil)
 	smtpConnecterMock := new(smtpmocks.Connecter)
-	smtpConnecterMock.On("SMTPConnect", "example.com").Return(smtpClientMock, nil)
+	smtpConnecterMock.On("SMTPConnect", "mx1.example.com").Return(clientMock, nil)
 
 	h := Host{
 		mailServerFinder: mailServerFinderMock,
+		smtpConnecter:    smtpConnecterMock,
+		config: &Config{
+			Hostname:               "forwarder1.example.org",
+			DisableSSLVerification: true,
+		},
 	}
 
 	message := Message{
@@ -157,7 +161,7 @@ func TestDefaultProcessor(t *testing.T) {
 	require.NoError(t, err)
 
 	smtpConnecterMock.AssertExpectations(t)
-	smtpClientMock.AssertExpectations(t)
+	clientMock.AssertExpectations(t)
 	mailServerFinderMock.AssertExpectations(t)
 }
 
