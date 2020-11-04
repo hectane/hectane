@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	nbc "github.com/hectane/go-nonblockingchan"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -197,8 +198,6 @@ func TestDefaultProcessorTemporaryError(t *testing.T) {
 		Code: 421,
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
 	mailServerFinderMock := new(queuemocks.MailServerFinder)
 	mailServerFinderMock.On("FindServers", "example.com").Return([]string{"mx1.example.com", "mx2.example.com"}, nil)
 	clientMock := new(smtpmocks.Client)
@@ -307,8 +306,6 @@ func TestRun(t *testing.T) {
 			beforeTest: func(t *testing.T) (*Host, func()) {
 				r, w := io.Pipe()
 
-				wg := sync.WaitGroup{}
-				wg.Add(1)
 				mailServerFinderMock := new(queuemocks.MailServerFinder)
 				mailServerFinderMock.On("FindServers", "example.com").Return([]string{"mx1.example.com", "mx2.example.com"}, nil)
 				clientMock := new(smtpmocks.Client)
@@ -323,7 +320,6 @@ func TestRun(t *testing.T) {
 				clientMock.On("Rcpt", "to@example.com").Return(nil)
 				clientMock.On("Data").Run(func(args mock.Arguments) {
 					go func() {
-						defer wg.Done()
 						buf := bytes.Buffer{}
 						_, err := io.Copy(&buf, r)
 						require.NoError(t, err)
@@ -350,6 +346,7 @@ func TestRun(t *testing.T) {
 						Hostname:               "forwarder1.example.org",
 						DisableSSLVerification: true,
 					},
+					back: backoff.NewExponentialBackOff(),
 				}
 				h.process = h.defaultProcessor
 
@@ -371,15 +368,22 @@ func TestRun(t *testing.T) {
 			},
 		},
 		{
-			name: "success send",
+			name: "success send after first retry",
 			beforeTest: func(t *testing.T) (*Host, func()) {
+				ctx, cancel := context.WithCancel(context.Background())
 				r, w := io.Pipe()
 
 				wg := sync.WaitGroup{}
 				wg.Add(1)
+				temporaryError := textproto.Error{
+					Msg:  "Service is unavailable",
+					Code: 421,
+				}
+
 				mailServerFinderMock := new(queuemocks.MailServerFinder)
 				mailServerFinderMock.On("FindServers", "example.com").Return([]string{"mx1.example.com", "mx2.example.com"}, nil)
 				clientMock := new(smtpmocks.Client)
+				clientMock.On("Hello", "forwarder1.example.org").Return(&temporaryError).Once()
 				clientMock.On("Hello", "forwarder1.example.org").Return(nil)
 				clientMock.On("Extension", "STARTTLS").Return(true, "")
 				clientMock.On("StartTLS", mock.MatchedBy(func(conf *tls.Config) bool {
@@ -396,12 +400,63 @@ func TestRun(t *testing.T) {
 						_, err := io.Copy(&buf, r)
 						require.NoError(t, err)
 						assert.Equal(t, "some body1", buf.String())
+						cancel()
 					}()
 				}).Return(w, nil)
 				smtpConnecterMock := new(smtpmocks.Connecter)
 				smtpConnecterMock.On("SMTPConnect", "mx1.example.com").Return(clientMock, nil)
 
+				storage, deleter := newStorage(t)
+				hostWg := sync.WaitGroup{}
+				hostWg.Add(1)
+				h := Host{
+					ctx:              ctx,
+					log:              logrus.NewEntry(logrus.StandardLogger()),
+					storage:          storage,
+					wg:               &hostWg,
+					newMessage:       nbc.New(),
+					mailServerFinder: mailServerFinderMock,
+					smtpConnecter:    smtpConnecterMock,
+					config: &Config{
+						Hostname:               "forwarder1.example.org",
+						DisableSSLVerification: true,
+					},
+					back: backoff.NewExponentialBackOff(),
+				}
+				h.process = h.defaultProcessor
+
+				message := saveMessage(t, "some body1", h.storage, "from@example.org", []string{"to@example.com"})
+
+				h.newMessage.Send <- message
+
+				return &h, func() {
+					deleter()
+					smtpConnecterMock.AssertExpectations(t)
+					clientMock.AssertExpectations(t)
+					mailServerFinderMock.AssertExpectations(t)
+				}
+			},
+		},
+		{
+			name: "failed send after first try",
+			beforeTest: func(t *testing.T) (*Host, func()) {
 				ctx, cancel := context.WithCancel(context.Background())
+				permanentError := textproto.Error{
+					Msg:  "IP is blocked",
+					Code: 525,
+				}
+
+				mailServerFinderMock := new(queuemocks.MailServerFinder)
+				mailServerFinderMock.On("FindServers", "example.com").Return([]string{"mx1.example.com", "mx2.example.com"}, nil)
+				clientMock := new(smtpmocks.Client)
+				clientMock.On("Hello", "forwarder1.example.org").Run(func(args mock.Arguments) {
+					go func() {
+						time.Sleep(100 * time.Millisecond)
+						cancel()
+					}()
+				}).Return(&permanentError).Once()
+				smtpConnecterMock := new(smtpmocks.Connecter)
+				smtpConnecterMock.On("SMTPConnect", "mx1.example.com").Return(clientMock, nil)
 
 				storage, deleter := newStorage(t)
 				hostWg := sync.WaitGroup{}
@@ -424,11 +479,6 @@ func TestRun(t *testing.T) {
 				message := saveMessage(t, "some body1", h.storage, "from@example.org", []string{"to@example.com"})
 
 				h.newMessage.Send <- message
-
-				go func() {
-					time.Sleep(100 * time.Millisecond)
-					cancel()
-				}()
 
 				return &h, func() {
 					deleter()

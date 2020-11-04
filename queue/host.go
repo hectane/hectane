@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/hectane/go-nonblockingchan"
 	"github.com/sirupsen/logrus"
 
@@ -75,6 +76,7 @@ type Host struct {
 
 	mailServerFinder MailServerFinder
 	smtpConnecter    smtputil.Connecter
+	back             backoff.BackOff
 }
 
 // Receive the next message in the queue. The host queue is considered
@@ -229,7 +231,6 @@ func (h *Host) run() {
 		hostname string
 		c        smtputil.Client
 		err      error
-		tries    int
 		duration = time.Minute
 	)
 
@@ -300,18 +301,11 @@ cleanup:
 		h.log.Error(err.Error())
 	}
 	m = nil
-	tries = 0
+	h.back.Reset()
 	goto receive
 wait:
-	// We differ a tiny bit from the RFC spec here but this should work well
-	// enough - the goal is to retry lots of times early on and space out the
-	// remaining attempts as time goes on. (Roughly 48 hours total.)
-	tries++
-	switch {
-	case tries < 8:
-		duration *= 2
-	case tries < 18:
-	default:
+	duration = h.back.NextBackOff()
+	if duration == backoff.Stop {
 		h.log.Error("maximum retry count exceeded")
 		goto cleanup
 	}

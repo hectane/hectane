@@ -1,5 +1,7 @@
 github.com/Freeaqingme/dkim v0.0.0-20160606200812-57418d2fbdcd h1:OXAdgeC8/sNLxo6w6GjeW/yTU0iLrcv6BZXzbsgHZLY=
 github.com/Freeaqingme/dkim v0.0.0-20160606200812-57418d2fbdcd/go.mod h1:2jaO1ZDxGuwzrfRhIe1QKvws/FY3SJ9f1EMNLQLTa0g=
+github.com/cenkalti/backoff/v4 v4.1.0 h1:c8LkOFQTzuO0WBM/ae5HdGQuZPfPxp7lqBRwQRm4fSc=
+github.com/cenkalti/backoff/v4 v4.1.0/go.mod h1:scbssz8iZGpm3xbr14ovlUdkxfGXNInqkPWOWmG2CLw=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -15,8 +17,6 @@ github.com/hectane/go-nonblockingchan v0.1.0 h1:w5dFzLYim23KoK64xqfA0iSMNMA8ruLX
 github.com/hectane/go-nonblockingchan v0.1.0/go.mod h1:Ztuu6NIB+3zEHbsCEXcynf5a4B49/PofiBiQUGDGbRw=
 github.com/hectane/go-smtpsrv v0.0.0-20161026181416-2bd6a60e2610 h1:O7VZ3opIi+3pw/4RAxrn2cozx2DsRNikQKmkxxO8nvM=
 github.com/hectane/go-smtpsrv v0.0.0-20161026181416-2bd6a60e2610/go.mod h1:m3r0biV6j+PK8QmITOt6Pv6/HmCQrhIdkN5Jr43N5G8=
-github.com/hectane/hectane v0.3.2 h1:UyJMWFHtKNiK40cJvfzi/a3PuUTF0nf6kFRULt/joYc=
-github.com/hectane/hectane v0.3.2/go.mod h1:enmgBsfbzuxwQ9OLZeWYMWJt27wcegpNZORlhfw77p0=
 github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 h1:iQTw/8FWTuc7uiaSepXwyf3o52HaUYcV+Tu66S3F5GA=
 github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0/go.mod h1:1NbS8ALrpOvjt0rHPNLyCIeMtbizbir8U//inJ+zuB8=
 github.com/kennygrant/sanitize v1.2.4 h1:gN25/otpP5vAsO2djbMhF/LQX6R7+O1TB4yv8NzpJ3o=
