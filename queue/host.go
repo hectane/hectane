@@ -251,11 +251,12 @@ receive:
 		h.log.Info("message received in queue")
 	}
 	if err := h.process(m, h.storage); err != nil {
-		h.log.WithError(err).Error("failed to process message")
 		var smtpErr *SMTPError
 		if errors.As(err, &smtpErr) && smtpErr.IsPermanent() {
+			h.log.WithError(err).Error("got permanent error")
 			goto cleanup
 		}
+		h.log.WithError(err).Error("failed to process message")
 		goto wait
 	}
 	goto cleanup
