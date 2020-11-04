@@ -145,21 +145,24 @@ func (h *Host) tryMailServer(server, hostname string) (*smtp.Client, error) {
 	return c, nil
 }
 
-// Attempt to find the mail servers for the specified host. MX records are
+type dnsServerFinder struct{}
+
+// FindServers looking for the mail servers for the specified host. MX records are
 // checked first. If one or more were found, the records are converted into an
-// array of strings (sorted by priority). If none were found, the original host
-// is returned.
-func (h *Host) findMailServers(host string) []string {
+// array of strings (sorted by priority).
+func (d *dnsServerFinder) FindServers(host string) ([]string, error) {
 	r, err := net.LookupMX(host)
 	if err != nil {
-		return []string{host}
+		return nil, err
 	}
 	servers := make([]string, len(r))
 	for i, r := range r {
 		servers[i] = strings.TrimSuffix(r.Host, ".")
 	}
-	return servers
+	return servers, nil
 }
+
+var _ MailServerFinder = new(dnsServerFinder)
 
 // Attempt to connect to one of the mail servers.
 func (h *Host) connectToMailServer(hostname string) (smtputil.Client, error) {
@@ -349,16 +352,27 @@ func (h *Host) defaultProcessor(m *Message, s *Storage) error {
 // NewHost creates a new host connection.
 func NewHost(host string, s *Storage, c *Config) *Host {
 	ctx, cancel := context.WithCancel(context.Background())
+
+	back := backoff.NewExponentialBackOff()
+	back.InitialInterval = c.InitialInterval
+	back.MaxElapsedTime = c.MaxElapsedTime
+	back.MaxInterval = c.MaxInterval
+	back.Multiplier = c.Multiplier
+	back.RandomizationFactor = c.RandomizationFactor
+
 	h := &Host{
-		config:     c,
-		storage:    s,
-		log:        logrus.WithField("context", host),
-		host:       host,
-		newMessage: nbc.New(),
-		ctx:        ctx,
-		stopFunc:   cancel,
-		wg:         &sync.WaitGroup{},
-		process:    c.ProcessFunc,
+		config:           c,
+		storage:          s,
+		log:              logrus.WithField("context", host),
+		host:             host,
+		newMessage:       nbc.New(),
+		ctx:              ctx,
+		stopFunc:         cancel,
+		wg:               &sync.WaitGroup{},
+		process:          c.ProcessFunc,
+		mailServerFinder: &dnsServerFinder{},
+		smtpConnecter:    newConnector(ctx, c.Hostname, c.DisableSSLVerification),
+		back:             back,
 	}
 	if h.process == nil {
 		h.process = h.defaultProcessor
