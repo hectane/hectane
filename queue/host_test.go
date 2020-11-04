@@ -346,7 +346,7 @@ func TestRun(t *testing.T) {
 						Hostname:               "forwarder1.example.org",
 						DisableSSLVerification: true,
 					},
-					back: backoff.NewExponentialBackOff(),
+					back: &backoff.ZeroBackOff{},
 				}
 				h.process = h.defaultProcessor
 
@@ -421,7 +421,7 @@ func TestRun(t *testing.T) {
 						Hostname:               "forwarder1.example.org",
 						DisableSSLVerification: true,
 					},
-					back: backoff.NewExponentialBackOff(),
+					back: &backoff.ZeroBackOff{},
 				}
 				h.process = h.defaultProcessor
 
@@ -447,7 +447,7 @@ func TestRun(t *testing.T) {
 				}
 
 				mailServerFinderMock := new(queuemocks.MailServerFinder)
-				mailServerFinderMock.On("FindServers", "example.com").Return([]string{"mx1.example.com", "mx2.example.com"}, nil)
+				mailServerFinderMock.On("FindServers", "example.com").Return([]string{"mx1.example.com", "mx2.example.com"}, nil).Once()
 				clientMock := new(smtpmocks.Client)
 				clientMock.On("Hello", "forwarder1.example.org").Run(func(args mock.Arguments) {
 					go func() {
@@ -456,7 +456,7 @@ func TestRun(t *testing.T) {
 					}()
 				}).Return(&permanentError).Once()
 				smtpConnecterMock := new(smtpmocks.Connecter)
-				smtpConnecterMock.On("SMTPConnect", "mx1.example.com").Return(clientMock, nil)
+				smtpConnecterMock.On("SMTPConnect", "mx1.example.com").Return(clientMock, nil).Once()
 
 				storage, deleter := newStorage(t)
 				hostWg := sync.WaitGroup{}
@@ -473,6 +473,7 @@ func TestRun(t *testing.T) {
 						Hostname:               "forwarder1.example.org",
 						DisableSSLVerification: true,
 					},
+					back: &backoff.ZeroBackOff{},
 				}
 				h.process = h.defaultProcessor
 

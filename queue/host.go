@@ -252,10 +252,13 @@ receive:
 	}
 	if err := h.process(m, h.storage); err != nil {
 		h.log.WithError(err).Error("failed to process message")
+		var smtpErr *SMTPError
+		if errors.As(err, &smtpErr) && smtpErr.IsPermanent() {
+			goto cleanup
+		}
 		goto wait
-	} else {
-		goto cleanup
 	}
+	goto cleanup
 
 deliver:
 	if c == nil {
