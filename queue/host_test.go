@@ -520,3 +520,26 @@ func TestSMTPError_IsPermanent(t *testing.T) {
 	assert.True(t, e.IsPermanent())
 	assert.False(t, e.IsTemporary())
 }
+
+func TestNewHost(t *testing.T) {
+	storage, deleter := newStorage(t)
+	defer deleter()
+
+	conf := &Config{}
+
+	h := NewHost("example.com", storage, conf)
+	h.Stop()
+	assert.NotNil(t, h.config)
+	assert.NotNil(t, h.storage)
+	assert.NotNil(t, h.log)
+	assert.NotNil(t, h.host)
+	assert.NotNil(t, h.newMessage)
+	assert.NotNil(t, h.lastActivity)
+	assert.NotNil(t, h.ctx)
+	assert.NotNil(t, h.stopFunc)
+	assert.NotNil(t, h.wg)
+	assert.NotNil(t, h.process)
+	assert.NotNil(t, h.mailServerFinder)
+	assert.NotNil(t, h.smtpConnecter)
+	assert.NotNil(t, h.back)
+}
