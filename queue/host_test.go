@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
-	nbc "github.com/hectane/go-nonblockingchan"
+	"github.com/lcd1232/dqueue"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -65,9 +65,9 @@ func TestHost_receiveMessage(t *testing.T) {
 
 	require.True(t, h.lastActivity.IsZero())
 
-	h.newMessage.Send <- &Message{
+	h.newMessage.Insert(&Message{
 		id: "1",
-	}
+	}, 0)
 
 	m := h.receiveMessage()
 
@@ -341,7 +341,7 @@ func TestRun(t *testing.T) {
 					log:              logrus.NewEntry(logrus.StandardLogger()),
 					storage:          storage,
 					wg:               &hostWg,
-					newMessage:       nbc.New(),
+					newMessage:       dqueue.NewQueue(),
 					mailServerFinder: mailServerFinderMock,
 					smtpConnecter:    smtpConnecterMock,
 					config: &Config{
@@ -354,7 +354,7 @@ func TestRun(t *testing.T) {
 
 				message := saveMessage(t, "some body1", h.storage, "from@example.org", []string{"to@example.com"})
 
-				h.newMessage.Send <- message
+				h.newMessage.Insert(message, 0)
 
 				go func() {
 					time.Sleep(100 * time.Millisecond)
@@ -417,7 +417,7 @@ func TestRun(t *testing.T) {
 					log:              logrus.NewEntry(logrus.StandardLogger()),
 					storage:          storage,
 					wg:               &hostWg,
-					newMessage:       nbc.New(),
+					newMessage:       dqueue.NewQueue(),
 					mailServerFinder: mailServerFinderMock,
 					smtpConnecter:    smtpConnecterMock,
 					config: &Config{
@@ -430,7 +430,7 @@ func TestRun(t *testing.T) {
 
 				message := saveMessage(t, "some body1", h.storage, "from@example.org", []string{"to@example.com"})
 
-				h.newMessage.Send <- message
+				h.newMessage.Insert(message, 0)
 
 				return &h, func() {
 					deleter()
@@ -469,7 +469,7 @@ func TestRun(t *testing.T) {
 					log:              logrus.NewEntry(logrus.StandardLogger()),
 					storage:          storage,
 					wg:               &hostWg,
-					newMessage:       nbc.New(),
+					newMessage:       dqueue.NewQueue(),
 					mailServerFinder: mailServerFinderMock,
 					smtpConnecter:    smtpConnecterMock,
 					config: &Config{
@@ -482,7 +482,7 @@ func TestRun(t *testing.T) {
 
 				message := saveMessage(t, "some body1", h.storage, "from@example.org", []string{"to@example.com"})
 
-				h.newMessage.Send <- message
+				h.newMessage.Insert(message, 0)
 
 				return &h, func() {
 					deleter()

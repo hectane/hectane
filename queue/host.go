@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
-	"github.com/hectane/go-nonblockingchan"
+	"github.com/lcd1232/dqueue"
 	"github.com/sirupsen/logrus"
 
 	"github.com/hectane/hectane/internal/smtputil"
@@ -65,7 +65,7 @@ type Host struct {
 	storage      *Storage
 	log          *logrus.Entry
 	host         string
-	newMessage   *nbc.NonBlockingChan
+	newMessage   *dqueue.Queue
 	lastActivity time.Time
 	ctx          context.Context
 	stopFunc     context.CancelFunc
@@ -91,7 +91,7 @@ func (h *Host) receiveMessage() *Message {
 		h.m.Unlock()
 	}()
 	select {
-	case m := <-h.newMessage.Recv:
+	case m := <-h.newMessage.Channel():
 		return m.(*Message)
 	case <-h.ctx.Done():
 		return nil
@@ -291,7 +291,7 @@ func NewHost(host string, s *Storage, c *Config) *Host {
 		storage:          s,
 		log:              logrus.WithField("context", host),
 		host:             host,
-		newMessage:       nbc.New(),
+		newMessage:       dqueue.NewQueue(),
 		ctx:              ctx,
 		stopFunc:         cancel,
 		wg:               &sync.WaitGroup{},
@@ -312,7 +312,11 @@ func NewHost(host string, s *Storage, c *Config) *Host {
 
 // Attempt to deliver a message to the host.
 func (h *Host) Deliver(m *Message) {
-	h.newMessage.Send <- m
+	h.deliver(m, 0)
+}
+
+func (h *Host) deliver(m *Message, delay time.Duration) {
+	h.newMessage.Insert(m, delay)
 }
 
 // Retrieve the connection idle time.
@@ -329,7 +333,7 @@ func (h *Host) Idle() time.Duration {
 func (h *Host) Status() *HostStatus {
 	return &HostStatus{
 		Active: h.Idle() == 0,
-		Length: h.newMessage.Len(),
+		Length: h.newMessage.Length(),
 	}
 }
 
