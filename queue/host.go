@@ -206,13 +206,11 @@ func (h *Host) run() {
 	}()
 
 receive:
+	m = h.receiveMessage()
 	if m == nil {
-		m = h.receiveMessage()
-		if m == nil {
-			return
-		}
-		h.log.Info("message received in queue")
+		return
 	}
+	h.log.Info("message received in queue")
 	if err := h.process(m, h.storage); err != nil {
 		var smtpErr *SMTPError
 		if errors.As(err, &smtpErr) && smtpErr.IsPermanent() {
@@ -239,11 +237,8 @@ wait:
 		h.log.Error("maximum retry count exceeded")
 		goto cleanup
 	}
-	select {
-	case <-h.ctx.Done():
-	case <-time.After(duration):
-		goto receive
-	}
+	h.deliver(m, duration)
+	goto receive
 }
 
 func (h *Host) defaultProcessor(m *Message, s *Storage) error {

@@ -503,7 +503,7 @@ func TestRun(t *testing.T) {
 				}
 
 				mailServerFinderMock := new(queuemocks.MailServerFinder)
-				mailServerFinderMock.On("FindServers", "example.com").Return([]string{"mx1.example.com", "mx2.example.com"}, nil).Once()
+				mailServerFinderMock.On("FindServers", "example.com").Return([]string{"mx1.example.com", "mx2.example.com"}, nil)
 				clientMock := new(smtpmocks.Client)
 				clientMock.On("Hello", "forwarder1.example.org").Run(func(args mock.Arguments) {
 					go func() {
@@ -530,7 +530,7 @@ func TestRun(t *testing.T) {
 				}).Return(w, nil)
 				clientMock.On("Quit").Return(nil)
 				smtpConnecterMock := new(smtpmocks.Connecter)
-				smtpConnecterMock.On("SMTPConnect", "mx1.example.com").Return(clientMock, nil).Once()
+				smtpConnecterMock.On("SMTPConnect", "mx1.example.com").Return(clientMock, nil)
 
 				storage, deleter := newStorage(t)
 				hostWg := sync.WaitGroup{}
