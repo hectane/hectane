@@ -39,11 +39,17 @@ func (e *Email) writeHeaders(w io.Writer, id, boundary string) error {
 		"MIME-Version": "1.0",
 		"Content-Type": fmt.Sprintf("multipart/mixed; boundary=%s", boundary),
 	}
-	for k, v := range e.Headers {
-		headers[k] = v
-	}
 	if len(e.Cc) > 0 {
 		headers["Cc"] = strings.Join(e.Cc, ", ")
+	}
+
+	for k, v := range e.Headers {
+		if _, ok := headers[k]; ok {
+			// Don't override any headers that already exist.
+			continue
+		}
+
+		headers[k] = v
 	}
 	return headers.Write(w)
 }
