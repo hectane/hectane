@@ -140,6 +140,35 @@ func TestEmailHeaders(t *testing.T) {
 	}
 }
 
+func TestEmailHeaders_importantHeadersAreNotClobbered(t *testing.T) {
+	var (
+		from    = "me@example.com"
+		to      = "you@example.com"
+		bcc     = "hidden@example.com"
+		subject = "Test"
+	)
+	_, body, err := emailToMessages(&Email{
+		From:    from,
+		To:      []string{to},
+		Bcc:     []string{bcc},
+		Subject: subject,
+		Headers: Headers{
+			"From": "someone-else@example.com",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := bytes.NewBuffer(body)
+	m, err := mail.ReadMessage(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v := m.Header.Get("From"); v != from {
+		t.Fatalf("%s != %s", v, from)
+	}
+}
+
 func TestEmailContent(t *testing.T) {
 	var (
 		from        = "me@example.com"
